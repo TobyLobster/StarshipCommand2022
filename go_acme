@@ -1,0 +1,46 @@
+set -e
+
+# Make disk directory
+mkdir -p build/disk
+
+python starcommand.py -a >starcommand_acme.asm
+tools/acme --symbollist build/symbols.txt -o build/disk/STAR starcommand_acme.asm
+xxd -o 3584 ORIGINAL_DISK/COMM2#.bin >temp1_acme.hex
+xxd -o 3584 build/disk/STAR >temp2_acme.hex
+diff temp1_acme.hex temp2_acme.hex
+rm temp1_acme.hex
+rm temp2_acme.hex
+
+# Find entry point
+entry_point=$(grep build/symbols.txt -e '.*entry_point\t' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
+
+# Create !BOOT file
+printf "*BASIC\rPAGE=&1900\r*FX21\rCLOSE#0:*RUN STAR\r" >build/disk/\!BOOT
+
+# Create INF file for !BOOT
+myfilesize=$(stat -f %z "build/disk/!BOOT")
+myfilesizehex=$(printf '%x\n' $myfilesize)
+echo "$.!BOOT     FFFF1900 FFFF1900 $myfilesizehex" >build/disk/\!BOOT.INF
+
+# Create INF file for STAR
+myfilesize=$(stat -f %z "build/disk/STAR")
+myfilesizehex=$(printf '%x\n' $myfilesize)
+echo "$.STAR     FFFF1F00 FFFF$entry_point $myfilesizehex" >build/disk/STAR.INF
+
+# Create new SSD file with the appropriate files
+cp templates/EMPTY.SSD STAR.SSD
+cd build/disk
+python3 ../../tools/image.py -d ../../STAR.SSD -i !BOOT -i STAR
+cd ../..
+
+if [ $USER == "tobynelson" ];
+then
+    # Open SSD in b2
+    osascript -e 'quit app "b2 Debug"'
+    sleep 1
+    DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+    open -a 'b2 Debug' --args -0 "$DIR/STAR.SSD" -b
+else
+    # Open SSD in BeebEm
+    open STAR.SSD
+fi
