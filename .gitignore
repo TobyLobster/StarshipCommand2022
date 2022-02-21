@@ -1,0 +1,3 @@
+*.SSD
+build/**
+*.bbprojectd
