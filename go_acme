@@ -3,9 +3,8 @@ set -e
 # Make disk directory
 mkdir -p build/disk
 
-#python starcommand.py -a >starcommand_acme.asm
-python starcommand.py -a >build/temp.asm
-python tools/post_process.py <build/temp.asm >starcommand_acme.asm
+#python starcommand.py -a >build/temp.asm
+#python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
 tools/acme --symbollist build/symbols.txt -o build/disk/STAR starcommand_acme.asm
 xxd -o 3584 ORIGINAL_DISK/COMM2#.bin >temp1_acme.hex
