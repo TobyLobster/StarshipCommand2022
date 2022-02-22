@@ -6,7 +6,8 @@ mkdir -p build/disk
 #python starcommand.py -a >build/temp.asm
 #python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
-tools/acme --symbollist build/symbols.txt -o build/disk/STAR starcommand_acme.asm
+tools/acme --symbollist build/symbols.txt -r build/report.txt -o build/disk/STAR starcommand_acme.asm
+sort -o build/symbols.txt build/symbols.txt
 #xxd -o 3584 ORIGINAL_DISK/COMM2#.bin >temp1_acme.hex
 #xxd -o 3584 build/disk/STAR >temp2_acme.hex
 #diff temp1_acme.hex temp2_acme.hex

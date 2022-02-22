@@ -67,7 +67,6 @@ enemy_ships_temporary_behaviour_flags = $0488
 enemy_ships_energy = $0489
 enemy_ships_firing_cooldown = $048a
 user_defined_characters = $0c00
-unused_copy_of_scanner_static_eor = $593f
 starship_top_screen_address = $6b38
 starship_bottom_screen_address = $6c78
 energy_screen_address = $6e48
@@ -78,10 +77,6 @@ osbyte = $fff4
 * = $1f00
 
 !pseudopc $0e00 {
-unused_copyright_string1
-    !byte $0d, $ff                                                    ;
-    !text "STARSHIP COMMAND 1.21 Copyright (c) 1982"                  ;
-    !byte $0d, $50, $54                                               ;
 number_of_delay_loops
     !byte 0                                                           ;
 enemy_ship_was_previously_on_screen
@@ -116,8 +111,6 @@ enemy_torpedo_table_address_low
     !byte <enemy_torpedoes_table                                      ;
 enemy_torpedo_table_address_high
     !byte >enemy_torpedoes_table                                      ;
-unused4
-    !byte $37, $5f                                                    ;
 bit_table
     !byte $80, $40, $20, $10, 8  , 4  , 2  , 1                        ;
 star_table_address_low
@@ -148,8 +141,6 @@ torpedoes_still_to_consider
     !byte 0                                                           ;
 starship_shields_active
     !byte 1                                                           ;
-unused5
-    !byte $3a                                                         ;
 sine_table
     !byte 0  , 1  , 2  , 3  , 4  , 5  , 5  , 6  , 6  , 6  , 5  , 5    ;
     !byte 4  , 3  , 2  , 1  , 0  , $ff, $fe, $fd, $fc, $fb, $fb, $fa  ;
@@ -162,14 +153,10 @@ segment_angle_to_x_y_deltas_table
     !byte 3  , $0f, 3  , $0f, $0f, $0c, $0f, $0c, $0c, $0d, $0c, $0d  ;
     !byte $0d, 1  , $0d, 1  , 1  , 5  , 1  , 5  , 5  , 4  , 5  , 4    ;
     !byte 4  , 7  , 4  , 7  , 7  , 3  , 7  , 3                        ;
-unused6
-    !byte 0  , $ff, $ff, $ff, $ff, $ff                                ;
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
 starship_rotation_sine_table
     !byte 0  , 2  , 4  , 6  , 8  , $0a                                ;
-unused7
-    !byte 0, 0, 0, 0, 0, 0                                            ;
 rotated_x_correction_lsb
     !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
 rotated_x_correction_screens
@@ -242,8 +229,6 @@ calculate_pixel_address
     lda bit_table,x                                                   ;
     rts                                                               ;
 
-unused_infinite_loop
-    !byte $ea, $ea, $d0, $fc, $60                                     ;
 ; ----------------------------------------------------------------------------------
 eor_pixel_within_box_around_origin
     lda x_pixels                                                      ;
@@ -290,10 +275,6 @@ eor_pixel
     lda bit_table,x                                                   ;
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
-    rts                                                               ;
-
-unused8
-    !byte $ea, $ea, $91, $70                                          ;
 return
     rts                                                               ;
 
@@ -848,8 +829,6 @@ empty_torpedo_slot
 return4
     rts                                                               ;
 
-unused9
-    !byte $ea                                                         ;
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
     inc x_pixels                                                      ;
@@ -951,8 +930,6 @@ unplot_long_range_scanner_if_shields_inactive
     jsr plot_shields_text                                             ;
     rts                                                               ;
 
-unused10
-    !byte $ea                                                         ;
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_with_blank_text
     lda starship_shields_active                                       ;
@@ -982,8 +959,6 @@ plot_right_edge_loop
 return5
     rts                                                               ;
 
-unused11
-    !byte $ea                                                         ;
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
     ldy #2                                                            ;
@@ -1026,8 +1001,6 @@ small_starship_torpedoes
     jsr eor_pixel                                                     ;
     rts                                                               ;
 
-unused12
-    !text "INY"                                                       ;
 ; ----------------------------------------------------------------------------------
 apply_rotation_to_starship_angle
     lda #0                                                            ;
@@ -1253,9 +1226,6 @@ plot_enemy_torpedo
 enemy_torpedo_type_instruction
     rts                                                               ;
 
-unused13
-    !byte $e6, $7a, $20, $64, $0f, $e6, $7b, $20, $64, $0f, $c6, $7a  ;
-    !byte $20, $64, $0f, $60                                          ;
 apply_velocity_to_enemy_ships
     lda maximum_number_of_enemy_ships                                 ;
     sta enemy_ships_still_to_consider                                 ;
@@ -1363,8 +1333,6 @@ set_enemy_ships_on_screen
 return7
     rts                                                               ;
 
-unused14
-    !byte $ea, $ea, $ea                                               ;
 plot_enemy_ships
     lda maximum_number_of_enemy_ships                                 ;
     sta enemy_ships_still_to_consider                                 ;
@@ -1375,11 +1343,11 @@ plot_enemy_ships_loop
     lda enemy_ships_energy,x                                          ;
     bne explosion_continuing                                          ;
     ldy enemy_ships_still_to_consider                                 ;
-    lda unused24,y                                                    ;
+    lda enemy_ships_explosion_number - 1,y                            ;
     tay                                                               ;
     lda enemy_explosion_address_low_table - 1,y                       ;
     sta temp5                                                         ;
-    lda unused26,y                                                    ;
+    lda enemy_explosion_address_high_table - 1,y                      ;
     sta temp6                                                         ;
     lda enemy_ship_was_previously_on_screen                           ;
     bne not_previously_on_screen                                      ;
@@ -1456,9 +1424,6 @@ delay_loop_inner_loop
     bne delay_loop_outer_loop                                         ;
     rts                                                               ;
 
-unused15
-    !byte $ea, $ea, $ea                                               ;
-    !text "#128:STA"                                                  ;
 shield_state_strings
     !byte $1f, $22, $18                                               ;
     !text " ON "                                                      ;
@@ -1466,14 +1431,8 @@ shield_state_strings
     !text " OFF"                                                      ;
     !byte $1f, $22, $18                                               ;
     !text "AUTO"                                                      ;
-unused16
-    !byte $1f, $20, $18                                               ;
-    !text "Sh:~"                                                      ;
-    !byte $0d, $44, $59                                               ;
 enemy_ships_collided_with_each_other
     !byte 0                                                           ;
-unused17
-    !byte 0, 0, 0, 0, 0, 0                                            ;
 check_for_starship_collision_with_enemy_ships
     lda maximum_number_of_enemy_ships                                 ;
     sta enemy_ships_still_to_consider                                 ;
@@ -1657,8 +1616,6 @@ starship_torpedo_cooldown_after_firing
     !byte 1                                                           ;
 fire_pressed
     !byte 0                                                           ;
-unused18
-    !byte 0                                                           ;
 starship_energy_low
     !byte 0                                                           ;
 starship_energy_high
@@ -1722,8 +1679,6 @@ starship_energy_drain_from_firing_torpedo
     !byte 4                                                           ;
 previous_starship_automatic_shields
     !byte 0                                                           ;
-unused19
-    !byte $ea, $ea, $ea, $ea                                          ;
 handle_player_movement
     lda #0                                                            ;
     sta rotation_delta                                                ;
@@ -1903,8 +1858,6 @@ plot_shields_on_and_consider_activation
 return10
     rts                                                               ;
 
-unused20
-    !byte $ea                                                         ;
 incur_damage
     stx value_of_x_when_incur_damage_called                           ;
     ldx starship_shields_active                                       ;
@@ -1932,8 +1885,6 @@ update_various_starship_statuses_on_screen
     jsr plot_starship_velocity_and_rotation_on_gauges                 ;
     jmp flash_energy_when_low                                         ;
 
-unused21
-    !byte $60                                                         ;
 apply_damage_to_starship_energy
     lda starship_energy_low                                           ;
     sec                                                               ;
@@ -2072,8 +2023,6 @@ enemy_ship_is_on_screen
 return13
     rts                                                               ;
 
-unused22
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 plot_vertical_line
     sta temp3                                                         ;
 plot_vertical_line_loop
@@ -2238,8 +2187,6 @@ rnd_1
     !byte $ca                                                         ;
 rnd_2
     !byte $48                                                         ;
-unused23
-    !byte 0, 0, 0                                                     ;
 keyboard_or_joystick
     !byte 0                                                           ;
 sound_enabled
@@ -2262,13 +2209,8 @@ damage_to_enemy_ship_from_other_collision
     !byte $ea                                                         ;
 how_enemy_ship_was_damaged
     !byte $ea                                                         ;
-unused24
-    !byte $2e                                                         ;
 enemy_ships_explosion_number
     !byte 0, 0, 0, 0, 0, 0, 0, 0                                      ;
-unused25
-    !text "SIE/256:I?SN"                                              ;
-    !byte $4c                                                         ;
 enemy_explosion_address_low_table
     !byte <(enemy_explosion_tables + $0000)                           ;
     !byte <(enemy_explosion_tables + $0040)                           ;
@@ -2286,8 +2228,6 @@ enemy_explosion_address_low_table
     !byte <(enemy_explosion_tables + $0340)                           ;
     !byte <(enemy_explosion_tables + $0380)                           ;
     !byte <(enemy_explosion_tables + $03c0)                           ;
-unused26
-    !byte $53                                                         ;
 enemy_explosion_address_high_table
     !byte >(enemy_explosion_tables + $0000)                           ;
     !byte >(enemy_explosion_tables + $0040)                           ;
@@ -2335,8 +2275,6 @@ skip17
     bne plot_stars_loop                                               ;
     rts                                                               ;
 
-unused27
-    !byte $ea, $ea, $ea, $ea                                          ;
 initialise_stars_at_random_positions
     lda star_table_address_low                                        ;
     sta temp0_low                                                     ;
@@ -2363,8 +2301,6 @@ skip18
     bne initialise_stars_at_random_positions_loop                     ;
     rts                                                               ;
 
-unused28
-    !byte $ea, $ea, $ea, $ea                                          ;
 plot_starship
     ldx #$0f                                                          ;
 plot_starship_top_loop
@@ -2382,8 +2318,6 @@ plot_starship_bottom_loop
     bpl plot_starship_bottom_loop                                     ;
     rts                                                               ;
 
-unused29
-    !byte $ea, $ea, $ea, $ea                                          ;
 explode_starship
     lda starship_explosion_address_low                                ;
     sta temp0_low                                                     ;
@@ -2409,8 +2343,6 @@ skip19
     jsr turn_scanner_to_static                                        ;
     jmp plot_starship                                                 ;
 
-unused30
-    !byte $ea, $ea, $ea, $ea, $ea                                     ;
 plot_starship_explosion
     dec starship_explosion_countdown                                  ;
     bne starship_explosion_continuing                                 ;
@@ -2460,8 +2392,6 @@ skip21
     bne loop6                                                         ;
     rts                                                               ;
 
-unused31
-    !byte $ea                                                         ;
 plot_starship_explosion_piece
     ldy #0                                                            ;
     lda (temp0_low),y                                                 ;
@@ -2576,8 +2506,6 @@ plot_variable_size_fragment
 return15
     rts                                                               ;
 
-unused32
-    !byte $ea, $ea, $ea, $ea                                          ;
 initialise_starship_explosion_pieces
     lda maximum_starship_explosion_countdown                          ;
     sta starship_explosion_countdown                                  ;
@@ -2636,9 +2564,9 @@ skip_unplotting
     ldy maximum_number_of_enemy_ships                                 ;
     lda #0                                                            ;
 find_free_explosion_slot_loop
-    cmp unused24,y                                                    ;
+    cmp enemy_ships_explosion_number - 1,y                            ;
     bcs skip24                                                        ;
-    lda unused24,y                                                    ;
+    lda enemy_ships_explosion_number - 1,y                            ;
 skip24
     dey                                                               ;
     bne find_free_explosion_slot_loop                                 ;
@@ -2648,11 +2576,11 @@ skip24
     adc #1                                                            ;
 too_many_explosions
     ldy enemy_ships_still_to_consider                                 ;
-    sta unused24,y                                                    ;
+    sta enemy_ships_explosion_number - 1,y                            ;
     tay                                                               ;
     lda enemy_explosion_address_low_table - 1,y                       ;
     sta temp5                                                         ;
-    lda unused26,y                                                    ;
+    lda enemy_explosion_address_high_table - 1,y                      ;
     sta temp6                                                         ;
     ldy number_of_bytes_per_enemy_explosion                           ;
 loop_c1f97
@@ -2671,8 +2599,6 @@ enemy_explosion_initialisation_loop
     bpl loop_c1f97                                                    ;
     jmp score_points_for_destroying_enemy_ship                        ;
 
-unused33
-    !byte $ea, $ea                                                    ;
 update_enemy_explosion_pieces
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     cmp frame_of_enemy_ship_explosion_after_which_no_collisions       ;
@@ -2725,12 +2651,8 @@ move_to_next_piece
     ldx temp7                                                         ;
     rts                                                               ;
 
-; ----------------------------------------------------------------------------------
-; [only 4 bytes, but should be eight bytes]
-; ----------------------------------------------------------------------------------
 sound_0
-unused34
-    !byte $ea, $ea, $ea, $ea                                          ;
+    !byte 0,0,0,0,0,0,0,0                                             ; TODO: Add sound?
 plot_enemy_ship_explosion
     jsr plot_enemy_ship_or_explosion_segments                         ;
     ldy number_of_bytes_per_enemy_explosion                           ;
@@ -2746,8 +2668,6 @@ move_to_next_explosion_piece
     ldx temp7                                                         ;
     rts                                                               ;
 
-unused35
-    !byte $ea, $ea, $ea, $ea                                          ;
 plot_enemy_explosion_fragment
     lda (temp5),y                                                     ;
     and #$c0                                                          ;
@@ -2826,8 +2746,6 @@ leave_after_restoring_y
     ldy temp11                                                        ;
     rts                                                               ;
 
-unused36
-    !byte $ea, $ea, $ea, $ea                                          ;
 plot_enemy_ship_or_explosion_segments
     stx temp7                                                         ;
     lda enemy_ships_previous_x_pixels,x                               ;
@@ -2845,8 +2763,6 @@ plot_enemy_ship_or_explosion_segments
 return16
     rts                                                               ;
 
-unused37
-    !byte $ea, $ea, $ea                                               ;
 plot_enemy_explosion_segments
     and #$1f                                                          ;
     sta segment_angle                                                 ;
@@ -2884,8 +2800,6 @@ plot_enemy_explosion_segments
     jsr plot_segment                                                  ;
     rts                                                               ;
 
-unused38
-    !byte $ea, $ea, $ea, $ea                                          ;
 random_number_generator
     lda rnd_1                                                         ;
     sta y_pixels                                                      ;
@@ -2913,8 +2827,6 @@ lowest_bit_unset
     sta rnd_1                                                         ;
     rts                                                               ;
 
-unused39
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 game_key_table
     !byte $9e                                                         ;
     !byte $bd                                                         ;
@@ -2931,8 +2843,6 @@ game_key_table
     !byte $9b                                                         ;
     !byte $ad                                                         ;
     !byte $96                                                         ;
-unused40
-    !byte $ff, $ff, $ff, $ff, $96                                     ;
 screen_border_string
     !byte 0  , 0  , 3  , $ff, 5  , $19                                ;
     !byte 3  , $ff, 3  , $ff, 5  , $19                                ;
@@ -2949,8 +2859,6 @@ envelope3
     !byte 3  , $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78 ;
 envelope4
     !byte 4  , 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64 ;
-unused41
-    !byte 1  , 2  , 3  , 4  , 5  , 6  , 7  , 8  , 9  , $0a, $0b, $0c  ;
 ; ----------------------------------------------------------------------------------
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
@@ -3032,8 +2940,6 @@ enable_cursor_string
     !byte 0  , 0  , 0  , 0  , 0  , 0  , $60, $0a, 0  , $17            ;
 disable_cursor_string
     !byte 0  , 0  , 0  , 0  , 0  , 0  , $3c, $0a, 0  , $17            ;
-unused42
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 plot_energy_bar_edges
     lda #$93                                                          ;
     sta y_pixels                                                      ;
@@ -3177,8 +3083,6 @@ disable_cursor_loop
     bpl loop4                                                         ;
     rts                                                               ;
 
-unused43
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                 ;
 check_for_keypresses
     ldy escape_capsule_launched                                       ;
     bne return17                                                      ;
@@ -3277,31 +3181,6 @@ not_disable_shields
     sta starship_automatic_shields                                    ;
     rts                                                               ;
 
-unused44
-    jsr check_key                                                     ;
-    beq unused_not_copy                                               ;
-    jmp check_for_copy                                                ;
-
-unused_not_copy
-    jsr check_key                                                     ;
-    beq unused_not_shift_one                                          ;
-    jmp check_for_copy                                                ;
-
-unused_not_shift_one
-    jsr check_key                                                     ;
-    beq unused_not_shift_two                                          ;
-    jmp check_for_copy                                                ;
-
-unused_not_shift_two
-    jsr check_key                                                     ;
-    beq unused_not_shift_three                                        ;
-    jmp check_for_copy                                                ;
-
-unused_not_shift_three
-    jsr check_key                                                     ;
-    beq check_for_copy                                                ;
-    jmp check_for_copy                                                ;
-
 check_for_copy
     jsr check_key                                                     ;
     beq return18                                                      ;
@@ -3310,9 +3189,6 @@ check_for_copy
 return18
     rts                                                               ;
 
-unused45
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea                                               ;
 check_key
     inc temp8                                                         ;
     ldx temp8                                                         ;
@@ -3324,8 +3200,6 @@ check_key
     tya                                                               ;
     rts                                                               ;
 
-unused46
-    !byte $ea, $ea, $ea                                               ;
 pause_game
     ldx #inkey_key_delete                                             ;
     ldy #$a6                                                          ;
@@ -3335,8 +3209,6 @@ pause_game
     beq pause_game                                                    ;
     rts                                                               ;
 
-unused47
-    !byte $ea, $ea, $ea, $ea                                          ;
 play_sounds
     lda sound_enabled                                                 ;
     beq sound_is_enabled                                              ;
@@ -3508,12 +3380,6 @@ skip_starship_torpedo_sound
 return19
     rts                                                               ;
 
-unused48
-    !byte $ea, $ea, $ff, $60, $ea, $ea, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0         ;
 starship_maximum_x_for_collisions_with_enemy_torpedoes
     !byte $86                                                         ;
 starship_minimum_x_for_collisions_with_enemy_torpedoes
@@ -3540,8 +3406,6 @@ enemy_ships_collision_x_difference
     !byte 6                                                           ;
 enemy_ships_collision_y_difference
     !byte 5                                                           ;
-unused49
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0                    ;
 timer_for_low_energy_warning_sound
     !byte 0                                                           ;
 sound_needed_for_low_energy
@@ -3586,10 +3450,6 @@ invert_energy_text_loop
     bpl invert_energy_text_loop                                       ;
     rts                                                               ;
 
-unused50
-    !byte $ea, $ea, $ea, $ff, $ff, $ff, $ff, $ff, $ff, 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0                                                 ;
 enemy_ships_can_cloak
     !byte 1                                                           ;
 probability_of_enemy_ship_cloaking
@@ -3598,8 +3458,6 @@ minimum_energy_for_enemy_ship_to_cloak
     !byte $40                                                         ;
 enemy_ship_desired_angle_divided_by_eight
     !byte 0                                                           ;
-unused51
-    !byte 7                                                           ;
 number_of_live_starship_torpedoes
     !byte 0                                                           ;
 starship_fired_torpedo
@@ -3610,8 +3468,6 @@ starship_shields_active_before_failure
     !byte $ea                                                         ;
 starship_torpedo_type
     !byte 0                                                           ;
-unused52
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea       ;
 handle_enemy_ships_cloaking
     lda enemy_ships_can_cloak                                         ;
     beq return21                                                      ;
@@ -3664,8 +3520,6 @@ handle_enemy_ships_cloaking_next
 return21
     rts                                                               ;
 
-unused53
-    !byte $ea, $ea                                                    ;
 fire_enemy_torpedo
     lda torpedoes_still_to_consider                                   ;
     beq leave_after_clearing_carry                                    ;
@@ -3829,13 +3683,6 @@ skip_angle_inversion_x1
 ninety_degrees
     lda #8                                                            ;
     bne adjust_angle_for_inversions_and_swap                          ;
-unused54
-    nop                                                               ;
-    nop                                                               ;
-    nop                                                               ;
-    nop                                                               ;
-    brk                                                               ;
-    !byte 0, 0, 0, 0                                                  ;
 collide_enemy_ships
     ldx temp0_low                                                     ;
     lda enemy_ships_energy,x                                          ;
@@ -3932,8 +3779,6 @@ dont_alter_first_ships_position
 dont_alter_second_ships_position
     jmp consider_next_second_enemy_ship                               ;
 
-unused55
-    !byte $ff                                                         ;
 escape_capsule_destroyed
     !byte 0                                                           ;
 self_destruct_countdown
@@ -3950,8 +3795,6 @@ escape_capsule_y_pixels
     !byte 0                                                           ;
 escape_capsule_launch_direction
     !byte 0                                                           ;
-unused56
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
 initialise_game_screen
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
@@ -3972,8 +3815,6 @@ initialise_game_screen
     jsr set_foreground_colour_to_white                                ;
     rts                                                               ;
 
-unused57
-    !byte $ea, $ea, $ea                                               ;
 launch_escape_capsule_port
     ldy #$c0                                                          ;
     bne launch_escape_capsule                                         ;
@@ -4076,8 +3917,6 @@ mark_escape_capsule_as_off_screen
     sta escape_capsule_on_screen                                      ;
     rts                                                               ;
 
-unused58
-    !byte $ea                                                         ;
 plot_escape_capsule
     lda escape_capsule_x_pixels                                       ;
     sta x_pixels                                                      ;
@@ -4097,9 +3936,6 @@ plot_escape_capsule
     jsr eor_pixel                                                     ;
     rts                                                               ;
 
-unused59
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
 fire_enemy_torpedo_cluster
     lda enemy_ships_angle,x                                           ;
     lsr                                                               ;
@@ -4171,12 +4007,8 @@ dont_add_any_more_torpedoes_to_cluster
     sec                                                               ;
     rts                                                               ;
 
-unused60
-    !byte $ea, $ea, $ea, $ea, $ea                                     ;
 angle_to_action_table
     !byte 0, 0, 1, 3, 7, 5, 2, 2                                      ;
-unused61
-    !byte $ea                                                         ;
 enemy_ship_behaviour_routine_low_table
     !byte <(enemy_ship_behaviour_routine0)                            ;
     !byte <(enemy_ship_behaviour_routine1)                            ;
@@ -4194,8 +4026,6 @@ enemy_ship_behaviour_routine_low_table
     !byte <(enemy_ship_behaviour_routine2)                            ;
     !byte <(enemy_ship_behaviour_routine3)                            ;
     !byte <(enemy_ship_behaviour_routine1)                            ;
-unused62
-    !byte $ea                                                         ;
 enemy_ship_behaviour_routine_high_table
     !byte >(enemy_ship_behaviour_routine0)                            ;
     !byte >(enemy_ship_behaviour_routine1)                            ;
@@ -4213,16 +4043,12 @@ enemy_ship_behaviour_routine_high_table
     !byte >(enemy_ship_behaviour_routine2)                            ;
     !byte >(enemy_ship_behaviour_routine3)                            ;
     !byte >(enemy_ship_behaviour_routine1)                            ;
-unused63
-    !byte $ea                                                         ;
 enemy_ship_desired_velocity
     !byte 0                                                           ;
 partial_velocity_for_damaged_enemy_ships
     !byte 6                                                           ;
 desired_velocity_for_intact_enemy_ships
     !byte $18                                                         ;
-unused64
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 enemy_ship_defensive_behaviour_handling
     lda enemy_ships_on_screen,x                                       ;
     bne unset_retreating_flags                                        ;
@@ -4287,8 +4113,6 @@ leave_after_clearing_carry1
     clc                                                               ;
     rts                                                               ;
 
-unused65
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
 get_rectilinear_distance_from_centre_of_screen_accounting_for_starship_velocity
     lda enemy_ships_x_pixels,x                                        ;
     bmi skip_inversion7                                               ;
@@ -4326,10 +4150,6 @@ skip_inversion_y4
     adc x_pixels                                                      ;
     rts                                                               ;
 
-unused66
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
-turn_enemy_ship_towards_starship_using_pixels_or_screens_unused
-    !byte $bd, $80, 4  , $f0, $0d                                     ;
 turn_enemy_ship_towards_starship_using_screens
     lda enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
@@ -4337,8 +4157,6 @@ turn_enemy_ship_towards_starship_using_screens
     sta temp9                                                         ;
     jmp turn_enemy_ship_towards_starship                              ;
 
-turn_enemy_ship_towards_starship_using_pixels_unused
-    !byte $bd, $82, 4  , $85, $77, $bd, $85, 4  , $85, $76            ;
 turn_enemy_ship_towards_starship
     jsr calculate_enemy_ship_angle_to_starship                        ;
 turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity
@@ -4447,16 +4265,6 @@ continue1
 no_change_needed_to_enemy_ship_angle
     rts                                                               ;
 
-unused67
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
-unused_routine_to_turn_enemy_ship_on_screen_towards_starship
-    lda enemy_ships_x_pixels,x                                        ;
-    sta temp10                                                        ;
-    lda enemy_ships_x_pixels1,x                                       ;
-    sta temp9                                                         ;
-    jsr calculate_enemy_ship_angle_to_starship                        ;
-    jmp turn_enemy_ship_towards_desired_angle                         ;
-
 decrease_enemy_ship_velocity
     lda enemy_ships_velocity,x                                        ;
     beq return23                                                      ;
@@ -4466,8 +4274,6 @@ decrease_enemy_ship_velocity
 return23
     rts                                                               ;
 
-unused68
-    !byte $ea, $ea, $ea, $ea, $ea                                     ;
 increase_or_decrease_enemy_ship_velocity_towards_desired_velocity
     lda enemy_ship_desired_velocity                                   ;
     cmp enemy_ships_velocity,x                                        ;
@@ -4483,9 +4289,6 @@ compare_velocity
 return24
     rts                                                               ;
 
-unused69
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0                                                 ;
 starship_sprite_1
     !byte %.#.....#                                                   ;
     !byte %.#.....#                                                   ;
@@ -4750,8 +4553,6 @@ starship_sprite_8
     !byte %#....##.                                                   ;
     !byte %#....##.                                                   ;
     !byte %.....##.                                                   ;
-unused70
-    !byte $ea                                                         ;
 velocity_gauge_position
     !byte 0                                                           ;
 rotation_gauge_position
@@ -4764,8 +4565,6 @@ score_as_bcd
     !byte 0                                                           ;
     !byte 0                                                           ;
     !byte 0                                                           ;
-unused71
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 score_as_digits
     !byte 0                                                           ;
     !byte 0                                                           ;
@@ -4773,12 +4572,8 @@ score_as_digits
     !byte 0                                                           ;
     !byte 0                                                           ;
     !byte 0                                                           ;
-unused72
-    !byte $ea                                                         ;
 scores_for_destroying_enemy_ships
     !byte 8  , $12, 3  , 4  , $70, $90, 3  , 4  , 2  , 3              ;
-unused73
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 score_points_for_destroying_enemy_ship
     lda #1                                                            ;
     sta enemy_ships_previous_on_screen,x                              ;
@@ -4818,8 +4613,6 @@ convert_offset_to_score
     cli                                                               ;
     rts                                                               ;
 
-unused74
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 ; ----------------------------------------------------------------------------------
 ; add to score (in binary coded decimal)
 ; ----------------------------------------------------------------------------------
@@ -4903,8 +4696,6 @@ leading_zero
 c2e5e
     rts                                                               ;
 
-unused75
-    !byte $ea, $ea                                                    ;
 plot_scanner_grid
     inc screen_start_high                                             ;
     lda #9                                                            ;
@@ -5014,8 +4805,6 @@ plot_gauge_edges
     dec screen_start_high                                             ;
     rts                                                               ;
 
-unused76
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
 plot_starship_velocity_and_rotation_on_gauges
     inc screen_start_high                                             ;
     lda starship_velocity_low                                         ;
@@ -5123,8 +4912,6 @@ skip_rotation_gauge
     dec screen_start_high                                             ;
     rts                                                               ;
 
-unused77
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
 plot_enemy_ships_on_scanners
     inc screen_start_high                                             ;
     lda maximum_number_of_enemy_ships                                 ;
@@ -5302,9 +5089,6 @@ continue3
     dec screen_start_high                                             ;
     rts                                                               ;
 
-unused78
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 handle_scanner_failure
     lda damage_low                                                    ;
     cmp #$3c                                                          ;
@@ -5394,7 +5178,6 @@ update_static_column_loop
     dex                                                               ;
     bne update_static_row_loop                                        ;
     lda y_pixels                                                      ;
-    sta unused_copy_of_scanner_static_eor                             ;
 return26
     rts                                                               ;
 
@@ -5428,9 +5211,6 @@ clear_long_range_scanner_column_loop
     jsr unplot_long_range_scanner_if_shields_inactive                 ;
     rts                                                               ;
 
-unused79
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea                                          ;
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine0
     lda enemy_ships_temporary_behaviour_flags,x                       ;
@@ -5618,9 +5398,6 @@ set_retreating_and_head_towards_desired_velocity_and_angle
     jsr increase_or_decrease_enemy_ship_velocity_towards_desired_velocity ;
     jmp return_from_enemy_ship_behaviour_routine                      ;
 
-unused80
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff                           ;
 maximum_enemy_torpedo_cooldown_per_command
     !byte $0f, $0d, $0b, 9  , 7  , 5  , 3  , 2                        ;
 command_number_used_for_maximum_enemy_torpedo_cooldown_lookup
@@ -5633,27 +5410,19 @@ probability_of_new_enemy_ship_firing_torpedo_clusters
     !byte 0                                                           ;
 probability_of_new_enemy_ship_being_large
     !byte 0                                                           ;
-unused81
-    !byte 0, 0                                                        ;
 change_in_enemy_ship_spawning_probabilities_per_command
     !byte $ec, $f2, $0f, $17                                          ;
-unused82
-    !byte 0, 0                                                        ;
 ultimate_enemy_ship_probabilities
     !byte $20, 4  , $b8, $ff                                          ;
-unused83
-    !byte 0, 0                                                        ;
 initial_enemy_ship_spawning_probabilities
     !byte $c0, $82, 4  , 2                                            ;
-unused84
-    !byte 0, 0                                                        ;
 ; ----------------------------------------------------------------------------------
 initialise_enemy_ship
     lda #$ff                                                          ;
     sta enemy_ships_energy,x                                          ;
     ldy enemy_ships_still_to_consider                                 ;
     lda #0                                                            ;
-    sta unused24,y                                                    ;
+    sta enemy_ships_explosion_number - 1,y                            ;
     sta enemy_ships_temporary_behaviour_flags,x                       ;
     jsr random_number_generator                                       ;
     lda rnd_2                                                         ;
@@ -5750,9 +5519,6 @@ skip_addition
     sta enemy_ships_velocity,x                                        ;
     rts                                                               ;
 
-unused85
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea                                ;
 starship_type
     !byte 0                                                           ;
 command_number
@@ -5779,8 +5545,6 @@ change_in_number_of_stars_per_command
     !byte $fe                                                         ;
 subtraction_from_starship_regeneration_when_shields_active
     !byte 4                                                           ;
-unused86
-    !byte $ea, $ea, $ea                                               ;
 escape_capsule_launched_string
     !text "DEHCNUAL"                                                  ;
     !byte $19, $20, $1f                                               ;
@@ -5795,8 +5559,6 @@ command_move_string_horizontal_pos
 command_string
     !text "DNAMMOC"                                                   ;
     !byte 5  , 0  , $a2, 4  , $0f, 4  , $19                           ;
-unused87
-    !byte $ea, $ea                                                    ;
 prepare_starship_for_next_command
     inc starship_type                                                 ;
     inc command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
@@ -5872,8 +5634,6 @@ initialise_starship_sprite_loop
     jsr plot_enemy_ships                                              ;
     rts                                                               ;
 
-unused88
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                 ;
 plot_command_number
     lda #$d4                                                          ;
     sta y_pixels                                                      ;
@@ -5964,9 +5724,6 @@ initialise_joystick_and_cursor_keys
     jsr convert_score_as_bcd_to_score_as_digits                       ;
     rts                                                               ;
 
-unused89
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea                                                    ;
 update_enemy_ships
     dec timer_for_enemy_ships_regeneration                            ;
     bpl skip_timer_reset                                              ;
@@ -6184,9 +5941,6 @@ return_after_changing_velocity5
 to_return_from_enemy_ship_behaviour_routine3
     jmp return_from_enemy_ship_behaviour_routine                      ;
 
-unused90
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 start_game_continuation
     lda #$ff                                                          ;
     sta command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
@@ -6207,9 +5961,6 @@ reset_enemy_ship_spawning_probabilities_loop
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
 
-unused91
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 main_game_loop
     lda #0                                                            ;
     sta enemy_torpedo_hits_against_starship                           ;
@@ -6295,17 +6046,12 @@ skip_player_movement
     sta value_used_for_enemy_torpedo_ttl                              ;
     jmp main_game_loop                                                ;
 
-unused92
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea                                                    ;
 previous_score_as_bcd
     !byte 0                                                           ;
     !byte 0                                                           ;
     !byte 0                                                           ;
 allowed_another_command
     !byte 0                                                           ;
-unused93
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 combat_experience_rating_string
     !byte $1f, $0b, 5                                                 ;
     !text "STARSHIP COMMAND"                                          ;
@@ -6361,9 +6107,6 @@ and_they_retire_you_string
     !byte $0d                                                         ;
 threshold_table
     !byte 2  , 3  , 4  , 7  , $0d, $14, $1e                           ;
-unused94
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea                           ;
 plot_debriefing
     lda #$0a                                                          ;
     jsr oswrch                                                        ;
@@ -6648,12 +6391,6 @@ has_non_zero_ones
 skip_leading_zeroes_again
     rts                                                               ;
 
-unused95
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff                                                         ;
 instructions_string
     !byte $1f, 6  , 2                                                 ;
     !text "**** STARSHIP CONTROLS ****"                               ;
@@ -6695,13 +6432,6 @@ instructions_string
     !text "<DELETE> - UNFREEZE"                                       ;
     !byte $1f, $0d, $1f                                               ;
     !text "Press <RETURN>~"                                           ;
-unused96
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea                      ;
 plot_instructions
     lda #<instructions_string                                         ;
     sta temp0_low                                                     ;
@@ -6727,8 +6457,6 @@ finished_plotting_instructions1
     jsr plot_line_of_underscores_at_y                                 ;
     rts                                                               ;
 
-unused97
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea       ;
 plot_line_of_underscores_at_y
     tay                                                               ;
     lda #$1f                                                          ;
@@ -6815,8 +6543,6 @@ combat_preparation_string
     !text "f9  Joystick"                                              ;
     !byte $1f, $0d, $1e                                               ;
     !text "Press <RETURN>~"                                           ;
-unused98
-    !byte $ff, $ff, $ff, $ff                                          ;
 plot_selected_options
     ldx #3                                                            ;
 plot_selected_options_loop
@@ -6850,16 +6576,10 @@ wait_for_return_loop
     beq escape_pressed                                                ;
     cpy #$ff                                                          ;
     beq wait_for_return_loop                                          ;
-    cpx #$60                                                          ;
-    beq bad_program                                                   ;
     cpx #$0d                                                          ;
     bne wait_for_return_loop                                          ;
     rts                                                               ;
 
-bad_program
-    brk                                                               ;
-unused99
-    !byte $60, 0                                                      ;
 escape_pressed
     lda #osbyte_acknowledge_escape                                    ;
     jsr osbyte                                                        ;
@@ -6971,32 +6691,18 @@ starfleet_records_string
     !text "ar-Fleet's past commanders."                               ;
     !byte $1f, $0d, $18                                               ;
     !text "Press <RETURN>~"                                           ;
-unused2
-    !byte $0d                                                         ;
-unused100
-    !byte $ff, $ff, $ff                                               ;
-    !byte $ff                                                         ;
-    !byte $ff                                                         ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea                                                    ;
 ; ----------------------------------------------------------------------------------
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
 ; ----------------------------------------------------------------------------------
 high_score_table
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0                       ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0  ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0                          ;
-unused101
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, 0    ;
-    !byte 0  , 0  , 0  , 0  , $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea            ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
+    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
 starfleet_records_screen
     lda #$16                                                          ;
     jsr oswrch                                                        ;
@@ -7114,8 +6820,6 @@ input_buffer
 input_osword_block
     !word input_buffer                                                ;
     !byte $0d, $20, $ff                                               ;
-unused3
-    !byte 0  , $ea                                                    ;
 ; ----------------------------------------------------------------------------------
 check_for_high_score
     lda #$16                                                          ;
@@ -7243,9 +6947,6 @@ plot_shields_string_loop
 return30
     rts                                                               ;
 
-unused102
-    !byte $ea, $ea, $ea, $60, 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0                   ;
 start_game
     lda #$16                                                          ;
     jsr oswrch                                                        ;
@@ -7259,9 +6960,6 @@ start_game
     sta number_of_live_starship_torpedoes                             ;
     jmp start_game_continuation                                       ;
 
-unused103
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea                                               ;
 end_of_command
     pla                                                               ;
     pla                                                               ;
@@ -7317,9 +7015,6 @@ skip_change_of_stars
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
 
-unused
-    !byte $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea                                               ;
 the_frontiers_string
     !byte $1f, 0  , 5                                                 ;
     !text "  The frontiers of space are frequently penet"             ;
@@ -7333,9 +7028,6 @@ the_frontiers_string
     !text "To begin your first command"                               ;
     !byte $1f, $0c, $0b                                               ;
     !text "Press <RETURN>~"                                           ;
-unused1
-    !byte $0d, $ff, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea, $ea  ;
-    !byte $ea, $ea, $ea                                               ;
 start
     lda star_table_address_low                                        ;
     sta temp0_low                                                     ;
@@ -7430,28 +7122,6 @@ return_pressed
     jsr combat_preparation_screen                                     ;
     jmp start_game                                                    ;
 
-unused104
-    !byte $54, $48, $e0, $0d, $d0, $dd, $60, 0                        ;
-unused_title_string
-    !byte $1f, $0b, $0a                                               ;
-    !text "STARSHIP COMMAND I"                                        ;
-    !byte $1f, $0b, $0c                                               ;
-    !text "COPYRIGHT (c) 1982"                                        ;
-    !byte $1f, $0b, $0e                                               ;
-    !text "Peter J.M. Irvin.~"                                        ;
-    !byte $0d                                                         ;
-unused105
-    !byte $ff                                                         ;
-unused_title_screen
-    !byte $a9, $16, $20, $ee, $ff, $a9, 7  , $20, $ee, $ff, $a0, 0    ;
-plot_title_loop
-    !byte $b9, $79, $48, $c9, $7e, $f0, 6  , $20, $ee, $ff, $c8, $d0  ;
-    !byte $f3                                                         ;
-finished_plotting_title
-    !byte $a0, 0  , $a2, $64, $a9, $81, $20, $f4, $ff, $4c, $b1, $47  ;
-    !byte $9c, $a9, $b8, $a9, $be, $ec, $86, $e2, $81, $e2, $ec, $85  ;
-    !byte $be, $ba, $a5, $a2, $e2, 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0                   ;
 get_joystick_input
     lda #osbyte_read_adc_or_get_buffer_status                         ;
     ldx #0                                                            ;
@@ -7517,19 +7187,6 @@ rotate_clockwise
 return31
     rts                                                               ;
 
-unused106
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0                                ;
-unused_copyright_string
-    !byte $0c, $1f, $0c, 8                                            ;
-    !text "STARSHIP COMMAND"                                          ;
-    !byte $1f, 1  , $0a                                               ;
-    !text "Copyright (c) Acornsoft Limited 1982"                      ;
-    !byte $1f, 6  , $0c                                               ;
-    !text "Created by Peter J.M. Irvin"                               ;
-    !byte $1f, $0a, $0e                                               ;
-    !text "All rights reserved"                                       ;
-    !byte $0d, 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0                                       ;
 sound_10
     !byte $11, 0                                                      ;
 sound_10_volume_low
@@ -7686,13 +7343,6 @@ starship_torpedoes_table
     !byte 0  , $12, $75, $76, $3f, $60, $75, $7e, $41, 0  , $99, $6d  ;
     !byte $31, $3d, $13, $6e, $33, $3f, 0  , $d5, $6a, $36, $40, $63  ;
     !byte $6b, $35, $42, 0  , $b1, $68, $93, $43, $4f, $69, $86, $45  ;
-unused107
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
 enemy_torpedoes_table
     !byte 0  , $fb, $23, 5  , 7  , $97, 0  , $38, $83, $f6, $7d, $9e  ;
     !byte 0  , $e7, $45, $45, $8a, $c5, 0  , $f9, $37, $94, $6c, $bf  ;
@@ -7706,17 +7356,6 @@ enemy_torpedoes_table
     !byte 0  , $2e, $36, $45, $b1, $b4, 0  , $ed, $81, $73, $7d, $a7  ;
     !byte 0  , $af, $7d, $5d, $7b, $b2, 0  , $d9, $1c, $c9, $93, $b4  ;
     !byte 0  , $51, $21, $1d, $82, $b8, 0  , $31, $28, $f2, $96, $be  ;
-unused108
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0  , 0    ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff, $ff  ;
-    !byte 0
 }
 ; ----------------------------------------------------------------------------------
 entry_point
@@ -7760,6 +7399,3 @@ not_done
 
 done
     jmp start
-
-unused109
-    !byte 0, 0, 0, 0, 0, 0
