@@ -68,7 +68,6 @@ enemy_ships_energy = $0489
 enemy_ships_firing_cooldown = $048a
 user_defined_characters = $0c00
 unused_copy_of_scanner_static_eor = $593f
-entry_point = $61b1
 starship_top_screen_address = $6b38
 starship_bottom_screen_address = $6c78
 energy_screen_address = $6e48
@@ -1663,7 +1662,6 @@ unused18
 starship_energy_low
     !byte 0                                                           ;
 starship_energy_high
-starship_energy_high1
     !byte 0                                                           ;
 damage_high
     !byte 0                                                           ;
@@ -4006,9 +4004,9 @@ skip_immense_damage
     beq return22                                                      ;
     jsr plot_escape_capsule                                           ;
 update_escape_capsule
-    lda #$92                                                          ;
+    lda #<escape_capsule_on_screen                                    ;
     sta temp0_low                                                     ;
-    lda #$28                                                          ;
+    lda #>escape_capsule_on_screen                                    ;
     sta temp0_high                                                    ;
     ldy #1                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
@@ -6886,9 +6884,9 @@ combat_preparation_screen
     jsr oswrch                                                        ;
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
-    lda #$84                                                          ;
+    lda #<combat_preparation_string                                   ;
     sta temp0_low                                                     ;
-    lda #$40                                                          ;
+    lda #>combat_preparation_string                                   ;
     sta temp0_high                                                    ;
     ldy #0                                                            ;
 plot_combat_preparations_loop

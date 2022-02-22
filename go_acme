@@ -7,11 +7,11 @@ mkdir -p build/disk
 #python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
 tools/acme --symbollist build/symbols.txt -o build/disk/STAR starcommand_acme.asm
-xxd -o 3584 ORIGINAL_DISK/COMM2#.bin >temp1_acme.hex
-xxd -o 3584 build/disk/STAR >temp2_acme.hex
-diff temp1_acme.hex temp2_acme.hex
-rm temp1_acme.hex
-rm temp2_acme.hex
+#xxd -o 3584 ORIGINAL_DISK/COMM2#.bin >temp1_acme.hex
+#xxd -o 3584 build/disk/STAR >temp2_acme.hex
+#diff temp1_acme.hex temp2_acme.hex
+#rm temp1_acme.hex
+#rm temp2_acme.hex
 
 # Find entry point
 entry_point=$(grep build/symbols.txt -e '.*entry_point\t' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
