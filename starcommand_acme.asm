@@ -143,9 +143,8 @@ number_of_bytes_per_enemy_explosion                                 = $3f
 * = $1f00
 
 !pseudopc $0e00 {
-; Align to page boundary
-!align 255, 0
 
+; for speed these arrays of data should be page aligned
 rowLow
     !for i, 0, 255 {
         !byte <((i & 7) + (i/8) * $0140)
@@ -153,6 +152,10 @@ rowLow
 rowHigh
     !for i, 0, 255 {
         !byte >((i & 7) + (i/8) * $0140)
+    }
+playAreaRowHigh
+    !for i, 0, 255 {
+        !byte >($5800 + (i & 7) + (i/8) * $0140)
     }
 xandf8
     !for i, 0, 255 {
@@ -178,6 +181,161 @@ squares_high
         !byte >((i*i)/4)
     }
 
+; ----------------------------------------------------------------------------------
+!if ((* & 255) != 0) {
+    !error "plus_angle0 must be page aligned"
+}
+
+plus_angle0
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle1
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle2
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle3
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle4
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle5
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle6
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle7
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle8
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle9
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle10
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle11
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle12
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle13
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+plus_angle14
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle15
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+plus_angle16
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+plus_angle17
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle18
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+plus_angle19
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle20
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle21
+    jsr eor_play_area_pixel                                           ;
+    dec y_pixels                                                      ;
+plus_angle22
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle23
+    jsr eor_play_area_pixel                                           ;
+    dec y_pixels                                                      ;
+plus_angle24
+    jsr eor_play_area_pixel                                           ;
+    dec y_pixels                                                      ;
+plus_angle25
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle26
+    jsr eor_play_area_pixel                                           ;
+    dec y_pixels                                                      ;
+plus_angle27
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle28
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle29
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle30
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    dec y_pixels                                                      ;
+plus_angle31
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle32
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle33
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle34
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+plus_angle35
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle36
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle37
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle38
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle39
+    jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle40
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
+plus_angle41
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; Align to page boundary for speed
+!align 255, 0
+
 cosine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ; overlaps with sine table
 sine_table
@@ -187,219 +345,48 @@ sine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ;
 
 plot_table_offset
-    !byte plus_angle0  - plus_angle0
-    !byte plus_angle1  - plus_angle0
-    !byte plus_angle2  - plus_angle0
-    !byte plus_angle3  - plus_angle0
-    !byte plus_angle4  - plus_angle0
-    !byte plus_angle5  - plus_angle0
-    !byte plus_angle6  - plus_angle0
-    !byte plus_angle7  - plus_angle0
-    !byte plus_angle8  - plus_angle0
-    !byte plus_angle9  - plus_angle0
-    !byte plus_angle10 - plus_angle0
-    !byte plus_angle11 - plus_angle0
-    !byte plus_angle12 - plus_angle0
-    !byte plus_angle13 - plus_angle0
-    !byte plus_angle14 - plus_angle0
-    !byte plus_angle15 - plus_angle0
-    !byte plus_angle16 - plus_angle0
-    !byte plus_angle17 - plus_angle0
-    !byte plus_angle18 - plus_angle0
-    !byte plus_angle19 - plus_angle0
-    !byte plus_angle20 - plus_angle0
-    !byte plus_angle21 - plus_angle0
-    !byte plus_angle22 - plus_angle0
-    !byte plus_angle23 - plus_angle0
-    !byte plus_angle24 - plus_angle0
-    !byte plus_angle25 - plus_angle0
-    !byte plus_angle26 - plus_angle0
-    !byte plus_angle27 - plus_angle0
-    !byte plus_angle28 - plus_angle0
-    !byte plus_angle29 - plus_angle0
-    !byte plus_angle30 - plus_angle0
-    !byte plus_angle31 - plus_angle0
-    !byte plus_angle32 - plus_angle0
-    !byte plus_angle33 - plus_angle0
-    !byte plus_angle34 - plus_angle0
-    !byte plus_angle35 - plus_angle0
-    !byte plus_angle36 - plus_angle0
-    !byte plus_angle37 - plus_angle0
-    !byte plus_angle38 - plus_angle0
-    !byte plus_angle39 - plus_angle0
-    !byte plus_angle40 - plus_angle0
-    !byte plus_angle41 - plus_angle0
-
-experimental_fast_plot
-    ldx segment_angle
-    lda #<plus_angle0
-    clc
-    adc plot_table_offset,x
-    sta jump_address
-    lda #>plus_angle0
-    adc #0
-    sta jump_address+1
-    txa
-    clc
-    adc segment_length
-    tax
-    lda plot_table_offset,x
-    tax
-    stx remember_x
-    lda #$60                                    ; opcode for RTS
-    sta plus_angle0,x
-jump_address = * + 1
-    jsr $ffff
-    ldx remember_x
-    lda #$20                                    ; opcode for JSR
-    sta plus_angle0,x
-    rts
-
-plus_angle0
-    jsr eor_pixel
-    inc x_pixels
-plus_angle1
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle2
-    jsr eor_pixel
-    inc x_pixels
-plus_angle3
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle4
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle5
-    jsr eor_pixel
-    inc y_pixels
-plus_angle6
-    jsr eor_pixel
-    inc y_pixels
-plus_angle7
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle8
-    jsr eor_pixel
-    inc y_pixels
-plus_angle9
-    jsr eor_pixel
-    dec x_pixels
-    inc y_pixels
-plus_angle10
-    jsr eor_pixel
-    inc y_pixels
-plus_angle11
-    jsr eor_pixel
-    dec x_pixels
-    inc y_pixels
-plus_angle12
-    jsr eor_pixel
-    dec x_pixels
-    inc y_pixels
-plus_angle13
-    jsr eor_pixel
-    dec x_pixels
-plus_angle14
-    jsr eor_pixel
-    dec x_pixels
-    inc y_pixels
-plus_angle15
-    jsr eor_pixel
-    dec x_pixels
-plus_angle16
-    jsr eor_pixel
-    dec x_pixels
-plus_angle17
-    jsr eor_pixel
-    dec x_pixels
-    dec y_pixels
-plus_angle18
-    jsr eor_pixel
-    dec x_pixels
-plus_angle19
-    jsr eor_pixel
-    dec x_pixels
-    dec y_pixels
-plus_angle20
-    jsr eor_pixel
-    dec x_pixels
-    dec y_pixels
-plus_angle21
-    jsr eor_pixel
-    dec y_pixels
-plus_angle22
-    jsr eor_pixel
-    dec x_pixels
-    dec y_pixels
-plus_angle23
-    jsr eor_pixel
-    dec y_pixels
-plus_angle24
-    jsr eor_pixel
-    dec y_pixels
-plus_angle25
-    jsr eor_pixel
-    inc x_pixels
-    dec y_pixels
-plus_angle26
-    jsr eor_pixel
-    dec y_pixels
-plus_angle27
-    jsr eor_pixel
-    inc x_pixels
-    dec y_pixels
-plus_angle28
-    jsr eor_pixel
-    inc x_pixels
-    dec y_pixels
-plus_angle29
-    jsr eor_pixel
-    inc x_pixels
-plus_angle30
-    jsr eor_pixel
-    inc x_pixels
-    dec y_pixels
-plus_angle31
-    jsr eor_pixel
-    inc x_pixels
-plus_angle32
-    jsr eor_pixel
-    inc x_pixels
-plus_angle33
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle34
-    jsr eor_pixel
-    inc x_pixels
-plus_angle35
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle36
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle37
-    jsr eor_pixel
-    inc y_pixels
-plus_angle38
-    jsr eor_pixel
-    inc y_pixels
-plus_angle39
-    jsr eor_pixel
-    inc x_pixels
-    inc y_pixels
-plus_angle40
-    jsr eor_pixel
-    inc y_pixels
-plus_angle41
-    rts
+    !byte <plus_angle0
+    !byte <plus_angle1
+    !byte <plus_angle2
+    !byte <plus_angle3
+    !byte <plus_angle4
+    !byte <plus_angle5
+    !byte <plus_angle6
+    !byte <plus_angle7
+    !byte <plus_angle8
+    !byte <plus_angle9
+    !byte <plus_angle10
+    !byte <plus_angle11
+    !byte <plus_angle12
+    !byte <plus_angle13
+    !byte <plus_angle14
+    !byte <plus_angle15
+    !byte <plus_angle16
+    !byte <plus_angle17
+    !byte <plus_angle18
+    !byte <plus_angle19
+    !byte <plus_angle20
+    !byte <plus_angle21
+    !byte <plus_angle22
+    !byte <plus_angle23
+    !byte <plus_angle24
+    !byte <plus_angle25
+    !byte <plus_angle26
+    !byte <plus_angle27
+    !byte <plus_angle28
+    !byte <plus_angle29
+    !byte <plus_angle30
+    !byte <plus_angle31
+    !byte <plus_angle32
+    !byte <plus_angle33
+    !byte <plus_angle34
+    !byte <plus_angle35
+    !byte <plus_angle36
+    !byte <plus_angle37
+    !byte <plus_angle38
+    !byte <plus_angle39
+    !byte <plus_angle40
+    !byte <plus_angle41
 
 
 segment_angle_to_x_deltas_table
@@ -470,19 +457,6 @@ segment_angle_to_y_deltas_table
     !byte $ff    ; 30  y-
     !byte $0     ; 31  y0
 
-
-starship_angle_fraction
-    !byte $c4                                                         ;
-starship_angle_delta
-    !byte $ff                                                         ;
-value_used_for_enemy_torpedo_ttl
-    !byte $20                                                         ;
-maximum_number_of_stars
-    !byte $11                                                         ;
-starship_shields_active
-    !byte 1                                                           ;
-
-
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
 starship_rotation_sine_table
@@ -503,6 +477,20 @@ rotated_y_correction_fraction
     !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
 rotated_y_correction_pixels
     !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+
+
+; ----------------------------------------------------------------------------------
+starship_angle_fraction
+    !byte $c4                                                         ;
+starship_angle_delta
+    !byte $ff                                                         ;
+value_used_for_enemy_torpedo_ttl
+    !byte $20                                                         ;
+maximum_number_of_stars
+    !byte $11                                                         ;
+starship_shields_active
+    !byte 1                                                           ;
+
 
 starship_torpedo_cooldown
     !byte 0                                                           ;
@@ -625,6 +613,20 @@ skip_inversion_x
 skip_inversion_y
     cmp #$20                                                          ;
     bcs return                                                        ;
+eor_play_area_pixel
+    ldy y_pixels                                                      ;
+    lda playAreaRowHigh,y                                             ;
+    sta screen_address_high                                           ;
+    lda rowLow,y                                                      ;
+    sta screen_address_low                                            ;
+    ldx x_pixels                                                      ;
+    ldy xandf8,x                                                      ;
+    lda xbit_table,x                                                  ;
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+return
+    rts                                                               ;
+
 eor_pixel
     ldy y_pixels                                                      ;
     lda rowHigh,y                                                     ;
@@ -638,7 +640,6 @@ eor_pixel
     lda xbit_table,x                                                  ;
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
-return
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1324,21 +1325,21 @@ return4
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     inc x_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
@@ -1348,29 +1349,29 @@ plot_expiring_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc x_pixels                                                      ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 update_stars
@@ -1381,6 +1382,36 @@ update_stars
     lda maximum_number_of_stars                                       ;
     sta stars_still_to_consider                                       ;
 update_stars_loop
+    ldy #0                                                            ;
+    jsr update_object_position_for_starship_rotation_and_speed        ;
+    jsr eor_play_area_pixel                                           ;
+    ldy #1                                                            ;
+    lda (temp0_low),y                                                 ;
+    sta x_pixels                                                      ;
+    ldy #3                                                            ;
+    lda (temp0_low),y                                                 ;
+    sta y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
+    lda temp0_low                                                     ;
+    clc                                                               ;
+    adc #4                                                            ;
+    sta temp0_low                                                     ;
+    bcc skip5                                                         ;
+    inc temp0_high                                                    ;
+skip5
+    dec stars_still_to_consider                                       ;
+    bne update_stars_loop                                             ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+update_frontier_stars
+    lda #<star_table                                                  ;
+    sta temp0_low                                                     ;
+    lda #>star_table                                                  ;
+    sta temp0_high                                                    ;
+    lda maximum_number_of_stars                                       ;
+    sta stars_still_to_consider                                       ;
+update_frontier_stars_loop
     ldy #0                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
     jsr eor_pixel                                                     ;
@@ -1395,11 +1426,11 @@ update_stars_loop
     clc                                                               ;
     adc #4                                                            ;
     sta temp0_low                                                     ;
-    bcc skip5                                                         ;
+    bcc +                                                             ;
     inc temp0_high                                                    ;
-skip5
++
     dec stars_still_to_consider                                       ;
-    bne update_stars_loop                                             ;
+    bne update_frontier_stars_loop                                    ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1457,7 +1488,7 @@ plot_starship_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     lda starship_torpedo_type                                         ;
     beq small_starship_torpedoes                                      ;
     jmp plot_big_torpedo                                              ;
@@ -1469,7 +1500,7 @@ small_starship_torpedoes
     ldy #4                                                            ;
     lda (temp1_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     clc                                                               ;
@@ -1488,7 +1519,7 @@ small_starship_torpedoes
     adc (temp1_low),y                                                 ;
     ror                                                               ;
     sta y_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 apply_rotation_to_starship_angle
@@ -1712,16 +1743,16 @@ plot_enemy_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
 enemy_torpedo_type_instruction
     rts                                                               ; self modifying code
     ; actually NOP if option_enemy_torpedoes == 1
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 apply_velocity_to_enemy_ships
@@ -2078,13 +2109,13 @@ plot_segment
     cmp #256 - 32                                                     ;
     bcs plot_segment_loop                                             ;
 
-    lda segment_angle_change_per_pixel
-    cmp #1
-    bne plot_segment_fast_loop
-    jmp experimental_fast_plot
+    lda segment_angle_change_per_pixel                                ;
+    cmp #1                                                            ;
+    bne plot_segment_fast_loop                                        ;
+    jmp plot_segment_unrolled                                         ;
 
 plot_segment_fast_loop
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
 
     ldy segment_angle                                                 ;
     lda segment_angle_to_x_deltas_table,y                             ;
@@ -2130,6 +2161,28 @@ plot_segment_loop
     dec segment_length                                                ;
     bne plot_segment_loop                                             ;
     rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+plot_segment_unrolled
+    ldx segment_angle                                                 ; based on start angle,
+    lda plot_table_offset,x                                           ; look up in a table
+    sta jump_address                                                  ; the address we jump to
+    txa                                                               ;
+    clc                                                               ;
+    adc segment_length                                                ; add the segment length
+    tax                                                               ;
+    lda plot_table_offset,x                                           ;
+    tax                                                               ;
+    stx remember_x                                                    ; remember the address (low) to finish at
+    lda #$60                                                          ; opcode for RTS
+    sta plus_angle0,x                                                 ;
+jump_address = * + 1
+    jsr plus_angle0                                                   ;
+    ldx remember_x                                                    ; recall the address (low)
+    lda #$20                                                          ; opcode for JSR
+    sta plus_angle0,x                                                 ;
+    rts                                                               ;
+
 
 ; ----------------------------------------------------------------------------------
 handle_player_movement
@@ -2943,30 +2996,30 @@ skip_uninversion_cosine
 
 ; ----------------------------------------------------------------------------------
 plot_variable_size_fragment
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     cmp #$c0                                                          ;
     beq return15                                                      ;
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     bmi return15                                                      ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     bne return15                                                      ;
     inc y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     inc x_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 initialise_starship_explosion_pieces
@@ -3885,12 +3938,9 @@ starship_maximum_y_for_collisions_with_enemy_ships
     !byte $8c                                                         ;
 starship_minimum_y_for_collisions_with_enemy_ships
     !byte $76                                                         ;
-enemy_ship_was_hit_by_collision_with_other_enemy_ship
-    !byte 4                                                           ;
-starship_collided_with_enemy_ship
-    !byte 0                                                           ;
 frame_of_starship_explosion_after_which_no_collisions
     !byte $4a                                                         ;
+
 enemy_ships_collision_x_difference
     !byte 6                                                           ;
 enemy_ships_collision_y_difference
@@ -3900,6 +3950,10 @@ timer_for_low_energy_warning_sound
 sound_needed_for_low_energy
     !byte 0                                                           ;
 energy_flash_timer
+    !byte 0                                                           ;
+enemy_ship_was_hit_by_collision_with_other_enemy_ship
+    !byte 4                                                           ;
+starship_collided_with_enemy_ship
     !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
@@ -4426,18 +4480,18 @@ plot_escape_capsule
     sta x_pixels                                                      ;
     lda escape_capsule_y_pixels                                       ;
     sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     dec x_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     dec x_pixels                                                      ;
     dec y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
+    jsr eor_play_area_pixel                                           ;
     inc x_pixels                                                      ;
     dec y_pixels                                                      ;
-    jmp eor_pixel                                                     ;
+    jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 fire_enemy_torpedo_cluster
@@ -7616,7 +7670,7 @@ initialise_stars_loop
     lda #$80                                                          ;
     sta (temp0_low),y                                                 ;
     iny                                                               ;
-    lda frontier_star_positions,x                                      ;
+    lda frontier_star_positions,x                                     ;
     sta (temp0_low),y                                                 ;
     iny                                                               ;
     bne skip                                                          ;
@@ -7680,7 +7734,7 @@ finished_the_frontiers
     jsr plot_stars                                                    ;
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
-    jsr update_stars                                                  ;
+    jsr update_frontier_stars                                         ;
 
     lda #osbyte_inkey                                                 ;
     ldx #$b6                                                          ; check for RETURN
