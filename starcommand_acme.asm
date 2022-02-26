@@ -741,7 +741,7 @@ multiply_torpedo_position_by_starship_rotation_sine_magnitude
 
 ; ----------------------------------------------------------------------------------
 ; Given a signed 8.8 fixed point number 'b.a', and an 8 bit number 'c'
-; calculate their product 'b.a * c' with the result in 8.8 fixed point 'output_pixels . output_fraction'
+; calculate the product 'b.a * c' with the result in 8.8 fixed point 'output_fraction . output_pixels'
 ;
 ; Method:
 ;
@@ -986,7 +986,7 @@ add_starship_velocity_to_position
 multiply_enemy_position_by_starship_rotation_sine_magnitude
     ; set up inputs
     lda starship_rotation_sine_magnitude                              ;
-    sta multiplier                                                    ;
+    sta t                                                             ;
     lda enemy_ships_x_fraction,x                                      ;
     sta input_fraction                                                ;
     lda enemy_ships_x_pixels,x                                        ;
@@ -997,50 +997,35 @@ multiply_enemy_position_by_starship_rotation_sine_magnitude
 
 ; ----------------------------------------------------------------------------------
 ; multiply 24 bit by 8 bit
-; input is (input_fraction,input_pixels,input_screens) x multiplier
+; input is (input_fraction,input_pixels,input_screens) x t
 ; output is (multiplier, output_fraction, output_pixels)
-; 894 cycles
+; Average cycle count: 354 cycles
 mul24x8
     lda #0                                                            ;
-    ldy #24                                                           ; 24-bit multiplication of input by multiplier
-loop_over_bits_of_input1
-    lsr input_screens                                                 ;
-    ror input_pixels                                                  ;
-    ror input_fraction                                                ; Get lowest bit of (fraction, pixels, screen)
-    bcc input_bit_unset1                                              ;
-    clc                                                               ;
-    adc multiplier                                                    ;
-input_bit_unset1
-    ror                                                               ;
-    ror output_fraction                                               ;
-    ror output_pixels                                                 ;
-    dey                                                               ;
-    bne loop_over_bits_of_input1                                      ;
-
     sta multiplier                                                    ;
-    rts                                                               ;
-
-
-
-; ----------------------------------------------------------------------------------
-; 192 cycles
-    lda #0                                                            ;
-    sta t                                                             ;
     sta output_fraction                                               ;
     sta output_pixels                                                 ;
     ldy #8                                                            ;
 -
-    lsr multiplier                                                    ;
+    lsr t                                                             ;
     bcc skipZ                                                         ;
-    lda t                                                             ;
+
+    lda output_pixels                                                 ;
     clc                                                               ;
     adc input_fraction                                                ;
+    sta output_pixels                                                 ;
+
     lda output_fraction                                               ;
     adc input_pixels                                                  ;
-    lda output_pixels                                                 ;
+    sta output_fraction                                               ;
+
+    lda multiplier                                                    ;
     adc input_screens                                                 ;
+    sta multiplier                                                    ;
 skipZ
     ror multiplier                                                    ;
+    ror output_fraction                                               ;
+    ror output_pixels                                                 ;
     dey                                                               ;
     bne -                                                             ;
     rts                                                               ;
@@ -1048,31 +1033,40 @@ skipZ
 
 ; ----------------------------------------------------------------------------------
 multiply_enemy_position_by_starship_rotation_cosine
-    lda starship_rotation_cosine                                      ;
-    sta segment_angle                                                 ;
+    ; set up inputs
     lda enemy_ships_x_pixels,x                                        ;
-    sta temp9                                                         ;
+    sta b                                                             ;
     lda enemy_ships_x_screens,x                                       ;
-    sta temp10                                                        ;
-    lda #0                                                            ;
-    ldy #$10                                                          ;
-loop_over_bits_of_input2
-    lsr temp10                                                        ;
-    ror temp9                                                         ;
-    bcc input_bit_unset2                                              ;
+    sta c                                                             ;
+
+    stx temp_x                                                        ; remember x
+
+    ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
+    ; result in A (low) and temp8 (high)
+    ; average cycles: 164.96 cycles
+mul16x8a
+    lda starship_rotation_cosine                                      ;
+    ldx b                                                             ;
+    jsr mul8x8                                                        ;
+    sta t                                                             ;
+    lda starship_rotation_cosine                                      ;
+    ldx c                                                             ;
+    jsr mul8x8                                                        ;
+    sta temp8                                                         ;
+    lda prod_low                                                      ;
     clc                                                               ;
-    adc segment_angle                                                 ;
-input_bit_unset2
-    ror                                                               ;
-    ror temp8                                                         ;
-    dey                                                               ;
-    bne loop_over_bits_of_input2                                      ;
-    tay                                                               ;
-    lda temp8                                                         ;
+    adc t                                                             ;
+    bcc +                                                             ;
+    inc temp8                                                         ;
++
+temp_x = * + 1
+    ldx #$ff                                                          ; restore x
+
+    ; update enemy position
     clc                                                               ;
     adc enemy_ships_x_fraction,x                                      ;
     sta temp9                                                         ;
-    tya                                                               ;
+    lda temp8                                                         ;
     adc enemy_ships_x_pixels,x                                        ;
     tay                                                               ;
     lda enemy_ships_x_screens,x                                       ;
@@ -1864,6 +1858,8 @@ apply_velocity_to_enemy_ships_loop
     sta temp3                                                         ;
     lda cosine_table,y                                                ;
     sta temp4                                                         ;
+
+    ; # 3-bit multiplication of sine by enemy ship velocity
     ldy #5                                                            ;
     lda #0                                                            ;
     sta temp8                                                         ;
@@ -1877,6 +1873,7 @@ sine_bit_unset
     ror temp8                                                         ;
     dey                                                               ;
     bne loop_over_bits_of_sine                                        ;
+
     tay                                                               ;
     lda enemy_ships_x_fraction,x                                      ;
     adc temp8                                                         ;
@@ -1895,6 +1892,8 @@ skip9
     bcs skip_subtraction_sine                                         ;
     dec enemy_ships_x_screens,x                                       ;
 skip_subtraction_sine
+
+    ; 5-bit multiplication of cosine by velocity
     ldy #5                                                            ;
     lda #0                                                            ;
     sta temp8                                                         ;
@@ -1908,6 +1907,7 @@ cosine_bit_unset
     ror temp8                                                         ;
     dey                                                               ;
     bne loop_over_bits_of_cosine                                      ;
+
     tay                                                               ;
     lda enemy_ships_x_fraction1,x                                     ;
     adc temp8                                                         ;
@@ -3016,6 +3016,8 @@ skip_inversion_sine
     adc #1                                                            ;
 skip_inversion_cosine
     sta y_pixels                                                      ;
+
+    ; 3-bit multiplication of sine by radius
     ldx #3                                                            ;
     lda #0                                                            ;
 loop_over_bits_of_sine1
@@ -3027,12 +3029,15 @@ sine_bit_unset1
     ror                                                               ;
     dex                                                               ;
     bne loop_over_bits_of_sine1                                       ;
+
     ldx x_pixels                                                      ;
     beq skip_uninversion_sine                                         ;
     eor #$ff                                                          ;
 skip_uninversion_sine
     eor #$80                                                          ;
     sta x_pixels                                                      ;
+
+    ; 3-bit multiplication of cosine by radius
     ldx #3                                                            ;
     lda #0                                                            ;
 loop_over_bits_of_cosine1
@@ -3044,6 +3049,7 @@ skip22
     ror                                                               ;
     dex                                                               ;
     bne loop_over_bits_of_cosine1                                     ;
+
     ldx y_pixels                                                      ;
     beq skip_uninversion_cosine                                       ;
     eor #$ff                                                          ;
@@ -3296,6 +3302,8 @@ skip_inversion_sine1
     adc #1                                                            ;
 skip_inversion_cosine1
     sta y_pixels                                                      ;
+
+    ; 3-bit multiplication of sine by radius
     ldx #3                                                            ;
     lda #0                                                            ;
 loop_over_bits_of_sine2
@@ -3307,6 +3315,7 @@ sine_bit_unset2
     ror                                                               ;
     dex                                                               ;
     bne loop_over_bits_of_sine2                                       ;
+
     ldx x_pixels                                                      ;
     beq skip_uninversion_sine1                                        ;
     eor #$ff                                                          ;
@@ -3314,6 +3323,8 @@ skip_uninversion_sine1
     clc                                                               ;
     adc temp10                                                        ;
     sta x_pixels                                                      ;
+
+    ; 3-bit multiplication of cosine by radius
     ldx #3                                                            ;
     lda #0                                                            ;
 loop_over_bits_of_cosine2
@@ -3325,6 +3336,7 @@ cosine_bit_unset1
     ror                                                               ;
     dex                                                               ;
     bne loop_over_bits_of_cosine2                                     ;
+
     ldx y_pixels                                                      ;
     beq skip_uninversion_cosine1                                      ;
     eor #$ff                                                          ;
@@ -4814,6 +4826,8 @@ skip_inversion9
     asl x_pixels                                                      ;
     rol                                                               ;
     sta x_pixels                                                      ;
+
+    ; 3-bit multiplication of sine by starship_velocity * 8
     lda #0                                                            ;
     ldy #3                                                            ;
 loop_over_bits_of_sine3
@@ -4825,6 +4839,7 @@ sine_bit_unset3
     ror                                                               ;
     dey                                                               ;
     bne loop_over_bits_of_sine3                                       ;
+
     lsr                                                               ;
     cmp #2                                                            ;
     bcc finished_calculating_change_in_angle                          ;
