@@ -638,7 +638,7 @@ unset_pixel
 
 ; ----------------------------------------------------------------------------------
 ; check that the point we about to plot is within 32 pixels of the centre of the object.
-; if it isn't, it's because it went off one side of the play area and back on the other side
+; if it isn't, it's because the point left one side of the play area and back on the other side
 ; ----------------------------------------------------------------------------------
 eor_pixel_with_boundary_check
     lda x_pixels                                                      ;
@@ -825,6 +825,9 @@ multiply_torpedo_position_by_starship_rotation_cosine
     sta temp8                                                         ;
     lda (temp0_low),y                                                 ;
     beq shortcut
+
+
+    ; 8x8 multiply 'A * temp8', result in A (high byte only needed)
     sec                                                               ;
     sbc #1                                                            ;
     sta addition                                                      ;
@@ -872,6 +875,7 @@ multiply_torpedo_position_by_starship_rotation_cosine
 +
     ror                                                               ;
     inc addition                                                      ;
+
     sec                                                               ;
     sbc addition                                                      ;
     tax                                                               ;
@@ -1547,14 +1551,14 @@ plot_top_and_right_edge_of_long_range_scanner_without_text
     lda #0                                                            ;
     sta y_pixels                                                      ;
 plot_top_edge_loop
-    jsr set_pixel                                                     ;
+    jsr eor_pixel                                                     ;
     dec x_pixels                                                      ;
     bpl plot_top_edge_loop                                            ;
     lda #$3f                                                          ;
     sta y_pixels                                                      ;
     sta x_pixels                                                      ;
 plot_right_edge_loop
-    jsr set_pixel                                                     ;
+    jsr eor_pixel                                                     ;
     dec y_pixels                                                      ;
     bne plot_right_edge_loop                                          ;
     dec screen_start_high                                             ;
