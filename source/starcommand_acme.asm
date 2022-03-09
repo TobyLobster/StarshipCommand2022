@@ -11,19 +11,6 @@
 ; understanding the code:
 ;
 ; "
-; Written by Peter Irvin, co-author of Exile, Starship Command was published by
-; Acornsoft for the BBC Micro in 1983. The player controls a starship, defending
-; against never-ending waves of hostile enemy ships.
-;
-; The following disassembly was created by reverse engineering a binary image,
-; without access to any source code. It is nevertheless reasonably complete,
-; allowing the technical approaches used to be understood.
-;
-; The author of this disassembly imposes no additional copyright restrictions
-; beyond those already present on the game itself. It is provided for educational
-; purposes only, and it is hoped that the original author will accept it in the
-; good faith it was intended - as a tribute to his skills.
-;
 ; Technical notes
 ; ===============
 ; The starship never rotates or moves. Instead, everything else does!
@@ -33,15 +20,15 @@
 ; for pixels and fractions of a pixel. Tables of pre-calculated sines and cosines
 ; are used in multiplication and division routines for trigonometric functions.
 ;
-; Angles are stored such that &100 = 360 degrees, starting from up at &00 and
-; increasing clockwise. &40 = right, &80 = down, &c0 = left.
+; Angles are stored such that $100 = 360 degrees, starting from up at $00 and
+; increasing clockwise. $40 = right, $80 = down, $c0 = left.
 ;
-; The main screen is (&7f, &7f).
+; The main screen is ($7f, $7f).
 ;
 ; Game-play notes
 ; ===============
 ; There are always eight enemy ships. Each is assigned one of eight behaviour
-; patterns at random, which can change with probability &06/&ff per frame:
+; patterns at random, which can change with probability $06/$ff per frame:
 ;
 ;     0 Timid ship, retreats upwards as soon as on screen
 ;     1 Comes to a stop near edge of screen when starship is stationary, follows
@@ -105,7 +92,7 @@
 ;     damage from self-destruct                            4000
 ;
 ;     damage sufficient to cause shields to fail             3c
-;         (with probability &6c/&ff)
+;         (with probability $6c/$ff)
 ;
 ;
 ;     maximum energy ship energy (all types)                 ff
@@ -147,44 +134,44 @@
 ;
 ; Notes
 ; =====
-; Enemy ships are stored in two arrays at &0400 and &0480:
+; Enemy ships are stored in two arrays at $0400 and $0480:
 ;
-;     &0400 enemy_ships_previous_on_screen
-;     &0401 enemy_ships_previous_x_fraction
-;     &0402 enemy_ships_previous_x_pixels
-;     &0403 enemy_ships_previous_x_screens
-;     &0404 enemy_ships_previous_x_fraction
-;     &0405 enemy_ships_previous_x_pixels
-;     &0406 enemy_ships_previous_x_screens
-;     &0407 enemy_ships_previous_angle
-;     &0408 enemy_ships_velocity
-;     &0409 enemy_ships_flags_or_explosion_timer:
+;     $0400 enemy_ships_previous_on_screen
+;     $0401 enemy_ships_previous_x_fraction
+;     $0402 enemy_ships_previous_x_pixels
+;     $0403 enemy_ships_previous_x_screens
+;     $0404 enemy_ships_previous_x_fraction
+;     $0405 enemy_ships_previous_x_pixels
+;     $0406 enemy_ships_previous_x_screens
+;     $0407 enemy_ships_previous_angle
+;     $0408 enemy_ships_velocity
+;     $0409 enemy_ships_flags_or_explosion_timer:
 ;               ....8421 enemy ship behaviour type
 ;               ...1.... fires cluster torpedoes
 ;               ..2..... defensive about angle
 ;               .4...... defensive about damage
-;     &040a enemy_ships_type
+;     $040a enemy_ships_type
 ;               0 = regular
 ;               1 = large
 ;               4 = cloaked
 ;
-;     &0480 enemy_ships_on_screen
-;     &0481 enemy_ships_x_fraction
-;     &0482 enemy_ships_x_pixels
-;     &0483 enemy_ships_x_screens
-;     &0484 enemy_ships_x_fraction
-;     &0485 enemy_ships_x_pixels
-;     &0486 enemy_ships_x_screens
-;     &0487 enemy_ships_angle
-;     &0488 enemy_ships_temporary_behaviour_flags
+;     $0480 enemy_ships_on_screen
+;     $0481 enemy_ships_x_fraction
+;     $0482 enemy_ships_x_pixels
+;     $0483 enemy_ships_x_screens
+;     $0484 enemy_ships_x_fraction
+;     $0485 enemy_ships_x_pixels
+;     $0486 enemy_ships_x_screens
+;     $0487 enemy_ships_angle
+;     $0488 enemy_ships_temporary_behaviour_flags
 ;               ....8421 enemy_ship_hit_count
 ;               ...1.... behaviour 0: enemy_ship_was_on_screen_above
 ;                        behaviour 7: kamikaze_one
 ;               ..2..... behaviour 7: kamikaze_two
 ;               .4...... retreating because of angle
 ;               8....... retreating
-;     &0489 enemy_ships_energy
-;     &048a enemy_ships_firing_cooldown
+;     $0489 enemy_ships_energy
+;     $048a enemy_ships_firing_cooldown
 ;               ....8421 current torpedo cooldown
 ;               8421.... maximum torpedo cooldown
 ;
@@ -228,27 +215,32 @@
 ;        +0 age
 ;           (top two bits are used to determine size of piece, if not a segment)
 ;        +1 segment angle or ageing rate
-;            8....... piece is a segment (probability 1/&3c)
+;            8....... piece is a segment (probability 1/$3c)
 ;            ...18421 angle of segment, if piece is a segment
 ;            .....421 speed of ageing (via lookup table), if not a segment
 ;        +2 radius
 ;"
 ; ----------------------------------------------------------------------------------
 
+do_debug = 0
+
 ; ----------------------------------------------------------------------------------
 ; OS constants
 ; ----------------------------------------------------------------------------------
-osword_envelope = $08
-osbyte_inkey = $81
-inkey_key_delete = $a6
-osword_sound = $07
-osbyte_select_adc_channels = $10
-osbyte_set_cursor_editing = $04
-osbyte_flush_buffer_class = $0f
-osbyte_acknowledge_escape = $7e
-osword_read_line = $00
+osbyte_set_cursor_editing            = $04
+osbyte_flush_buffer_class            = $0f
+osbyte_select_adc_channels           = $10
+osbyte_acknowledge_escape            = $7e
 osbyte_read_adc_or_get_buffer_status = $80
+osbyte_inkey                         = $81
 
+osword_read_line                     = $00
+osword_sound                         = $07
+osword_envelope                      = $08
+
+inkey_key_delete                     = $a6
+
+; OS memory locations
 irq_accumulator                     = $fc
 irq1_vector_low                     = $0204
 irq1_vector_high                    = $0205
@@ -261,9 +253,9 @@ userVIAAuxiliaryControlRegister     = $fe6b         ; auxiliary control register
 userVIAInterruptFlagRegister        = $fe6d         ; Interrupt flag register
 userVIAInterruptEnableRegister      = $fe6e         ; Interrupt enable register
 
-oswrch = $ffee
-osword = $fff1
-osbyte = $fff4
+oswrch                              = $ffee
+osword                              = $fff1
+osbyte                              = $fff4
 
 ; ----------------------------------------------------------------------------------
 ; zero page
@@ -300,6 +292,18 @@ old_timing_counter                  = $14
 timing_counter                      = $15
 old_irq1_low                        = $16
 old_irq1_high                       = $17
+enemy_low                           = $18
+enemy_high                          = $19
+plot_enemy_progress                 = $1a
+lookup_low                          = $1b
+lookup_high                         = $1c
+lookup_byte                         = $1d
+lookup_bit                          = $1e
+result                              = $1f
+end_low                             = $20
+end_high                            = $21
+starship_low                        = $22
+starship_high                       = $23
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -339,9 +343,9 @@ enemy_ships_previous_on_screen          = $0400
 enemy_ships_previous_x_fraction         = $0401
 enemy_ships_previous_x_pixels           = $0402
 enemy_ships_previous_x_screens          = $0403
-enemy_ships_previous_x_fraction1        = $0404
-enemy_ships_previous_x_pixels1          = $0405
-enemy_ships_previous_x_screens1         = $0406
+enemy_ships_previous_y_fraction         = $0404
+enemy_ships_previous_y_pixels           = $0405
+enemy_ships_previous_y_screens          = $0406
 enemy_ships_previous_angle              = $0407
 enemy_ships_velocity                    = $0408
 enemy_ships_flags_or_explosion_timer    = $0409
@@ -351,15 +355,16 @@ enemy_ships_on_screen                   = $0480
 enemy_ships_x_fraction                  = $0481
 enemy_ships_x_pixels                    = $0482
 enemy_ships_x_screens                   = $0483
-enemy_ships_x_fraction1                 = $0484
-enemy_ships_x_pixels1                   = $0485
-enemy_ships_x_screens1                  = $0486
+enemy_ships_y_fraction                  = $0484
+enemy_ships_y_pixels                    = $0485
+enemy_ships_y_screens                   = $0486
 enemy_ships_angle                       = $0487
 enemy_ships_temporary_behaviour_flags   = $0488
 enemy_ships_energy                      = $0489
 enemy_ships_firing_cooldown             = $048a
 
-user_defined_characters                 = $0c00
+squares_low                             = $0900
+squares_high                            = $0b00
 
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
@@ -410,7 +415,8 @@ desired_velocity_for_intact_enemy_ships                             = $18
 minimum_number_of_stars                                             = 1
 
 
-; This is the delay between interrupts (16 pixel rows)
+; This is the delay between interrupts.
+; (480 pixel rows. Each frame is 312 pixel rows, so ~1.5 frames at 50Hz)
 ShortTimerValue  = 480*64 - 2
 
 ; ----------------------------------------------------------------------------------
@@ -436,7 +442,7 @@ play_area_row_table_high
     }
 xandf8
     !for i, 0, 255 {
-        !byte (i AND $f8)
+        !byte (i & $f8)
     }
 
 xbit_table
@@ -449,14 +455,14 @@ xinverse_bit_table
         !byte ($80 >> (i & 7)) XOR 255
     }
 
-squares_low
-    !for i, 0, 511 {
-        !byte <((i*i)/4)
-    }
-squares_high
-    !for i, 0, 511 {
-        !byte >((i*i)/4)
-    }
+;squares_low
+;    !for i, 0, 511 {
+;        !byte <((i*i)/4)
+;    }
+;squares_high
+;    !for i, 0, 511 {
+;        !byte >((i*i)/4)
+;    }
 
 ; ----------------------------------------------------------------------------------
 !if ((* & 255) != 0) {
@@ -486,10 +492,10 @@ plus_angle5
     inc y_pixels                                                      ;
 plus_angle6
     jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
     inc y_pixels                                                      ;
 plus_angle7
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
     inc y_pixels                                                      ;
 plus_angle8
     jsr eor_play_area_pixel                                           ;
@@ -598,10 +604,10 @@ plus_angle37
     inc y_pixels                                                      ;
 plus_angle38
     jsr eor_play_area_pixel                                           ;
+    inc x_pixels                                                      ;
     inc y_pixels                                                      ;
 plus_angle39
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
     inc y_pixels                                                      ;
 plus_angle40
     jsr eor_play_area_pixel                                           ;
@@ -836,6 +842,8 @@ starship_energy_drain_from_firing_torpedo
 previous_starship_automatic_shields
     !byte 0                                                           ;
 
+!src "build/sc_text.a"
+
 ; ----------------------------------------------------------------------------------
 set_pixel
     ldy y_pixels                                                      ;
@@ -925,10 +933,10 @@ eor_frontier_pixel
     ldy y_pixels                                                      ;
     lda row_table_low,y                                               ;
     clc                                                               ;
-    adc #$40                                                          ;
+    adc #$80                                                          ;
     sta screen_address_low                                            ;
     lda play_area_row_table_high,y                                    ;
-    adc #$06                                                          ;
+    adc #$07                                                          ;
     sta screen_address_high                                           ;
     ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
@@ -943,34 +951,34 @@ eor_frontier_pixel
 ; unsigned.
 ; ----------------------------------------------------------------------------------
 mul8x8
-    tay                     ; save m1 in y
-    stx temp_m2             ; save m2
-    sec                     ; set carry for subtract
-    sbc temp_m2             ; find difference
-    bcs +                   ; was m1 > m2 ?
-    eor #$ff                ; invert it
-    adc #1                  ; and add 1
+    tay                                                               ; save m1 in y
+    stx temp_m2                                                       ; save m2
+    sec                                                               ; set carry for subtract
+    sbc temp_m2                                                       ; find difference
+    bcs +                                                             ; was m1 > m2 ?
+    eor #$ff                                                          ; invert it
+    adc #1                                                            ; and add 1
 +
-    tax                     ; use abs(m1-m2) as index
-    clc                     ;
-    tya                     ; get m1 back
-    adc temp_m2             ; find m1 + m2
-    tay                     ; use m1+m2 as index
-    bcc +                   ; m1+m2 < 255 ?
-    lda squares_low+256,y   ; find sum squared low if > 255
-    sbc squares_low,x       ; subtract diff squared
-    sta prod_low            ; save in product
-    lda squares_high+256,y  ; hi byte
-    sbc squares_high,x      ;
-    rts                     ; done
+    tax                                                               ; use abs(m1-m2) as index
+    clc                                                               ;
+    tya                                                               ; get m1 back
+    adc temp_m2                                                       ; find m1 + m2
+    tay                                                               ; use m1+m2 as index
+    bcc +                                                             ; m1+m2 < 255 ?
+    lda squares_low+256,y                                             ; find sum squared low if > 255
+    sbc squares_low,x                                                 ; subtract diff squared
+    sta prod_low                                                      ; save in product
+    lda squares_high+256,y                                            ; hi byte
+    sbc squares_high,x                                                ;
+    rts                                                               ; done
 +
-    sec                     ; set carry for subtract
-    lda squares_low,y       ; find sum of squares low if < 255
-    sbc squares_low,x       ; subtract diff squared
-    sta prod_low            ; save in product
-    lda squares_high,y      ; hi byte
-    sbc squares_high,x      ;
-    rts                     ;
+    sec                                                               ; set carry for subtract
+    lda squares_low,y                                                 ; find sum of squares low if < 255
+    sbc squares_low,x                                                 ; subtract diff squared
+    sta prod_low                                                      ; save in product
+    lda squares_high,y                                                ; hi byte
+    sbc squares_high,x                                                ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 ; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
@@ -1020,7 +1028,7 @@ temp_y = *+1
     ldy #$ff                                                          ; restore Y
     rts                                                               ;
 
-; Alternative: multiply without tables (not as fast as the tables version above):
+; Alternative: multiply without tables (but not as fast as the tables version above):
 ; ----------------------------------------------------------------------------------
 ; Adapted from White Flame's code (https://codebase64.org/doku.php?id=base:8bit_multiplication_16bit_product)
 ;
@@ -1307,12 +1315,12 @@ starship_is_rotating
     bcc skip1                                                         ;
     inc enemy_ships_x_screens,x                                       ;
 skip1
-    lda enemy_ships_previous_x_pixels1,x                              ;
+    lda enemy_ships_previous_y_pixels,x                               ;
     clc                                                               ;
     adc #$80                                                          ;
-    sta enemy_ships_x_pixels1,x                                       ;
+    sta enemy_ships_y_pixels,x                                        ;
     bcc skip2                                                         ;
-    inc enemy_ships_x_screens1,x                                      ;
+    inc enemy_ships_y_screens,x                                       ;
 skip2
     ldy starship_rotation                                             ;
     bmi skip_inversion1                                               ;
@@ -1388,20 +1396,20 @@ skip_uninversion1
     lda temp9                                                         ;
     clc                                                               ;
     adc rotated_y_correction_fraction,y                               ;
-    sta enemy_ships_x_fraction1,x                                     ;
+    sta enemy_ships_y_fraction,x                                      ;
     lda temp10                                                        ;
     adc rotated_y_correction_pixels,y                                 ;
-    sta enemy_ships_x_pixels1,x                                       ;
+    sta enemy_ships_y_pixels,x                                        ;
     lda segment_angle                                                 ;
     adc rotated_y_correction_screens,y                                ;
-    sta enemy_ships_x_screens1,x                                      ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    sta enemy_ships_y_screens,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     sec                                                               ;
     sbc #$80                                                          ;
-    sta enemy_ships_x_pixels1,x                                       ;
-    lda enemy_ships_x_screens1,x                                      ;
+    sta enemy_ships_y_pixels,x                                        ;
+    lda enemy_ships_y_screens,x                                       ;
     sbc #0                                                            ;
-    sta enemy_ships_x_screens1,x                                      ;
+    sta enemy_ships_y_screens,x                                       ;
     lda enemy_ships_x_pixels,x                                        ;
     sec                                                               ;
     sbc #$80                                                          ;
@@ -1410,16 +1418,16 @@ skip_uninversion1
     sbc #0                                                            ;
     sta enemy_ships_x_screens,x                                       ;
 apply_starship_velocity_to_enemy_ship
-    lda enemy_ships_x_fraction1,x                                     ;
+    lda enemy_ships_y_fraction,x                                      ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
-    sta enemy_ships_x_fraction1,x                                     ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    sta enemy_ships_y_fraction,x                                      ;
+    lda enemy_ships_y_pixels,x                                        ;
     adc starship_velocity_high                                        ;
-    sta enemy_ships_x_pixels1,x                                       ;
-    lda enemy_ships_x_screens1,x                                      ;
+    sta enemy_ships_y_pixels,x                                        ;
+    lda enemy_ships_y_screens,x                                       ;
     adc #0                                                            ;
-    sta enemy_ships_x_screens1,x                                      ;
+    sta enemy_ships_y_screens,x                                       ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1606,11 +1614,8 @@ empty_torpedo_slot
     lda #0                                                            ;
     sta how_enemy_ship_was_damaged                                    ;
     jsr check_for_collision_with_enemy_ships                          ;
-    bcs return4                                                       ;
+    bcs return3                                                       ;
     jmp plot_starship_torpedo                                         ;
-
-return4
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
@@ -1748,6 +1753,8 @@ plot_top_and_right_edge_of_long_range_scanner_with_blank_text
     lda #1                                                            ;
     sta starship_shields_active                                       ;
     jsr plot_blank_text                                               ;
+    ; fall through
+
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_without_text
     inc screen_start_high                                             ; draw to scanner
@@ -1981,7 +1988,7 @@ consider_enemy_slot
 skip_inversion_x1
     cmp #size_of_enemy_ship_for_collisions_with_torpedoes             ;
     bcs move_to_next_enemy                                            ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     sec                                                               ;
     sbc temp4                                                         ; torpedo_y_pixels
     bcs skip_inversion_y1                                             ;
@@ -2036,7 +2043,7 @@ plot_enemy_torpedo
     jsr eor_play_area_pixel                                           ;
 enemy_torpedo_type_instruction
     rts                                                               ; self modifying code
-    ; actually NOP if option_enemy_torpedoes == 1
+    ; ... actually NOP if (option_enemy_torpedoes == 1)
     inc x_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
@@ -2118,28 +2125,28 @@ cosine_bit_unset
     bne loop_over_bits_of_cosine                                      ;
 
     tay                                                               ;
-    lda enemy_ships_x_fraction1,x                                     ;
+    lda enemy_ships_y_fraction,x                                      ;
     adc temp8                                                         ;
-    sta enemy_ships_x_fraction1,x                                     ;
+    sta enemy_ships_y_fraction,x                                      ;
     tya                                                               ;
-    adc enemy_ships_x_pixels1,x                                       ;
-    sta enemy_ships_x_pixels1,x                                       ;
+    adc enemy_ships_y_pixels,x                                        ;
+    sta enemy_ships_y_pixels,x                                        ;
     bcc skip10                                                        ;
-    inc enemy_ships_x_screens1,x                                      ;
+    inc enemy_ships_y_screens,x                                       ;
 skip10
     ldy temp4                                                         ;
     beq skip_subtraction_cosine                                       ;
     sec                                                               ;
     sbc temp7                                                         ;
-    sta enemy_ships_x_pixels1,x                                       ;
+    sta enemy_ships_y_pixels,x                                        ;
     bcs skip_subtraction_cosine                                       ;
-    dec enemy_ships_x_screens1,x                                      ;
+    dec enemy_ships_y_screens,x                                       ;
 skip_subtraction_cosine
 mark_enemy_ship_as_plotted_if_on_starship_screen
     lda #$7f                                                          ;
     cmp enemy_ships_x_screens,x                                       ;
     bne enemy_ship_not_on_starship_screen                             ;
-    cmp enemy_ships_x_screens1,x                                      ;
+    cmp enemy_ships_y_screens,x                                       ;
     bne enemy_ship_not_on_starship_screen                             ;
     lda #0                                                            ;
     beq set_enemy_ships_on_screen                                     ;
@@ -2197,18 +2204,18 @@ skip_extra_delay
     bne skip_unplotting                                               ;
 
 unplot_enemy_ship
-    jsr plot_enemy_ship                                               ;
+    jsr plot_enemy_ship                                               ; unplot
 skip_unplotting
     lda enemy_ships_angle,x                                           ;
     sta enemy_ships_previous_angle,x                                  ;
-    lda enemy_ships_x_pixels1,x                                       ;
-    sta enemy_ships_previous_x_pixels1,x                              ;
+    lda enemy_ships_y_pixels,x                                        ;
+    sta enemy_ships_previous_y_pixels,x                               ;
     lda enemy_ships_x_pixels,x                                        ;
     sta enemy_ships_previous_x_pixels,x                               ;
     lda enemy_ship_was_on_screen                                      ;
     beq plot_enemy_ship_and_copy_position                             ;
     bpl copy_position_without_plotting                                ;
-    jsr plot_enemy_ship_explosion                                     ;
+    jsr plot_enemy_ship_explosion                                     ; plot
     jmp copy_position_without_plotting                                ;
 
 plot_enemy_ship_and_copy_position
@@ -2216,10 +2223,10 @@ plot_enemy_ship_and_copy_position
 copy_position_without_plotting
     lda enemy_ships_on_screen,x                                       ;
     sta enemy_ships_previous_on_screen,x                              ;
-    lda enemy_ships_x_screens1,x                                      ;
-    sta enemy_ships_previous_x_screens1,x                             ;
-    lda enemy_ships_x_fraction1,x                                     ;
-    sta enemy_ships_previous_x_fraction1,x                            ;
+    lda enemy_ships_y_screens,x                                       ;
+    sta enemy_ships_previous_y_screens,x                              ;
+    lda enemy_ships_y_fraction,x                                      ;
+    sta enemy_ships_previous_y_fraction,x                             ;
     lda enemy_ships_x_screens,x                                       ;
     sta enemy_ships_previous_x_screens,x                              ;
     lda enemy_ships_x_fraction,x                                      ;
@@ -2235,18 +2242,6 @@ copy_position_without_plotting
 return8
     rts                                                               ;
 
-; ----------------------------------------------------------------------------------
-shield_state_strings
-    !byte $1f, $22, $18                                               ;
-    !text " ON "                                                      ;
-    !byte $1f, $22, $18                                               ;
-    !text " OFF"                                                      ;
-    !byte $1f, $22, $18                                               ;
-    !text "AUTO"                                                      ;
-
-; ----------------------------------------------------------------------------------
-enemy_ships_collided_with_each_other
-    !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
 check_for_starship_collision_with_enemy_ships
@@ -2279,7 +2274,7 @@ starship_not_exploded
     bcs no_collision                                                  ;
     cmp #starship_minimum_x_for_collisions_with_enemy_ships           ;
     bcc no_collision                                                  ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     cmp #starship_maximum_y_for_collisions_with_enemy_ships           ;
     bcs no_collision                                                  ;
     cmp #starship_minimum_y_for_collisions_with_enemy_ships           ;
@@ -2330,9 +2325,9 @@ skip_inversion_x2
     cmp #size_of_enemy_ship_for_collisions_between_enemy_ships        ;
     bcs consider_next_second_enemy_ship                               ;
     sta enemy_ships_collision_x_difference                            ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     sec                                                               ;
-    sbc enemy_ships_x_pixels1,y                                       ;
+    sbc enemy_ships_y_pixels,y                                        ;
     bcs skip_inversion_y2                                             ;
     eor #$ff                                                          ;
 skip_inversion_y2
@@ -2647,12 +2642,12 @@ player_isnt_firing
 skip_shield_activation
     lda shields_state_delta                                           ;
     beq return10                                                      ;
-    ldx #0                                                            ;
+    ldx #regular_string_index_shield_state_on                         ;
     stx starship_automatic_shields                                    ;
     stx previous_starship_automatic_shields                           ;
     tay                                                               ;
     bmi plot_shields_on_and_consider_activation                       ;
-    ldx #7                                                            ;
+    ldx #regular_string_index_shield_state_off                        ;
     jsr plot_shields_string_and_something                             ;
     jmp plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
 
@@ -2878,106 +2873,336 @@ plot_enemy_ship
 enemy_ship_isnt_cloaked
     lda enemy_ships_previous_x_pixels,x                               ;
     sta temp10                                                        ;
-    lda enemy_ships_previous_x_pixels1,x                              ;
+    sta x_pixels                                                      ;
+    lda enemy_ships_previous_y_pixels,x                               ;
     sta temp9                                                         ;
+    sta y_pixels                                                      ;
+
     lda enemy_ships_previous_angle,x                                  ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    sta temp11                                                        ;
+    sta temp11                                                        ; angle to draw at (0-31)
+
+debug_plot_enemy
+    lda #1
+    sta segment_angle_change_per_pixel                                ;
+
+    ldx enemy_ship_type                                               ;
+    beq regular_ship                                                  ;
+regular_ship
+    lda command_number                                                ;
+    and #1                                                            ;
+    bne original_enemies                                              ;
+    inx
+    inx
+original_enemies
+    lda enemy_address_low,x                                           ;
+    sta enemy_low                                                     ;
+    lda enemy_address_high,x                                          ;
+    sta enemy_high                                                    ;
+
+    ldy #0                                                            ;
+    sty plot_enemy_progress                                           ;
+plot_enemy_loop
+    lda (enemy_low),y                                                 ;
+    beq plot_enemy_move_pixel                                         ;
+    bmi plot_enemy_done                                               ;
+    cmp #2
+    beq plot_enemy_new_move
+    iny                                                               ;
+    lda (enemy_low),y                                                 ;
     clc                                                               ;
-    adc #$10                                                          ;
+    adc temp11                                                        ;
+    and #$1f                                                          ;
+    sta segment_angle                                                 ;
+    iny                                                               ;
+    lda (enemy_low),y                                                 ;
+    sta segment_length                                                ;
+    iny                                                               ;
+    sty plot_enemy_progress                                           ;
+    jsr plot_segment                                                  ;
+
+    ldy plot_enemy_progress                                           ;
+    jmp plot_enemy_loop                                               ;
+plot_enemy_move_pixel
+    iny                                                               ;
+
+    lda (enemy_low),y                                                 ;
+    clc                                                               ;
+    adc temp11                                                        ;
+    and #$1f                                                          ;
+    tax                                                               ;
+    iny                                                               ;
+    sty plot_enemy_progress                                           ;
+
+    lda (enemy_low),y                                                 ;
+    clc                                                               ;
+    adc temp11                                                        ;
     and #$1f                                                          ;
     tay                                                               ;
-    lda sine_table,y                                                  ;
-    clc                                                               ;
-    bpl skip_set_carry_sine                                           ;
+
+    lda centre_array_dx,y                                             ;
     sec                                                               ;
-skip_set_carry_sine
-    ror                                                               ;
+    sbc centre_array_dx,x                                             ;
+    clc                                                               ;
+    adc x_pixels                                                      ;
+    sta x_pixels                                                      ;
+
+    lda centre_array_dy,y                                             ;
+    sec                                                               ;
+    sbc centre_array_dy,x                                             ;
+    clc                                                               ;
+    adc y_pixels                                                      ;
+    sta y_pixels                                                      ;
+    ldy plot_enemy_progress                                           ;
+    iny                                                               ;
+    jmp plot_enemy_loop                                               ;
+
+plot_enemy_new_move
+    iny                                                               ;
+    lda (enemy_low),y                                                 ;
+    sta lookup_low                                                    ;
+    iny                                                               ;
+    lda (enemy_low),y                                                 ;
+    sta lookup_high                                                   ;
+
+    sty plot_enemy_progress                                           ;
+    lda temp11                                                        ;
+    asl                                                               ;
+    tay                                                               ;
+
+    lda (lookup_low),y                                                ;
     clc                                                               ;
     adc temp10                                                        ;
-    sta enemy_ship_x_plus_half_sine                                   ;
-    lda cosine_table,y                                                ;
-    clc                                                               ;
-    bpl skip_set_carry_cosine                                         ;
-    sec                                                               ;
-skip_set_carry_cosine
-    ror                                                               ;
+    sta x_pixels                                                      ;
+
+    iny                                                               ;
+    lda (lookup_low),y                                                ;
     clc                                                               ;
     adc temp9                                                         ;
-    sta enemy_ship_y_plus_half_cosine                                 ;
-    lda temp11                                                        ;
-    clc                                                               ;
-    adc #3                                                            ;
-    and #$1f                                                          ;
-    tay                                                               ;
-    sta segment_angle                                                 ;
-    lda enemy_ship_x_plus_half_sine                                   ;
-    clc                                                               ;
-    adc sine_table,y                                                  ;
-    sta x_pixels                                                      ;
-    lda enemy_ship_y_plus_half_cosine                                 ;
-    clc                                                               ;
-    adc cosine_table,y                                                ;
     sta y_pixels                                                      ;
-    lda #8                                                            ;
-    sta segment_length                                                ;
-    lda #1                                                            ;
-    sta segment_angle_change_per_pixel                                ;
-    jsr plot_segment                                                  ;
-    lda temp11                                                        ;
-    clc                                                               ;
-    adc #$14                                                          ;
-    and #$1f                                                          ;
-    sta segment_angle                                                 ;
-    lda #10                                                           ;
-    sta segment_length                                                ;
-    lda #$ff                                                          ;
-    sta segment_angle_change_per_pixel                                ;
-    jsr plot_segment                                                  ;
-    lda temp11                                                        ;
-    clc                                                               ;
-    adc #$15                                                          ;
-    and #$1f                                                          ;
-    sta segment_angle                                                 ;
-    lda #9                                                            ;
-    sta segment_length                                                ;
-    lda #1                                                            ;
-    sta segment_angle_change_per_pixel                                ;
-    jsr plot_segment                                                  ;
-    lda enemy_ship_type                                               ;
-    beq regular_ship                                                  ;
-    lda temp10                                                        ;
-    sta x_pixels                                                      ;
-    lda temp9                                                         ;
-    jmp long_ship                                                     ;
 
-regular_ship
-    lda enemy_ship_x_plus_half_sine                                   ;
-    sta x_pixels                                                      ;
-    lda enemy_ship_y_plus_half_cosine                                 ;
-long_ship
-    sta y_pixels                                                      ;
-    lda temp11                                                        ;
-    clc                                                               ;
-    adc #$14                                                          ;
-    and #$1f                                                          ;
-    sta segment_angle                                                 ;
-    lda #8                                                            ;
-    sta segment_length                                                ;
-    jsr plot_segment                                                  ;
-    lda temp11                                                        ;
-    clc                                                               ;
-    adc #4                                                            ;
-    and #$1f                                                          ;
-    sta segment_angle                                                 ;
-    lda #9                                                            ;
-    sta segment_length                                                ;
-    jsr plot_segment                                                  ;
+    ldy plot_enemy_progress                                           ;
+    iny                                                               ;
+    jmp plot_enemy_loop                                               ;
+
+
+
+
+plot_enemy_done
 enemy_ship_is_cloaked
     ldx temp8                                                         ;
     rts                                                               ;
+
+enemy_ship_shape_data
+;
+;
+;                      31 00 01
+;                29 30          02 03
+;             28                      04
+;          27                            05
+;          26                            06
+;       25                                  07
+;       24                                  08
+;       23                                  09
+;          22                            10
+;          21                            11
+;             20                      12
+;                19 18          14 13
+;                      17 16 15
+;
+;
+
+
+;
+;
+;                         04
+;                     27      05
+;                     26      06
+;             29  25              07  03
+;         28      24      ..      08      04
+;     27          23              09          05
+;     26              22      10              06
+; 25                  21      11                  07
+; 24                  31  00  01                  08
+; 23          29  30              02  03          09
+;     22  28                              04  10
+;     21                                      05
+;
+
+enemy1_regular
+    !byte 2                 ;
+    !word enemy_move_33     ; move (3,3)
+    !byte 1,  3,  9         ; arc 1 (arc start, pixel length)
+    !byte 2                 ;
+    !word enemy_move_m55    ; move (-5, 5)
+    !byte 1, 21,  9         ; arc 2
+    !byte 2                 ;
+    !word enemy_move_m44    ; move (-4,4)
+    !byte 1, 28, 9          ; arc 3
+    !byte 0,  5,  9         ; move from 5 to 9
+    !byte 1, 21,  7         ; arc 4
+    !byte 1,  4,  8         ; arc 5
+    !byte $ff               ; terminator
+
+enemy1_long
+    !byte 0, 28, 31         ; move from 28 to 31
+    !byte 1,  3,  8         ; arc 1 (arc start, pixel length)
+    !byte 0, 12, 21         ; move from 12 to 21
+    !byte 1, 28, 10         ; arc 2
+    !byte 0, 11, 22         ; move from 11 to 22
+    !byte 1, 21,  9         ; arc 3
+    !byte 0,  3,  5         ; move from 3 to 5
+    !byte 1, 20,  8         ; arc 4
+    !byte 1,  4,  8         ; arc 5
+    !byte $ff               ; terminator
+
+enemy2_regular
+    !byte 0,   7, 14        ; move from 7 to 14
+    !byte 1,  21,  8        ; arc 1 (arc start, pixel length)
+    !byte 1,  25,  3        ; arc 2
+    !byte 1,   4,  3        ; arc 3
+    !byte 1,   3,  9        ; arc 4
+    !byte 0,  15, 21        ; move from 15 to 21
+    !byte 1,  29,  7        ; arc 5
+    !byte $ff               ; terminator
+
+enemy2_long
+    !byte 0,  8, 12         ; move from 8 to 12
+    !byte 1, 30,  5         ; arc 1
+    !byte 0, 12, 17         ; move from 12 to 17
+    !byte 1, 19, 11         ; arc 2
+    !byte 0,  5, 10         ; move from 5 to 10
+    !byte 1, 21,  7         ; arc 3
+    !byte 1,  4,  9         ; arc 4
+    !byte 0, 22, 30         ; move from 22 to 30
+    !byte 1,  3, 11         ; arc 5
+    !byte $ff               ; terminator
+
+enemy_address_low
+    !byte <enemy1_regular
+    !byte <enemy1_long
+    !byte <enemy2_regular
+    !byte <enemy2_long
+enemy_address_high
+    !byte >enemy1_regular
+    !byte >enemy1_long
+    !byte >enemy2_regular
+    !byte >enemy2_long
+
+enemy_move_33
+    !byte  3, -3            ; 0
+    !byte  4, -2            ; 1
+    !byte  5, -1            ; 2
+    !byte  5,  0            ; 3
+    !byte  6,  1            ; 4
+    !byte  6,  2            ; 5
+    !byte  6,  3            ; 6
+    !byte  5,  4            ; 7
+    !byte  5,  5            ; 8
+    !byte  4,  6            ; 9
+    !byte  3,  7            ; 10
+    !byte  2,  7            ; 11
+    !byte  1,  8            ; 12
+    !byte  0,  8            ; 13
+    !byte -1,  8            ; 14
+    !byte -2,  7            ; 15
+    !byte -3,  7            ; 16
+    !byte -4,  6            ; 17
+    !byte -5,  5            ; 18
+    !byte -5,  4            ; 19
+    !byte -6,  3            ; 20
+    !byte -6,  2            ; 21
+    !byte -6,  1            ; 22
+    !byte -5,  0            ; 23
+    !byte -5, -1            ; 24
+    !byte -4, -2            ; 25
+    !byte -3, -3            ; 26
+    !byte -2, -3            ; 27
+    !byte -1, -4            ; 28
+    !byte  0, -4            ; 29
+    !byte  1, -4            ; 30
+    !byte  2, -3            ; 31
+
+enemy_move_m55
+    !byte -5, 5             ; 0
+    !byte -5, 4             ; 1
+    !byte -6, 3             ; 2
+    !byte -6, 2             ; 3
+    !byte -6, 1             ; 4
+    !byte -5, 0             ; 5
+    !byte -5, -1            ; 6
+    !byte -4, -2            ; 7
+    !byte -3, -3            ; 8
+    !byte -2, -3            ; 9
+    !byte -1, -4            ; 10
+    !byte  0, -4            ; 11
+    !byte  1, -4            ; 12
+    !byte  2, -3            ; 13
+    !byte  3, -3            ; 14
+    !byte  4, -2            ; 15
+    !byte  5, -1            ; 16
+    !byte  5,  0            ; 17
+    !byte  6, 1             ; 18
+    !byte  6, 2             ; 19
+    !byte  6, 3             ; 20
+    !byte  5, 4             ; 21
+    !byte  5, 5             ; 22
+    !byte  4, 6             ; 23
+    !byte  3, 7             ; 24
+    !byte  2, 7             ; 25
+    !byte  1, 8             ; 26
+    !byte  0, 8             ; 27
+    !byte -1, 8             ; 28
+    !byte -2, 7             ; 29
+    !byte -3, 7             ; 30
+    !byte -4, 6             ; 31
+
+enemy_move_m44
+    !byte -4, 4             ; 0
+    !byte -4, 3             ; 1
+    !byte -5, 3             ; 2
+    !byte -5, 2             ; 3
+    !byte -5, 1             ; 4
+    !byte -4, 0             ; 5
+    !byte -4, 0             ; 6
+    !byte -3, -1            ; 7
+    !byte -2, -2            ; 8
+    !byte -2, -2            ; 9
+    !byte -1, -3            ; 10
+    !byte 0, -3             ; 11
+    !byte 1, -3             ; 12
+    !byte 3, -3             ; 13
+    !byte 3, -2             ; 14
+    !byte 3, -2             ; 15
+    !byte 4, -2             ; 16
+    !byte 5, -1             ; 17
+    !byte 6, 0              ; 18
+    !byte 6, 0              ; 19
+    !byte 5, 0              ; 20
+    !byte 5, 1              ; 21
+    !byte 5, 2              ; 22
+    !byte 4, 3              ; 23
+    !byte 4, 4              ; 24
+    !byte 3, 4              ; 25
+    !byte 2, 5              ; 26
+    !byte 1, 5              ; 27
+    !byte 0, 5              ; 28
+    !byte -1, 5             ; 29
+    !byte -2, 5             ; 30
+    !byte -3, 4             ; 31
+
+
+; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the circle
+circle_scale = 6
+
+centre_array_dy
+    !byte -6,-6,-5,-5,-4,-3,-2,-1
+
+centre_array_dx
+    !byte  0, 1, 2, 3, 4, 5, 5, 6, 6, 6, 5, 5, 4, 3, 2, 1
+    !byte  0,-1,-2,-3,-4,-5,-5,-6,-6,-6,-5,-5,-4,-3,-2,-1
 
 ; ----------------------------------------------------------------------------------
 starship_has_exploded
@@ -2999,6 +3224,8 @@ escape_capsule_launched
 escape_capsule_sound_channel
     !byte 0                                                           ;
 enemy_ship_fired_torpedo
+    !byte 0                                                           ;
+enemy_ships_collided_with_each_other
     !byte 0                                                           ;
 enemy_torpedo_hits_against_starship
     !byte 0                                                           ;
@@ -3133,18 +3360,82 @@ skip18
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_starship
-    ldx #$0f                                                          ;
-plot_starship_top_loop
-    lda user_defined_characters,x                                     ; }
-    eor starship_top_screen_address,x                                 ; } draw top half
-    sta starship_top_screen_address,x                                 ; }
+get_starship_address
+    ldx starship_type                                                 ;
+    lda starship_addresses_low,x                                      ;
+    sta starship_low                                                  ;
+    lda starship_addresses_high,x                                     ;
+    sta starship_high                                                 ;
+    rts                                                               ;
 
-    lda user_defined_characters + 16,x                                ; }
-    eor starship_bottom_screen_address,x                              ; } draw bottom half
-    sta starship_bottom_screen_address,x                              ; }
+; ----------------------------------------------------------------------------------
+plot_starship_heading
+    jsr get_starship_address                                          ;
+
+    ; plot top half (14 times across the screen)
+    lda #<$5a88                                                       ;
+    sta end_low                                                       ;
+    lda #>$5a88                                                       ;
+    sta end_high                                                      ;
+
+    jsr copy_half                                                     ;
+
+    ; plot bottom half (14 times across the screen)
+    lda #<$5bc8                                                       ;
+    sta end_low                                                       ;
+    lda #>$5bc8                                                       ;
+    sta end_high                                                      ;
+    lda starship_low                                                  ;
+    clc                                                               ;
+    adc #16                                                           ;
+    sta starship_low                                                  ;
+    lda starship_high                                                 ;
+    adc #0                                                            ;
+    sta starship_high                                                 ;
+    ; fall through...
+
+copy_half
+    ldx #13                                                           ;
+--
+    ldy #15                                                           ;
+-
+    lda (starship_low),y                                              ;
+    sta (end_low),y                                                   ;
+    dey                                                               ;
+    bpl -                                                             ;
+
+    lda end_low                                                       ;
+    clc                                                               ;
+    adc #$18                                                          ;
+    sta end_low                                                       ;
+    bcc +                                                             ;
+    inc end_high                                                      ;
++
     dex                                                               ;
-    bpl plot_starship_top_loop                                        ;
+    bne --                                                            ;
+    rts                                                               ;
+
+
+; ----------------------------------------------------------------------------------
+plot_starship
+    jsr get_starship_address
+
+    ldy #0                                                            ; Y = 0
+plot_starship_top_loop
+    lda (starship_low),y                                              ; copy starship sprite
+    eor starship_top_screen_address,y                                 ; } draw top half
+    sta starship_top_screen_address,y                                 ; }
+    iny                                                               ;
+    cpy #16                                                           ;
+    bne plot_starship_top_loop                                        ;
+
+plot_starship_bottom_loop
+    lda (starship_low),y                                              ; copy starship sprite
+    eor starship_bottom_screen_address - 16,y                         ; } draw bottom half
+    sta starship_bottom_screen_address - 16,y                         ; }
+    iny                                                               ;
+    cpy #32                                                           ;
+    bne plot_starship_bottom_loop                                     ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3598,15 +3889,14 @@ plot_enemy_ship_or_explosion_segments
     stx temp7                                                         ;
     lda enemy_ships_previous_x_pixels,x                               ;
     sta temp10                                                        ;
-    lda enemy_ships_previous_x_pixels1,x                              ;
+    lda enemy_ships_previous_y_pixels,x                               ;
     sta temp9                                                         ;
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     cmp #frame_of_enemy_ship_explosion_after_which_no_collisions      ;
     bcc return16                                                      ;
     cmp #frame_of_enemy_ship_explosion_after_which_no_segments_are_plotted ;
     bcc plot_enemy_explosion_segments                                 ;
-    jsr plot_enemy_ship                                               ;
-    rts                                                               ;
+    jmp plot_enemy_ship                                               ;
 
 return16
     rts                                                               ;
@@ -3648,6 +3938,8 @@ plot_enemy_explosion_segments
     sta segment_angle_change_per_pixel                                ;
     jmp plot_segment                                                  ;
 
+; ----------------------------------------------------------------------------------
+; weird random number generator
 ; ----------------------------------------------------------------------------------
 random_number_generator
     stx temp_x
@@ -3693,16 +3985,6 @@ game_key_table
     !byte $9b                                                         ;
     !byte $ad                                                         ;
     !byte $96                                                         ;
-
-; ----------------------------------------------------------------------------------
-screen_border_string
-    !byte 0  , 0  , 3  , $ff, 5  , $19                                ; MOVE 1024, 764
-    !byte 3  , $ff, 3  , $ff, 5  , $19                                ; DRAW 1279, 764
-    !byte 3  , $ff, 0  , 0  , 5  , $19                                ; DRAW 1279, 0
-    !byte 0  , 0  , 0  , 0  , 5  , $19                                ; DRAW    0, 0
-    !byte 0  , 0  , 4  , $ff, 5  , $19                                ; DRAW    0, 1023
-    !byte 2  , $fc, 4  , $ff, 5  , $19                                ; DRAW 1023, 1023
-    !byte 2  , $fc, 4  , 0  , 4  , $19                                ; DRAW 1023, 0
 
 ; ----------------------------------------------------------------------------------
 ; Start of new command
@@ -3796,45 +4078,6 @@ sound_11
     !byte $10, 0, 3, 0, 7, 0, $1e, 0                                  ;
 
 ; ----------------------------------------------------------------------------------
-set_foreground_colour_to_white_string
-    !byte 0, 0, 0, 7, 1, 19                                           ; VDU 19,1,7,0,0,0
-set_foreground_colour_to_black_string
-    !byte 0, 0, 0, 0, 1, 19                                           ; VDU 19,1,0,0,0,0
-set_background_colour_to_black_string
-    !byte 0, 0, 0, 0, 0, 19                                           ; VDU 19,0,0,0,0,0
-
-; ----------------------------------------------------------------------------------
-energy_string
-    !text "YGRENE"                                                    ; TAB(&21, &11), "ENERGY"
-    !byte $11, $21, $1f                                               ;
-
-; ----------------------------------------------------------------------------------
-one_two_three_four_string
-    !byte 4  , $34, $0a, 8  , $33, $0a, 8  , $32, $0a, 8  , $31, 5    ; MOVE 1032, 428: PRINT "1"'"2"'"3"'"4"
-    !byte 1  , $ac, 4  , 8  , 4  , $19                                ;
-
-; ----------------------------------------------------------------------------------
-shields_string
-    !text "NO"                                                        ; TAB(&21, &02), "SHIELDS", TAB(&23, &05), "NO"
-    !byte 5  , $23, $1f                                               ;
-    !text "SDLEIHS"                                                   ;
-    !byte 2  , $21, $1f                                               ;
-
-; ----------------------------------------------------------------------------------
-blank_string
-    !byte $20, $20, 5  , $23, $1f                                     ; TAB(&21, &02), "       ", TAB(&23, &05), "  "
-    !text "       "                                                   ;
-    !byte 2  , $21, $1f                                               ;
-
-; ----------------------------------------------------------------------------------
-enable_cursor_string
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , $60, $0a, 0  , $17            ; set CRTC register 10 to &60
-
-; ----------------------------------------------------------------------------------
-disable_cursor_string
-    !byte 0  , 0  , 0  , 0  , 0  , 0  , $3c, $0a, 0  , $17            ; set CRTC register 10 to &3c
-
-; ----------------------------------------------------------------------------------
 plot_energy_bar_edges
     lda #$93                                                          ;
     sta y_pixels                                                      ;
@@ -3863,103 +4106,53 @@ plot_energy_bar_edges_loop
 
 ; ----------------------------------------------------------------------------------
 plot_energy_text
-    ldx #8                                                            ;
-loop
-    lda energy_string,x                                               ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl loop                                                          ;
-    rts                                                               ;
+    ldx #regular_string_index_energy_string                           ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 plot_one_two_three_four_text
-    ldx #$11                                                          ;
-loop1
-    lda one_two_three_four_string,x                                   ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl loop1                                                         ;
-    rts                                                               ;
+    ldx #regular_string_index_one_two_three_four                      ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 plot_shields_text
-    ldx #$0e                                                          ;
-loop2
-    lda shields_string,x                                              ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl loop2                                                         ;
-    rts                                                               ;
+    ldx #regular_string_index_shields_on                              ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 plot_blank_text
-    ldx #$0e                                                          ;
-loop3
-    lda blank_string,x                                                ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl loop3                                                         ;
-    rts                                                               ;
+    ldx #regular_string_index_shields_off                             ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 plot_screen_border
-    ldx #$29                                                          ;
--
-    lda screen_border_string,x                                        ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_screen_border                           ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 set_foreground_colour_to_white
-    ldx #5                                                            ;
--
-    lda set_foreground_colour_to_white_string,x                       ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_set_foreground_colour_to_white          ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 set_foreground_colour_to_black
-    ldx #5                                                            ;
--
-    lda set_foreground_colour_to_black_string,x                       ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_set_foreground_colour_to_black          ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 set_background_colour_to_black
-    ldx #5                                                            ;
--
-    lda set_background_colour_to_black_string,x                       ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_set_background_colour_to_black          ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 enable_cursor
-    ldx #9                                                            ;
-enable_cursor_loop
-    lda enable_cursor_string,x                                        ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl enable_cursor_loop                                            ;
-    rts                                                               ;
+    ldx #regular_string_index_enable_cursor                           ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 disable_cursor
-    ldx #9                                                            ;
--
-    lda disable_cursor_string,x                                       ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_disable_cursor                          ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 check_for_keypresses
@@ -4309,6 +4502,7 @@ consider_warning_sound
 return20
     rts                                                               ;
 
+; ----------------------------------------------------------------------------------
 invert_energy_text
     ldy #$2f                                                          ;
 invert_energy_text_loop
@@ -4448,7 +4642,7 @@ single_torpedo
     sta x_pixels                                                      ; torpedo_x = enemy_ship_x + sin(angle)
     lda cosine_table,y                                                ;
     clc                                                               ;
-    adc enemy_ships_x_pixels1,x                                       ;
+    adc enemy_ships_y_pixels,x                                        ;
     ldy #4                                                            ;
     sta (temp0_low),y                                                 ; torpedo_y = enemy_ship_y + cos(angle)
     ldy #2                                                            ;
@@ -4684,7 +4878,9 @@ initialise_game_screen
     jsr plot_scanner_grid                                             ;
     jsr plot_command_number                                           ;
     jsr plot_screen_border                                            ;
+!if do_debug = 0 {
     jsr plot_stars                                                    ;
+}
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     jsr initialise_joystick_and_cursor_keys                           ;
     jsr set_foreground_colour_to_white                                ;
@@ -4826,7 +5022,7 @@ fire_enemy_torpedo_cluster
     sta output_fraction                                               ; torpedo_x = enemy_ship_x + sin(angle)
     lda cosine_table,y                                                ;
     clc                                                               ;
-    adc enemy_ships_x_pixels1,x                                       ;
+    adc enemy_ships_y_pixels,x                                        ;
     sta output_pixels                                                 ; torpedo_y = enemy_ship_y + cos(angle)
     jsr add_single_torpedo_to_enemy_torpedo_cluster                   ;
     dec output_fraction                                               ;
@@ -4934,7 +5130,7 @@ enemy_ship_defensive_behaviour_handling
     bne unset_retreating_flags                                        ;
     lda enemy_ships_x_pixels,x                                        ;
     sta temp10                                                        ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     sta temp9                                                         ;
     jsr calculate_enemy_ship_angle_to_starship                        ;
     ldy enemy_ships_temporary_behaviour_flags,x                       ;
@@ -5010,7 +5206,7 @@ skip_inversion7
     rol                                                               ;
     asl y_pixels                                                      ;
     rol                                                               ; starship_velocity_high * 8
-    adc enemy_ships_x_pixels1,x                                       ;
+    adc enemy_ships_y_pixels,x                                        ;
     bmi skip_inversion8                                               ;
     eor #$ff                                                          ;
 skip_inversion8
@@ -5025,7 +5221,7 @@ get_rectilinear_distance_from_centre_of_screen
     eor #$ff                                                          ;
 skip_inversion_x4
     sta x_pixels                                                      ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     bmi skip_inversion_y4                                             ;
     eor #$ff                                                          ;
 skip_inversion_y4
@@ -5037,7 +5233,7 @@ skip_inversion_y4
 turn_enemy_ship_towards_starship_using_screens
     lda enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
-    lda enemy_ships_x_screens1,x                                      ;
+    lda enemy_ships_y_screens,x                                       ;
     sta temp9                                                         ;
     jmp turn_enemy_ship_towards_starship                              ;
 
@@ -5176,6 +5372,26 @@ compare_velocity
     cmp enemy_ships_velocity,x                                        ; comparison is never actually used
 return24
     rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+starship_addresses_low
+    !byte <starship_sprite_1
+    !byte <starship_sprite_2
+    !byte <starship_sprite_3
+    !byte <starship_sprite_4
+    !byte <starship_sprite_5
+    !byte <starship_sprite_6
+    !byte <starship_sprite_7
+    !byte <starship_sprite_8
+starship_addresses_high
+    !byte >starship_sprite_1
+    !byte >starship_sprite_2
+    !byte >starship_sprite_3
+    !byte >starship_sprite_4
+    !byte >starship_sprite_5
+    !byte >starship_sprite_6
+    !byte >starship_sprite_7
+    !byte >starship_sprite_8
 
 ; ----------------------------------------------------------------------------------
 starship_sprite_1
@@ -5615,6 +5831,7 @@ plot_scanner_grid
     lda #5                                                            ;
     sta output_pixels                                                 ;
     sta output_fraction                                               ;
+
 plot_vertical_lines_outer_loop
     lda #$41                                                          ;
     sta y_pixels                                                      ;
@@ -5625,12 +5842,14 @@ plot_vertical_lines_inner_loop
     inc y_pixels                                                      ;
     dec temp11                                                        ;
     bne plot_vertical_lines_inner_loop                                ;
+
     lda x_pixels                                                      ;
     clc                                                               ;
-    adc #$0a                                                          ;
+    adc #10                                                           ;
     sta x_pixels                                                      ;
     dec output_pixels                                                 ;
     bne plot_vertical_lines_outer_loop                                ;
+
     lda #$4a                                                          ;
     sta y_pixels                                                      ;
 plot_horizontal_lines_outer_loop
@@ -5645,7 +5864,7 @@ plot_horizontal_lines_inner_loop
     bne plot_horizontal_lines_inner_loop                              ;
     lda y_pixels                                                      ;
     clc                                                               ;
-    adc #$0a                                                          ;
+    adc #10                                                           ;
     sta y_pixels                                                      ;
     dec output_fraction                                               ;
     bne plot_horizontal_lines_outer_loop                              ;
@@ -5661,60 +5880,76 @@ plot_gauge_edges
     sta y_pixels                                                      ;
     lda #$42                                                          ;
     jsr plot_vertical_line                                            ;
+
     lda #$3b                                                          ;
     sta x_pixels                                                      ;
     lda #$41                                                          ;
     sta y_pixels                                                      ;
     lda #$42                                                          ;
     jsr plot_vertical_line                                            ;
+
     lda #5                                                            ;
     sta x_pixels                                                      ;
     lda #$77                                                          ;
     sta y_pixels                                                      ;
     lda #$2b                                                          ;
     jsr plot_horizontal_line                                          ;
+
     lda #7                                                            ;
     jsr plot_vertical_line                                            ;
+
     lda #5                                                            ;
     sta x_pixels                                                      ;
     lda #$78                                                          ;
     sta y_pixels                                                      ;
     lda #6                                                            ;
     jsr plot_vertical_line                                            ;
+
     lda #$2c                                                          ;
     jsr plot_horizontal_line                                          ;
+
     lda #0                                                            ;
     sta x_pixels                                                      ;
     lda #$83                                                          ;
     sta y_pixels                                                      ;
     lda #$3f                                                          ;
     jsr plot_horizontal_line                                          ;
+
     lda #$1a                                                          ;
     sta x_pixels                                                      ;
     lda #$75                                                          ;
     sta y_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     inc x_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     inc y_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     dec x_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     lda #$7f                                                          ;
     sta y_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     inc x_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     inc y_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     dec x_pixels                                                      ;
     jsr set_pixel                                                     ;
+
     lda #0                                                            ;
     sta x_pixels                                                      ;
     lda #$e7                                                          ;
     sta y_pixels                                                      ;
     lda #$3f                                                          ;
     jsr plot_horizontal_line                                          ;
+
     dec screen_start_high                                             ;
     rts                                                               ;
 
@@ -5840,7 +6075,7 @@ plot_enemy_ships_on_scanners_loop
     cmp #$9f                                                          ;
     bcs skip_unplotting_enemy_ship_on_scanner                         ;
     sta x_pixels                                                      ;
-    lda enemy_ships_previous_x_screens1,x                             ;
+    lda enemy_ships_previous_y_screens,x                              ;
     cmp #$60                                                          ;
     bcc skip_unplotting_enemy_ship_on_scanner                         ;
     cmp #$9f                                                          ;
@@ -5872,7 +6107,7 @@ plot_enemy_ships_on_scanners_loop
     adc y_pixels                                                      ;
     sta y_pixels                                                      ;
     ldx temp8                                                         ;
-    lda enemy_ships_previous_x_pixels1,x                              ;
+    lda enemy_ships_previous_y_pixels,x                               ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -5921,7 +6156,7 @@ continue2
     cmp #$9f                                                          ;
     bcs skip_plotting_enemy_ship_on_scanner                           ;
     sta x_pixels                                                      ;
-    lda enemy_ships_x_screens1,x                                      ;
+    lda enemy_ships_y_screens,x                                       ;
     cmp #$60                                                          ;
     bcc skip_plotting_enemy_ship_on_scanner                           ;
     cmp #$9f                                                          ;
@@ -5953,7 +6188,7 @@ continue2
     adc y_pixels                                                      ;
     sta y_pixels                                                      ;
     ldx temp8                                                         ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -6144,7 +6379,7 @@ enemy_ship_behaviour_routine0
     lda enemy_ships_x_screens,x                                       ;
     cmp #$7f                                                          ;
     bne not_on_screen_above                                           ;
-    lda enemy_ships_x_screens1,x                                      ;
+    lda enemy_ships_y_screens,x                                       ;
     cmp #$7e                                                          ; is the enemy ship on the screen above the starship?
     bne not_on_screen_above                                           ;
     lda enemy_ships_temporary_behaviour_flags,x                       ;
@@ -6175,7 +6410,7 @@ not_on_screen1
 not_on_screen_above
     lda enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
-    lda enemy_ships_x_screens1,x                                      ;
+    lda enemy_ships_y_screens,x                                       ;
     clc                                                               ;
     adc #1                                                            ;
     sta temp9                                                         ;
@@ -6388,7 +6623,7 @@ skip_swap1
     sta enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
     lda x_pixels                                                      ;
-    sta enemy_ships_x_screens1,x                                      ;
+    sta enemy_ships_y_screens,x                                       ;
     sta temp9                                                         ;
     jsr calculate_enemy_ship_angle_to_starship                        ;
     clc                                                               ;
@@ -6480,20 +6715,6 @@ change_in_number_of_stars_per_command
     !byte $fe                                                         ;
 subtraction_from_starship_regeneration_when_shields_active
     !byte 4                                                           ;
-escape_capsule_launched_string
-    !text "DEHCNUAL"                                                  ; TAB(&20, 17); "ESCAPE"
-    !byte $19, $20, $1f                                               ; TAB(&20, 18); "CAPSULE"
-    !text "ELUSPAC"                                                   ; TAB(&20, 19); "LAUNCHED"
-    !byte $18, $20, $1f                                               ;
-    !text "EPACSE"                                                    ;
-    !byte $17, $20, $1f                                               ;
-command_move_string
-    !byte 0  , $81, 4                                                 ;
-command_move_string_horizontal_pos
-    !byte $6f, 4  , $19                                               ; MOVE &046f, &0081
-command_string
-    !text "DNAMMOC"                                                   ;
-    !byte 5  , 0  , $a2, 4  , $0f, 4  , $19                           ; MOVE &040f, &00a2; "COMMAND"
 
 ; ----------------------------------------------------------------------------------
 prepare_starship_for_next_command
@@ -6550,22 +6771,6 @@ prepare_starship_for_next_command
     ldy #>(sound_0)                                                   ;
     lda #osword_sound                                                 ;
     jsr osword                                                        ;
-initialise_starship_sprite
-    lda starship_type                                                 ;
-    asl                                                               ;
-    asl                                                               ;
-    asl                                                               ;
-    asl                                                               ;
-    asl                                                               ;
-    tay                                                               ;
-    ldx #0                                                            ;
-initialise_starship_sprite_loop
-    lda starship_sprite_1,y                                           ; copy starship sprite into user-defined characters
-    sta user_defined_characters,x                                     ;
-    iny                                                               ;
-    inx                                                               ;
-    cpx #$20                                                          ;
-    bne initialise_starship_sprite_loop                               ;
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
@@ -6582,13 +6787,11 @@ plot_command_number
     lda #$3f                                                          ;
     jsr plot_horizontal_line                                          ;
     dec screen_start_high                                             ;
-    ldy #$0d                                                          ;
-plot_command_loop
-    lda command_string,y                                              ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl plot_command_loop                                             ;
-    ldy #$73                                                          ;
+
+    ldx #regular_string_index_command                                 ;
+    jsr print_regular_string                                          ;
+
+    ldy #$73                                                          ; normal position for command number (single digit)
     lda command_number                                                ;
     lsr                                                               ;
     lsr                                                               ;
@@ -6596,15 +6799,12 @@ plot_command_loop
     lsr                                                               ;
     tax                                                               ;
     beq single_digit_command_number_for_move                          ;
-    ldy #$63                                                          ;
+    ldy #$63                                                          ; adjusted position for command number (two digits)
 single_digit_command_number_for_move
     sty command_move_string_horizontal_pos                            ; set horizontal position of text
-    ldy #5                                                            ;
-plot_command_move_loop
-    lda command_move_string,y                                         ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl plot_command_move_loop                                        ;
+
+    ldx #regular_string_index_command_move                            ;
+    jsr print_regular_string                                          ;
     txa                                                               ;
     beq single_digit_command_number                                   ;
     clc                                                               ;
@@ -6622,12 +6822,8 @@ single_digit_command_number
 
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule_launched
-    ldy #$1d                                                          ;
-plot_escape_capsule_launched_loop_loop
-    lda escape_capsule_launched_string,y                              ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl plot_escape_capsule_launched_loop_loop                        ;
+    ldx #regular_string_index_escape_capsule_launched                 ;
+    jsr print_regular_string                                          ;
     lda #$c8                                                          ;
     sta y_pixels                                                      ;
     lda #$3f                                                          ;
@@ -6739,7 +6935,7 @@ return_from_enemy_ship_behaviour_routine
     eor #$ff                                                          ;
 skip_inversion_x5
     sta x_pixels                                                      ;
-    lda enemy_ships_x_screens1,x                                      ;
+    lda enemy_ships_y_screens,x                                       ;
     bmi skip_inversion_y5                                             ;
     eor #$ff                                                          ;
 skip_inversion_y5
@@ -6795,7 +6991,7 @@ enemy_ship_behaviour_routine6
     bne skip_firing1                                                  ;
     jsr fire_enemy_torpedo                                            ; fire if pointing at starship
 skip_firing1
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     bpl slow_to_a_crawl                                               ; slow to a crawl if above starship
     and #$7f                                                          ;
     lsr                                                               ;
@@ -6868,7 +7064,7 @@ kamikaze_stage_one_set
     and #$1f                                                          ;
     sta enemy_ship_desired_angle_divided_by_eight                     ;
     jsr turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity ;
-    lda enemy_ships_x_pixels1,x                                       ;
+    lda enemy_ships_y_pixels,x                                        ;
     bmi return_after_changing_velocity5                               ; leave if underneath starship
     lda enemy_ships_x_pixels,x                                        ;
     sec                                                               ;
@@ -6887,8 +7083,165 @@ return_after_changing_velocity5
 to_return_from_enemy_ship_behaviour_routine3
     jmp return_from_enemy_ship_behaviour_routine                      ;
 
+counter
+    !byte 0
+column
+    !byte 0
+row
+    !byte 0
+
+!if do_debug {
+; ----------------------------------------------------------------------------------
+debug_plot
+    lda #50
+    sta x_pixels
+    sta temp10
+    lda #128
+    sta y_pixels
+    sta temp9
+    jmp debug_plot_enemy
+
+; ----------------------------------------------------------------------------------
+debug_show_rotation_value_text
+    lda #30
+    jsr oswrch
+
+    lda temp11
+    ldx #0
+-
+    cmp #10
+    bcc +
+    inx
+    sec
+    sbc #10
+    jmp -
++
+    tay
+    txa
+    clc
+    adc #'0'
+    jsr oswrch
+    tya
+    clc
+    adc #'0'
+    jsr oswrch
+
+    lda #' '
+    jmp oswrch
+
+key
+    !byte 0
+
+; ----------------------------------------------------------------------------------
+debug_get_key_press
+    lda #15
+    ldx #1
+    jsr osbyte
+
+    lda #osbyte_inkey                                                 ;
+    ldx #$ff                                                          ;
+    ldy #$7f                                                          ;
+    jsr osbyte                                                        ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+debug
+    lda #0
+    sta temp11
+
+    lda #36
+    sta column
+
+    lda #30
+    sta row
+
+    lda #1
+    sta command_number
+    lda #0
+    sta enemy_ship_type
+
+    lda #0
+    sta counter
+
+--
+
+    lda column
+    clc
+    adc #20
+    sta column
+    sta x_pixels
+    sta temp10
+
+    lda row
+    sta y_pixels
+    sta temp9
+
+    jsr debug_plot_enemy
+
+    lda temp11
+    clc
+    adc #1
+    and #$1f
+    sta temp11
+
+    inc counter
+    lda counter
+    cmp #8
+    bcc --
+
+    lda #0
+    sta counter
+
+    lda #36
+    sta column
+
+    lda row
+    clc
+    adc #20
+    sta row
+
+    cmp #100
+
+    bcc --
+
+    ; interactive bit
+--
+    jsr debug_plot                                                    ; plot
+    jsr debug_show_rotation_value_text                                ;
+
+-
+    jsr debug_get_key_press                                           ;
+    cpx #'X'                                                          ;
+    bne +                                                             ;
+
+    jsr debug_plot                                                    ; unplot
+    ; increment angle
+    lda temp11                                                        ;
+    clc                                                               ;
+    adc #1                                                            ;
+    and #$1f                                                          ;
+    sta temp11                                                        ;
+    jmp --                                                            ;
+
++
+    cpx #'Z'                                                          ;
+    bne -                                                             ;
+
+    jsr debug_plot                                                    ; unplot
+    ; decrement angle
+    lda temp11                                                        ;
+    sec                                                               ;
+    sbc #1                                                            ;
+    and #$1f                                                          ;
+    sta temp11                                                        ;
+    jmp --                                                            ;
+}
+
 ; ----------------------------------------------------------------------------------
 main_game_loop
+
+;    jsr debug
+
     lda #0                                                            ;
     sta enemy_torpedo_hits_against_starship                           ;
     sta enemy_ship_was_hit                                            ;
@@ -6910,14 +7263,14 @@ skip_scanner_update
 
     ; wait for some time to have elapsed
 -
-    lda timing_counter
-    sec
-    sbc old_timing_counter
-    cmp #game_speed
-    bcc -
-    clc
-    adc old_timing_counter
-    sta old_timing_counter
+    lda timing_counter                                                ;
+    sec                                                               ;
+    sbc old_timing_counter                                            ;
+    cmp #game_speed                                                   ;
+    bcc -                                                             ;
+    clc                                                               ;
+    adc old_timing_counter                                            ;
+    sta old_timing_counter                                            ;
 
     jsr plot_enemy_ships                                              ;
     jsr update_stars                                                  ;
@@ -6982,105 +7335,46 @@ previous_score_as_bcd
 allowed_another_command
     !byte 0                                                           ;
 
-combat_experience_rating_string
-    !byte $1f, $0b, 5                                                 ;
-    !text "STARSHIP COMMAND"                                          ;
-    !byte $1f, 5  , $0a                                               ;
-    !text "An escape capsule was launched"                            ;
-    !byte $1f, 4  , $0f                                               ;
-    !text "Your official combat experience"                           ;
-    !byte $1f, 4  , $11                                               ;
-    !text "rating is now recorded as."                                ;
-    !byte $1f, $0d, $1f                                               ;
-    !text "Press <RETURN>"                                            ;
-    !byte $0d                                                         ;
-no_before_the_starship_exploded_string
-    !byte $1f, 5  , $0a                                               ;
-    !text "NO"                                                        ;
-    !byte $1f, 5  , $0b                                               ;
-    !text "before the starship exploded."                             ;
-    !byte $0d                                                         ;
-after_your_performance_string
-    !byte $1f, 3  , $16                                               ;
-    !text "After  your  performance  on  this"                        ;
-    !byte $1f, 3  , $17                                               ;
-    !text "command the Star-Fleet authorities"                        ;
-    !byte $1f, 3  , $18                                               ;
-    !text "are  said  to  be  ", '"'                                  ;
-    !byte $0d                                                         ;
-and_returned_safely_text
-    !byte $1f, 5  , $0b                                               ;
-    !text "and returned safely from the"                              ;
-    !byte $1f, 5  , $0c                                               ;
-    !text "combat zone."                                              ;
-    !byte $0d                                                         ;
-but_collided_string
-    !byte $1f, 5  , $0b                                               ;
-    !text "but collided with an enemy ship."                          ;
-    !byte $0d                                                         ;
-having_just_gained_string
-    !byte $1f, 4  , $13                                               ;
-    !text "having  just  gained  "                                    ;
-    !byte $0d                                                         ;
-and_but_they_allow_string
-    !text "and but they allow you the command of"                     ;
-    !byte $1f, 3  , $1b                                               ;
-    !text "another starship."                                         ;
-    !byte $0d                                                         ;
-emotions
-    !text '"'                                                         ; score + bcd(rnd($3f))
-    !text "furious", '"'                                              ;  < 40, 1
-    !text "displeased", '"'                                           ;  < 60, 2
-    !text "disappointed", '"'                                         ;  < 80, 3, and they retire you from active service
-    !text "disappointed", '"'                                         ;  <100, 4, but they allow you the command
-    !text "satisfied", '"'                                            ;  <200, 5, and they allow you the command
-    !text "pleased", '"'                                              ;  <280, 6
-    !text "impressed", '"'                                            ;  <400, 7
-    !text "delighted", '"'                                            ; >=400, 8
-    !byte $0d                                                         ;
-
-and_they_retire_you_string
-    !byte $1f, 0  , $1a                                               ;
-    !text "and they retire you from active service."                  ;
-    !byte $0d                                                         ;
-
 threshold_table
     !byte 2  , 3  , 4  , 7  , $0d, $14, $1e                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_debriefing
-    lda #$0a                                                          ;
-    jsr oswrch                                                        ;
-    ldy #$0d                                                          ;
-plot_row_of_starships_top_line_loop
-    lda #$20                                                          ;
-    jsr oswrch                                                        ;
-    lda #$e0                                                          ;
-    jsr oswrch                                                        ;
-    lda #$e1                                                          ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bne plot_row_of_starships_top_line_loop                           ;
-    lda #$20                                                          ;
-    jsr oswrch                                                        ;
-    ldy #$0d                                                          ;
-plot_row_of_starships_bottom_line_loop
-    lda #$20                                                          ;
-    jsr oswrch                                                        ;
-    lda #$e2                                                          ;
-    jsr oswrch                                                        ;
-    lda #$e3                                                          ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bne plot_row_of_starships_bottom_line_loop                        ;
-    jsr plot_line_of_underscores                                      ;
+;    lda #10                                                           ;
+;    jsr oswrch                                                        ;
+;    ldy #$0d                                                          ;
+;plot_row_of_starships_top_line_loop
+;    lda #' '                                                          ;
+;    jsr oswrch                                                        ;
+;    lda #$e0                                                          ;
+;    jsr oswrch                                                        ;
+;    lda #$e1                                                          ;
+;    jsr oswrch                                                        ;
+;    dey                                                               ;
+;    bne plot_row_of_starships_top_line_loop                           ;;;
+;
+;    lda #' '                                                          ;
+;    jsr oswrch                                                        ;
+;    ldy #$0d                                                          ;
+;plot_row_of_starships_bottom_line_loop
+;    lda #$20                                                          ;
+;    jsr oswrch                                                        ;
+;    lda #$e2                                                          ;
+;    jsr oswrch                                                        ;
+;    lda #$e3                                                          ;
+;    jsr oswrch                                                        ;
+;    dey                                                               ;
+;    bne plot_row_of_starships_bottom_line_loop                        ;
+    jsr plot_starship_heading                                         ;
+
+    ldx #0                                                            ;
     ldy #0                                                            ;
-plot_combat_experience_rating_text_loop
-    lda combat_experience_rating_string,y                             ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$3e                                                          ;
-    bne plot_combat_experience_rating_text_loop                       ;
+    jsr tab_to_x_y                                                    ;
+    jsr plot_line_of_underscores_raw                                  ;
+
+    ldx #combat_experience_rating_string                              ;
+    jsr print_compressed_string                                       ;
+
 plot_command_number1
     ldy #5                                                            ;
     ldx #$1c                                                          ;
@@ -7103,33 +7397,23 @@ single_digit_command_number1
     jsr plot_line_of_underscores                                      ;
     lda escape_capsule_launched                                       ;
     bne escape_capsule_was_launched                                   ;
-    ldy #0                                                            ;
-plot_no_before_the_starship_exploded_loop
-    lda no_before_the_starship_exploded_string,y                      ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$2e                                                          ;
-    bne plot_no_before_the_starship_exploded_loop                     ;
-    beq plot_score_in_debriefing                                      ;
+
+    ldx #no_before_the_starship_exploded_string                       ;
+    jsr print_compressed_string                                       ;
+    jmp plot_score_in_debriefing                                      ;
+
 escape_capsule_was_launched
     lda escape_capsule_destroyed                                      ;
     bne escape_capsule_was_destroyed                                  ;
-    ldy #0                                                            ;
-plot_and_returned_safely_loop
-    lda and_returned_safely_text,y                                    ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$2e                                                          ;
-    bne plot_and_returned_safely_loop                                 ;
-    beq plot_score_in_debriefing                                      ;
+
+    ldx #and_returned_safely_text                                     ;
+    jsr print_compressed_string                                       ;
+    jmp plot_score_in_debriefing                                      ;
+
 escape_capsule_was_destroyed
-    ldy #0                                                            ;
-plot_but_collided_loop
-    lda but_collided_string,y                                         ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$2e                                                          ;
-    bne plot_but_collided_loop                                        ;
+    ldx #but_collided_string                                          ;
+    jsr print_compressed_string                                       ;
+
 plot_score_in_debriefing
     ldy #$11                                                          ;
     ldx #$1e                                                          ;
@@ -7172,13 +7456,10 @@ leading_zero1
     lda command_number                                                ;
     cmp #1                                                            ;
     beq skip_previous_command_score                                   ;
-    ldy #0                                                            ;
-plot_having_just_gained_loop
-    lda having_just_gained_string,y                                   ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cpy #$19                                                          ;
-    bne plot_having_just_gained_loop                                  ;
+
+    ldx #having_just_gained_string                                    ;
+    jsr print_compressed_string                                       ;
+
     ldx #1                                                            ;
     lda previous_score_as_bcd + 2                                     ;
     jsr plot_bcd_number_as_two_digits                                 ;
@@ -7196,13 +7477,9 @@ skip_previous_command_score
     jmp leave_after_plotting_line_of_underscores                      ;
 
 plot_after_your_performance
-    ldy #0                                                            ;
-plot_after_your_performance_loop
-    lda after_your_performance_string,y                               ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cpy #$61                                                          ;
-    bne plot_after_your_performance_loop                              ;
+    ldx #after_your_performance_string                                ;
+    jsr print_compressed_string                                       ;
+
 judge_player
     lda rnd_2                                                         ; add random &00 - &3f to score
     and #$3f                                                          ;
@@ -7230,54 +7507,52 @@ check_threshold_loop
     bne check_threshold_loop                                          ;
 end_of_calculation
     sty y_pixels                                                      ; to find authorities' emotion
-    ldx #$ff                                                          ;
-    lda #$22                                                          ;
-find_emotion_loop
-    inx                                                               ;
-    cmp emotions,x                                                    ;
-    bne find_emotion_loop                                             ;
-    dey                                                               ;
-    bne find_emotion_loop                                             ;
-plot_emotion_loop
-    inx                                                               ;
-    lda emotions,x                                                    ;
+
+    ; print quote, emotion, quote
+    lda #'"'                                                          ;
     jsr oswrch                                                        ;
-    cmp #$22                                                          ;
-    bne plot_emotion_loop                                             ;
+
+    tya                                                               ;
+    clc                                                               ;
+    adc #emotions_1 - 1                                               ;
+    tax                                                               ;
+    jsr print_compressed_string                                       ;
+
+    lda #'"'                                                          ;
+    jsr oswrch                                                        ;
+
+    ; check for retired
     lda y_pixels                                                      ;
     cmp #4                                                            ;
     bcc player_retired                                                ;
+
+    ; tab
     ldy #$1a                                                          ;
     ldx #3                                                            ;
     jsr tab_to_x_y                                                    ;
-    ldy #0                                                            ;
+
     lda y_pixels                                                      ;
     cmp #4                                                            ;
-    bne plot_and_or_but_loop                                          ;
-    ldy #4                                                            ;
-plot_and_or_but_loop
-    lda and_but_they_allow_string,y                                   ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$20                                                          ;
-    bne plot_and_or_but_loop                                          ;
-    ldy #8                                                            ;
-plot_they_allow_you_loop
-    lda and_but_they_allow_string,y                                   ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$2e                                                          ;
-    bne plot_they_allow_you_loop                                      ;
-    beq leave_after_plotting_line_of_underscores                      ;
+    bne do_and
+do_but
+    ldx #but_string                                                   ;
+    jsr print_compressed_string                                       ;
+    jmp they_allow
+do_and
+    ldx #and_string                                                   ;
+    jsr print_compressed_string                                       ;
+
+they_allow
+    ldx #they_allow_string                                            ;
+    jsr print_compressed_string                                       ;
+    jmp plot_line_of_underscores                                      ;
+
 player_retired
     ldy #0                                                            ;
     sty allowed_another_command                                       ;
-plot_and_they_retire_you_loop
-    lda and_they_retire_you_string,y                                  ;
-    jsr oswrch                                                        ;
-    iny                                                               ;
-    cmp #$2e                                                          ;
-    bne plot_and_they_retire_you_loop                                 ;
+
+    ldx #and_they_retire_you_string                                   ;
+    jsr print_compressed_string                                       ;
 leave_after_plotting_line_of_underscores
     jmp plot_line_of_underscores                                      ;
 
@@ -7287,9 +7562,10 @@ plot_line_of_underscores
     jsr oswrch                                                        ;
     lda #$0a                                                          ;
     jsr oswrch                                                        ;
-    ldy #$28                                                          ;
+plot_line_of_underscores_raw
+    ldy #$28                                                          ; loop counter
 plot_line_of_underscores_loop
-    lda #$5f                                                          ;
+    lda #$5f                                                          ; underscore
     jsr oswrch                                                        ;
     dey                                                               ;
     bne plot_line_of_underscores_loop                                 ;
@@ -7334,66 +7610,12 @@ skip_leading_zeroes_again
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-instructions_string
-    !byte $1f, 6  , 2                                                 ;
-    !text "**** STARSHIP CONTROLS ****"                               ;
-    !byte $1f, 3  , 5                                                 ;
-    !text "Z  -  Rotate left"                                         ;
-    !byte $1f, 3  , 6                                                 ;
-    !text "X  -  Rotate right"                                        ;
-    !byte $1f, 3  , 7                                                 ;
-    !text "N  -  Fire torpedoes"                                      ;
-    !byte $1f, 3  , 8                                                 ;
-    !text "M  -  Thrust"                                              ;
-    !byte $1f, 3  , 9                                                 ;
-    !text ",  -  Brake"                                               ;
-    !byte $1f, 3  , $0b                                               ;
-    !text "F  -  Launch port escape capsule"                          ;
-    !byte $1f, 3  , $0c                                               ;
-    !text "G  -  Launch starboard escape capsule"                     ;
-    !byte $1f, 0  , $0e                                               ;
-    !text "All the above may operate simultaneouslyAlter"             ;
-    !text "natively , ONE of the following maybe depress"             ;
-    !text "ed...."                                                    ;
-    !byte $1f, 3  , $12                                               ;
-    !text "B  -  Shields ON / Scanners OFF"                           ;
-    !byte $1f, 3  , $13                                               ;
-    !text "V  -  Scanners ON / Shields OFF"                           ;
-    !byte $1f, 3  , $14                                               ;
-    !text "C  -  ", '"', "Auto-Changeover", '"', " ON"                ;
-    !byte $1f, 3  , $16                                               ;
-    !text "f0 -  ", '"', "Rotation Dampers", '"', " ON"               ;
-    !byte $1f, 3  , $17                                               ;
-    !text "2  -  ", '"', "Rotation Dampers", '"', " OFF"              ;
-    !byte $1f, 3  , $18                                               ;
-    !text "f1 -  ", '"', "Velocity Dampers", '"', " ON"               ;
-    !byte $1f, 3  , $19                                               ;
-    !text "3  -  ", '"', "Velocity Dampers", '"', " OFF"              ;
-    !byte $1f, 3  , $1b                                               ;
-    !text "<COPY>   - FREEZE"                                         ;
-    !byte $1f, 3  , $1c                                               ;
-    !text "<DELETE> - UNFREEZE"                                       ;
-    !byte $1f, $0d, $1f                                               ;
-    !text "Press <RETURN>~"                                           ;
-
-; ----------------------------------------------------------------------------------
 plot_instructions
-    lda #<instructions_string                                         ;
-    sta temp0_low                                                     ;
-    lda #>instructions_string                                         ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-plot_instructions_loop
-    lda (temp0_low),y                                                 ;
-    cmp #'~'                                                          ;
-    beq finished_plotting_instructions                                ;
-    jsr oswrch                                                        ;
-    inc temp0_low                                                     ;
-    bne plot_instructions_loop                                        ;
-    inc temp0_high                                                    ;
-    bne plot_instructions_loop                                        ;
+    ldx #instructions_string1                                         ;
+    jsr print_compressed_string                                       ;
+    ldx #instructions_string2                                         ;
+    jsr print_compressed_string                                       ;
 
-finished_plotting_instructions
     lda #0                                                            ;
     jsr plot_line_of_underscores_at_y                                 ;
     lda #3                                                            ;
@@ -7431,6 +7653,7 @@ combat_preparation_screen_key_table
     !byte $89                                                         ;
     !byte $88                                                         ;
 
+; ----------------------------------------------------------------------------------
 game_options
 option_sound
     !byte 0                                                           ;
@@ -7440,6 +7663,7 @@ option_enemy_torpedoes
     !byte 0                                                           ;
 option_keyboard_joystick
     !byte 0                                                           ;
+
 options_values_to_write
     !byte 0                                                           ;
     !byte 1                                                           ;
@@ -7459,38 +7683,6 @@ option_address_high_table
     !byte >starship_torpedo_type                                      ;
     !byte >enemy_torpedo_type_instruction                             ;
     !byte >keyboard_or_joystick                                       ;
-
-combat_preparation_string
-    !byte $1f, 6  , 3                                                 ;
-    !text "**** COMBAT PREPARATION ****"                              ;
-    !byte $1f, 6  , 7                                                 ;
-    !text "f0  View starship controls"                                ;
-    !byte $1f, 6  , 9                                                 ;
-    !text "f1  View Star-Fleet records"                               ;
-    !byte $1f, 6  , $0b                                               ;
-    !text "f2  Enable"                                                ;
-    !byte $1f, $11, $0c                                               ;
-    !text "}the sound effects"                                        ;
-    !byte $1f, 6  , $0d                                               ;
-    !text "f3  Disable"                                               ;
-    !byte $1f, 6  , $0f                                               ;
-    !text "f4  Small"                                                 ;
-    !byte $1f, $11, $10                                               ;
-    !text "}starship torpedoes"                                       ;
-    !byte $1f, 6  , $11                                               ;
-    !text "f5  Large"                                                 ;
-    !byte $1f, 6  , $13                                               ;
-    !text "f6  Small"                                                 ;
-    !byte $1f, $11, $14                                               ;
-    !text "}enemy torpedoes"                                          ;
-    !byte $1f, 6  , $15                                               ;
-    !text "f7  Large"                                                 ;
-    !byte $1f, 6  , $17                                               ;
-    !text "f8  Keyboard"                                              ;
-    !byte $1f, 6  , $19                                               ;
-    !text "f9  Joystick"                                              ;
-    !byte $1f, $0d, $1e                                               ;
-    !text "Press <RETURN>~"                                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_selected_options
@@ -7557,20 +7749,10 @@ combat_preparation_screen
     jsr oswrch                                                        ;
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
-    lda #<combat_preparation_string                                   ;
-    sta temp0_low                                                     ;
-    lda #>combat_preparation_string                                   ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-plot_combat_preparations_loop
-    lda (temp0_low),y                                                 ;
-    cmp #$7e                                                          ;
-    beq finished_plotting_combat_preparations                         ;
-    jsr oswrch                                                        ;
-    inc temp0_low                                                     ;
-    bne plot_combat_preparations_loop                                 ;
-    inc temp0_high                                                    ;
-    bne plot_combat_preparations_loop                                 ;
+
+    ldx #combat_preparation_string                                    ;
+    jsr print_compressed_string                                       ;
+
 finished_plotting_combat_preparations
     lda #1                                                            ;
     jsr plot_line_of_underscores_at_y                                 ;
@@ -7636,16 +7818,6 @@ return28
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-starfleet_records_string
-    !byte $1f, 6  , 3                                                 ;
-    !text "**** STAR-FLEET RECORDS ****"                              ;
-    !byte $1f, 0  , 6                                                 ;
-    !text "Below is a list of the most highly rated"                  ;
-    !text "of Star-Fleet's past commanders."                          ;
-    !byte $1f, $0d, 30                                                ;
-    !text "Press <RETURN>~"                                           ;
-
-; ----------------------------------------------------------------------------------
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
 ; ----------------------------------------------------------------------------------
 high_score_table
@@ -7665,21 +7837,10 @@ starfleet_records_screen
     lda #4                                                            ;
     jsr oswrch                                                        ;
     jsr disable_cursor                                                ;
-    lda #<starfleet_records_string                                    ;
-    sta temp0_low                                                     ;
-    lda #>starfleet_records_string                                    ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-plot_starfleet_records_loop
-    lda (temp0_low),y                                                 ;
-    cmp #$7e                                                          ;
-    beq finished_plotting_starfleet_records                           ;
-    jsr oswrch                                                        ;
-    inc temp0_low                                                     ;
-    bne plot_starfleet_records_loop                                   ;
-    inc temp0_high                                                    ;
-    bne plot_starfleet_records_loop                                   ;
-finished_plotting_starfleet_records
+
+    ldx #starfleet_records_string                                     ;
+    jsr print_compressed_string                                       ;
+
     lda #8                                                            ;
     sta temp8                                                         ;
     ldx #0                                                            ;
@@ -7771,12 +7932,6 @@ leading_zero2
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
-enter_your_name_string
-    !byte $1f, 0  , $0a                                               ;
-    !text "Enter your name for Star-Fleet records."                   ;
-    !byte $1f, $0d, $10                                               ;
-    !text "-------------"                                             ;
-    !byte $1f, $0d, $0f, $7e, $0d                                     ;
 input_buffer
     !text "PPPPPPPPPPPP"                                              ;
     !byte $88, $0d                                                    ;
@@ -7832,21 +7987,9 @@ move_records_down_a_slot_loop
     jmp move_records_down_a_slot_loop                                 ;
 
 finished_moving_records
-    lda #<enter_your_name_string                                      ;
-    sta temp0_low                                                     ;
-    lda #>enter_your_name_string                                      ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-plot_enter_your_name_loop
-    lda (temp0_low),y                                                 ;
-    cmp #$7e                                                          ;
-    beq finished_plotting_enter_your_name                             ;
-    jsr oswrch                                                        ;
-    inc temp0_low                                                     ;
-    bne plot_enter_your_name_loop                                     ;
-    inc temp0_high                                                    ;
-    bne plot_enter_your_name_loop                                     ;
-finished_plotting_enter_your_name
+    ldx #enter_your_name_string                                       ;
+    jsr print_compressed_string                                       ;
+
     ldx #<(input_osword_block)                                        ;
     ldy #>(input_osword_block)                                        ;
     lda #osword_read_line                                             ;
@@ -7886,9 +8029,7 @@ finished_padding_name
 
 ; ----------------------------------------------------------------------------------
 plot_shields_string_and_something
-    txa                                                               ;
-    and #1                                                            ;
-    sta starship_shields_active_before_failure                        ;
+    stx starship_shields_active_before_failure                        ;
     jsr plot_shields_string                                           ;
     lda scanner_failure_duration                                      ;
     beq return29                                                      ;
@@ -7902,15 +8043,9 @@ plot_auto_shields_string
     lda previous_starship_automatic_shields                           ;
     cmp starship_automatic_shields                                    ;
     bpl return30                                                      ;
-    ldx #$0e                                                          ;
+    ldx #regular_string_index_shield_state_auto                       ;
 plot_shields_string
-    ldy #7                                                            ;
-plot_shields_string_loop
-    lda shield_state_strings,x                                        ;
-    jsr oswrch                                                        ;
-    inx                                                               ;
-    dey                                                               ;
-    bne plot_shields_string_loop                                      ;
+    jmp print_regular_string                                          ;
 return30
     rts                                                               ;
 
@@ -7952,7 +8087,7 @@ end_of_command
     pla                                                               ;
     lda enemy_ships_previous_x_fraction                               ;
     sta rnd_2                                                         ; re-seed the RNG with two essentially random numbers
-    lda enemy_ships_previous_x_fraction1                              ;
+    lda enemy_ships_previous_y_fraction                               ;
     sta rnd_1                                                         ;
     lda #$16                                                          ;
     jsr oswrch                                                        ;
@@ -8004,24 +8139,6 @@ skip_change_of_stars
     jmp main_game_loop                                                ;
 
 ; ----------------------------------------------------------------------------------
-the_frontiers_string
-    !byte $1f, 0, 5                                                   ; TAB
-    !text "  The frontiers of space are frequently "                  ;
-    !text "penetrated  by  hostile  alien  ships.  "                  ;
-    !text " These are tackled by battle starships, "                  ;
-    !text "the  command  of  which  is  given  to  "                  ;
-    !text "deserving captains from the Star-Fleet."                   ;
-    !byte $1f, 11, 2                                                  ; TAB
-    !text "STARSHIP  COMMAND"                                         ;
-    !byte $1f, 6, 30                                                  ; TAB
-    !text "2022 Edition by TobyLobster"                               ;
-    !byte $1f, 6, 10                                                  ; TAB
-    !text "To begin your first command,"                              ;
-    !byte $1f, $0c, $0b                                               ; TAB
-    !text "Press <RETURN>"                                            ;
-    !text "~"                                                         ; terminator
-
-; ----------------------------------------------------------------------------------
 start
     ; initialise stars for frontiers rotating globe
     lda #<star_table                                                  ;
@@ -8058,21 +8175,10 @@ skip
     jsr plot_line_of_underscores_at_y                                 ;
 
     ; display string
-    lda #<the_frontiers_string                                        ;
-    sta temp0_low                                                     ;
-    lda #>the_frontiers_string                                        ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-plot_the_frontiers_loop
-    lda (temp0_low),y                                                 ;
-    cmp #$7e                                                          ;
-    beq finished_the_frontiers                                        ;
-    jsr oswrch                                                        ;
-    inc temp0_low                                                     ;
-    bne plot_the_frontiers_loop                                       ;
-    inc temp0_high                                                    ;
-    bne plot_the_frontiers_loop                                       ;
-finished_the_frontiers
+    ldx #the_frontiers_string1                                        ;
+    jsr print_compressed_string                                       ;
+    ldx #the_frontiers_string2                                        ;
+    jsr print_compressed_string                                       ;
 
     lda #osbyte_flush_buffer_class                                    ;
     ldx #1                                                            ;
@@ -8200,6 +8306,274 @@ pass_on_irq
     lda irq_accumulator                                     ;
     jmp (old_irq1_low)                                      ;
 
+; ----------------------------------------------------------------------------------
+regular_string_index_shield_state_on                = 0
+regular_string_index_shield_state_off               = 1
+regular_string_index_shield_state_auto              = 2
+regular_string_index_screen_border                  = 3
+regular_string_index_set_foreground_colour_to_white = 4
+regular_string_index_set_foreground_colour_to_black = 5
+regular_string_index_set_background_colour_to_black = 6
+regular_string_index_energy_string                  = 7
+regular_string_index_one_two_three_four             = 8
+regular_string_index_shields_on                     = 9
+regular_string_index_shields_off                    = 10
+regular_string_index_enable_cursor                  = 11
+regular_string_index_disable_cursor                 = 12
+regular_string_index_escape_capsule_launched        = 13
+regular_string_index_command                        = 14
+regular_string_index_command_move                   = 15
+
+; ----------------------------------------------------------------------------------
+regular_strings_start
+
+shield_state_string1
+    !byte shield_state_string1_end - shield_state_string1             ;
+    !byte $1f, $22, $18                                               ;
+    !text " ON "                                                      ;
+shield_state_string1_end
+
+; ----------------------------------------------------------------------------------
+shield_state_string2
+    !byte shield_state_string2_end - shield_state_string2
+    !byte $1f, $22, $18                                               ;
+    !text " OFF"                                                      ;
+shield_state_string2_end
+
+; ----------------------------------------------------------------------------------
+shield_state_string3
+    !byte shield_state_string3_end - shield_state_string3
+    !byte $1f, $22, $18                                               ;
+    !text "AUTO"                                                      ;
+shield_state_string3_end
+
+; ----------------------------------------------------------------------------------
+screen_border_string
+    !byte screen_border_string_end - screen_border_string
+    !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
+    !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
+    !byte $19,  5  ,  $ff,  4  ,  0  , 0                              ; DRAW 1279, 0
+    !byte $19,  5  ,  0  ,  0  ,  0  , 0                              ; DRAW    0, 0
+    !byte $19,  5  ,  0  ,  0  ,  $ff, 3                              ; DRAW    0, 1023
+    !byte $19,  5  ,  $ff,  3  ,  $ff, 3                              ; DRAW 1023, 1023
+    !byte $19,  5  ,  $ff,  3  ,  0  , 0                              ; DRAW 1023, 0
+screen_border_string_end
+
+; ----------------------------------------------------------------------------------
+set_foreground_colour_to_white_string
+    !byte set_foreground_colour_to_white_string_end - set_foreground_colour_to_white_string
+    !byte 19, 1, 7, 0, 0, 0                                           ; VDU 19,1,7,0,0,0
+set_foreground_colour_to_white_string_end
+
+; ----------------------------------------------------------------------------------
+set_foreground_colour_to_black_string
+    !byte set_foreground_colour_to_black_string_end - set_foreground_colour_to_black_string
+    !byte 19, 1, 0, 0, 0, 0                                           ; VDU 19,1,0,0,0,0
+set_foreground_colour_to_black_string_end
+
+; ----------------------------------------------------------------------------------
+set_background_colour_to_black_string
+    !byte set_background_colour_to_black_string_end - set_background_colour_to_black_string
+    !byte 19, 0, 0, 0, 0, 0                                           ; VDU 19,0,0,0,0,0
+set_background_colour_to_black_string_end
+
+; ----------------------------------------------------------------------------------
+energy_string
+    !byte energy_string_end - energy_string
+    !byte $1f, 33, 17                                                 ; TAB(33, 17)
+    !text "ENERGY"                                                    ;
+energy_string_end
+
+; ----------------------------------------------------------------------------------
+one_two_three_four_string
+    !byte one_two_three_four_string_end - one_two_three_four_string
+    !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
+    !byte 5                                                           ; VDU 5
+    !byte $31, 8, $0a                                                 ; "1"
+    !byte $32, 8, $0a                                                 ; "2"
+    !byte $33, 8, $0a                                                 ; "3"
+    !byte $34                                                         ; "4"
+    !byte 4                                                           ; VDU 4
+one_two_three_four_string_end
+
+; ----------------------------------------------------------------------------------
+shields_string
+    !byte shields_string_end - shields_string
+    !byte $1f, 33, 2                                                  ; TAB(33, 2)
+    !text "SHIELDS"                                                   ;
+    !byte $1f, 35, 5                                                  ; TAB(35, 5)
+    !text "ON"                                                        ;
+shields_string_end
+
+; ----------------------------------------------------------------------------------
+blank_string
+    !byte blank_string_end - blank_string
+    !byte $1f, 33, 2                                                  ; TAB(33, 2)
+    !text "       "                                                   ;
+    !byte $1f, 35, 5                                                  ; TAB(35, 5)
+    !text "  "                                                        ;
+blank_string_end
+
+; ----------------------------------------------------------------------------------
+enable_cursor_string
+    !byte enable_cursor_string_end - enable_cursor_string
+    !byte $17, 0, 10, $60, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &60
+enable_cursor_string_end
+
+; ----------------------------------------------------------------------------------
+disable_cursor_string
+    !byte disable_cursor_string_end - disable_cursor_string
+    !byte $17, 0, 10, $3c, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &3c
+disable_cursor_string_end
+
+; ----------------------------------------------------------------------------------
+escape_capsule_launched_string
+    !byte escape_capsule_launched_string_end - escape_capsule_launched_string
+    !byte $1f, 32, 23                                                 ; TAB(32, 23); "ESCAPE"
+    !text "ESCAPE"                                                    ; TAB(32, 24); "CAPSULE"
+    !byte $1f, 32, 24                                                 ; TAB(32, 25); "LAUNCHED"
+    !text "CAPSULE"                                                   ;
+    !byte $1f, 32, 25                                                 ;
+    !text "LAUNCHED"                                                  ;
+escape_capsule_launched_string_end
+
+; ----------------------------------------------------------------------------------
+command_string
+    !byte command_string_end - command_string
+    !byte $19, 4, $0f, 4, $a2, 0                                      ; MOVE &040f, &00a2
+    !byte 5                                                           ; VDU 5
+    !text "COMMAND"                                                   ;
+command_string_end
+
+; ----------------------------------------------------------------------------------
+command_move_string
+    !byte command_move_string_end - command_move_string
+    !byte $19, 4                                                      ; MOVE &046f, &0081
+command_move_string_horizontal_pos
+    !byte $6f                                                         ;
+    !byte 4, $81, 0                                                   ;
+command_move_string_end
+
+regular_strings_end
+
+; ----------------------------------------------------------------------------------
+; On Entry:
+;   X is the index of the string to print
+print_regular_string
+    lda #<regular_strings_start                                       ;
+    sta lookup_low                                                    ;
+    lda #>regular_strings_start                                       ;
+    sta lookup_high                                                   ;
+    ldy #0                                                            ;
+-
+    lda (lookup_low),y                                                ;
+    dex                                                               ;
+    bmi ++                                                            ;
+    clc                                                               ;
+    adc lookup_low                                                    ;
+    sta lookup_low                                                    ;
+    bcc +                                                             ;
+    inc lookup_high                                                   ;
++
+    jmp -                                                             ;
+++
+
+    ; print string
+    lda (lookup_low),y                                                ; X =  length of string
+    tax                                                               ;
+    dex                                                               ;
+    iny                                                               ;
+-
+    lda (lookup_low),y                                                ;
+    jsr oswrch                                                        ;
+    inc lookup_low                                                    ;
+    bne +                                                             ;
+    inc lookup_high                                                   ;
++
+    dex                                                               ;
+    bne -                                                             ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+move_to_next_byte
+    lda #8                                                            ;
+    sta lookup_bit                                                    ;
+    inc lookup_low                                                    ;
+    bne +                                                             ;
+    inc lookup_high                                                   ;
++
+    ldy #0                                                            ;
+    lda (lookup_low),y                                                ;
+    sta lookup_byte                                                   ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+get_bit
+    lsr lookup_byte                                                   ; get result
+    php                                                               ; push result
+
+    ; move on to the next bit
+    dec lookup_bit                                                    ;
+    bne +                                                             ;
+    jsr move_to_next_byte                                             ;
++
+    plp
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+get_x_bits
+    lda #0                                                            ;
+    sta result                                                        ;
+-
+    jsr get_bit                                                       ;
+    rol result                                                        ;
+    dex                                                               ;
+    bne -                                                             ;
+    lda result                                                        ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; On Entry:
+;   X is the index of the string to print
+print_compressed_string
+    lda #<text_data                                                   ;
+    sta lookup_low                                                    ;
+    lda #>text_data                                                   ;
+    sta lookup_high                                                   ;
+-
+    dex                                                               ;
+    bmi ++                                                            ;
+    ldy #0                                                            ;
+    lda (lookup_low),y                                                ;
+    clc                                                               ;
+    adc lookup_low                                                    ;
+    sta lookup_low                                                    ;
+    bcc +                                                             ;
+    inc lookup_high                                                   ;
++
+    bne -                                                             ;
+
+++
+    jsr move_to_next_byte                                             ;
+print_compressed_loop
+    ldx #5                                                            ;
+    jsr get_x_bits                                                    ;
+    cmp #30                                                           ;
+    beq extended                                                      ;
+    bcs return4                                                       ; found terminator value 31
+    tax                                                               ;
+    lda text_header_data,x                                            ;
+    jsr oswrch                                                        ;
+    jmp print_compressed_loop                                         ;
+return4
+    rts                                                               ;
+
+extended
+    ldx #8                                                            ;
+    jsr get_x_bits                                                    ;
+    jsr oswrch                                                        ;
+    jmp print_compressed_loop                                         ;
+
 
 ; ----------------------------------------------------------------------------------
 frontier_star_positions
@@ -8279,18 +8653,20 @@ not_done
 
 done
     jsr initialise_envelopes                                          ;
+    jsr create_square_tables                                          ;
 
+    ; set up timer
     lda #0                                                            ;
     sta timing_counter                                                ;
 
     ; enable timer 1 in free run mode
+    sei                                                               ;
     lda #$c0                                                          ; Enable timer 1
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
     lda #$c0                                                          ; Enable free run mode
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
 
     ; set up our own IRQ routine to increment a timer
-    sei                                                               ;
     lda irq1_vector_low                                               ;
     sta old_irq1_low                                                  ;
     lda irq1_vector_high                                              ;
@@ -8342,3 +8718,61 @@ envelope3
 envelope4
     !byte 4  , 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64 ;
 
+; ----------------------------------------------------------------------------------
+delta
+    !byte 0,0,0
+sq
+    !byte 0,0,0
+
+; ----------------------------------------------------------------------------------
+; routine to create a table of squares / 4
+; ----------------------------------------------------------------------------------
+create_square_tables
+    ldy #0
+    sty lookup_low
+    sty end_low
+    sty sq
+    sty sq+1
+    sty sq+2
+    sty delta+1
+    sty delta+2
+    sty squares_low
+    sty squares_high
+    iny
+    lda #$40
+    sta delta
+    lda #>squares_low
+    sta lookup_high
+    lda #>squares_high
+    sta end_high
+    ldx #1
+
+square_loop1
+    clc
+    lda delta
+    adc sq
+    sta sq
+    lda delta+1
+    adc sq+1
+    sta sq+1
+    sta (lookup_low),Y
+    lda delta+2
+    adc sq+2
+    sta sq+2
+    sta (end_low),Y
+
+    lda delta
+    adc #$80
+    sta delta
+    bcc +
+    inc delta+1
+    bne +
+    inc delta+2
++
+    iny
+    bne square_loop1
+    inc lookup_high
+    inc end_high
+    dex
+    bpl square_loop1
+    rts

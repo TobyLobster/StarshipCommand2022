@@ -1,0 +1,198 @@
+
+; ----------------------------------------------------------------------------------
+combat_experience_rating_string
+    !byte $1f, $0b, 5                                                 ;
+    !text "STARSHIP COMMAND"                                          ;
+    !byte $1f,  5, 10                                                 ;
+    !text "An escape capsule was launched"                            ;
+    !byte $1f,  4, 15                                                 ;
+    !text "Your official combat experience"                           ;
+    !byte $1f,  4, 17                                                 ;
+    !text "rating is now recorded as."                                ;
+    !byte $1f, 13, 31                                                 ;
+    !text "Press <RETURN>"                                            ;
+
+; ----------------------------------------------------------------------------------
+no_before_the_starship_exploded_string
+    !byte $1f, 5, 10                                                  ;
+    !text "NO"                                                        ;
+    !byte $1f, 5, 11                                                  ;
+    !text "before the starship exploded."                             ;
+
+; ----------------------------------------------------------------------------------
+and_returned_safely_text
+    !byte $1f, 5, 11                                                  ;
+    !text "and returned safely from the"                              ;
+    !byte $1f, 5, 12                                                  ;
+    !text "combat zone."                                              ;
+
+; ----------------------------------------------------------------------------------
+but_collided_string
+    !byte $1f, 5, 12                                                  ;
+    !text "but collided with an enemy ship."                          ;
+
+; ----------------------------------------------------------------------------------
+having_just_gained_string
+    !byte $1f, 4, 19                                                  ;
+    !text "having  just  gained  "                                    ;
+
+; ----------------------------------------------------------------------------------
+after_your_performance_string
+    !byte $1f, 3, 22                                                  ;
+    !text "After  your  performance  on  this"                        ;
+    !byte $1f, 3, 23                                                  ;
+    !text "command the Star-Fleet authorities"                        ;
+    !byte $1f, 3, 24                                                  ;
+    !text "are  said  to  be  \""                                     ;
+
+; ----------------------------------------------------------------------------------
+emotions_1
+    !text "furious"                                                   ;  < 40, 1
+emotions_2
+    !text "displeased"                                                ;  < 60, 2
+emotions_3                                                            ;  < 80, 3, and they retire you from active service
+    !text "disappointed"
+emotions_4                                                            ;  <100, 4, but they allow you another command
+    !text "disappointed"
+emotions_5
+    !text "satisfied"                                                 ;  <200, 5, and they allow you another command
+emotions_6
+    !text "pleased"                                                   ;  <280, 6
+emotions_7
+    !text "impressed"                                                 ;  <400, 7
+emotions_8
+    !text "delighted"                                                 ; >=400, 8
+
+; ----------------------------------------------------------------------------------
+and_string
+    !text "and"
+
+; ----------------------------------------------------------------------------------
+but_string
+    !text "but"
+
+; ----------------------------------------------------------------------------------
+they_allow_string
+    !text " they allow you the command of"                            ;
+    !byte $1f, 3, 27                                                  ;
+    !text "another starship."                                         ;
+
+; ----------------------------------------------------------------------------------
+and_they_retire_you_string
+    !byte $1f, 0, 26                                                  ;
+    !text "and they retire you from active service."                  ;
+
+; ----------------------------------------------------------------------------------
+instructions_string1
+    !byte $1f, 6  , 2                                                 ;
+    !text "**** STARSHIP CONTROLS ****"                               ;
+    !byte $1f, 3  , 5                                                 ;
+    !text "Z  -  Rotate left"                                         ;
+    !byte $1f, 3  , 6                                                 ;
+    !text "X  -  Rotate right"                                        ;
+    !byte $1f, 3  , 7                                                 ;
+    !text "N  -  Fire torpedoes"                                      ;
+    !byte $1f, 3  , 8                                                 ;
+    !text "M  -  Thrust"                                              ;
+    !byte $1f, 3  , 9                                                 ;
+    !text ",  -  Brake"                                               ;
+    !byte $1f, 3  , 11                                                ;
+    !text "F  -  Launch port escape capsule"                          ;
+    !byte $1f, 3  , 12                                                ;
+    !text "G  -  Launch starboard escape capsule"                     ;
+    !byte $1f, 0  , 14                                                ;
+    !text "All the above may operate simultaneously"                  ;
+    !text "Alternatively, ONE of the following may "                  ;
+    !text "be depressed...."                                          ;
+instructions_string2
+    !byte $1f, 3  , 18                                                ;
+    !text "B  -  Shields ON / Scanners OFF"                           ;
+    !byte $1f, 3  , 19                                                ;
+    !text "V  -  Scanners ON / Shields OFF"                           ;
+    !byte $1f, 3  , 20                                                ;
+    !text "C  -  \"Auto-Changeover\" ON"                              ;
+    !byte $1f, 3  , 22                                                ;
+    !text "f0 -  \"Rotation Dampers\" ON"                             ;
+    !byte $1f, 3  , 23                                                ;
+    !text "2  -  \"Rotation Dampers\" OFF"                            ;
+    !byte $1f, 3  , 24                                                ;
+    !text "f1 -  \"Velocity Dampers\" ON"                             ;
+    !byte $1f, 3  , 25                                                ;
+    !text "3  -  \"Velocity Dampers\" OFF"                            ;
+    !byte $1f, 3  , 27                                                ;
+    !text "<COPY>   - FREEZE"                                         ;
+    !byte $1f, 3  , 28                                                ;
+    !text "<DELETE> - UNFREEZE"                                       ;
+    !byte $1f, $0d, 31                                                ;
+    !text "Press <RETURN>"                                            ;
+
+; ----------------------------------------------------------------------------------
+combat_preparation_string
+    !byte $1f, 6 , 3                                                  ; TAB(6 , 3)
+    !text "**** COMBAT PREPARATION ****"                              ;
+    !byte $1f, 6 , 7                                                  ; TAB(6 , 7)
+    !text "f0  View starship controls"                                ;
+    !byte $1f, 6 , 9                                                  ; TAB(6 , 9)
+    !text "f1  View Star-Fleet records"                               ;
+    !byte $1f, 6 , 11                                                 ; TAB(6 , 11)
+    !text "f2  Enable"                                                ;
+    !byte $1f, 17, 12                                                 ; TAB(17, 12)
+    !text "}the sound effects"                                        ;
+    !byte $1f, 6 , 13                                                 ; TAB(6 , 13)
+    !text "f3  Disable"                                               ;
+    !byte $1f, 6 , 15                                                 ; TAB(6 , 15)
+    !text "f4  Small"                                                 ;
+    !byte $1f, 17, 16                                                 ; TAB(17, 16)
+    !text "}starship torpedoes"                                       ;
+    !byte $1f,  6, 17                                                 ; TAB( 6, 17)
+    !text "f5  Large"                                                 ;
+    !byte $1f,  6, 19                                                 ; TAB( 6, 19)
+    !text "f6  Small"                                                 ;
+    !byte $1f, 17, 20                                                 ; TAB(17, 20)
+    !text "}enemy torpedoes"                                          ;
+    !byte $1f,  6, 21                                                 ; TAB( 6, 21)
+    !text "f7  Large"                                                 ;
+    !byte $1f,  6, 23                                                 ; TAB( 6, 23)
+    !text "f8  Keyboard"                                              ;
+    !byte $1f,  6, 25                                                 ; TAB( 6, 25)
+    !text "f9  Joystick"                                              ;
+    !byte $1f, 13, 30                                                 ; TAB(13, 30)
+    !text "Press <RETURN>"                                            ;
+
+; ----------------------------------------------------------------------------------
+starfleet_records_string
+    !byte $1f, 6  , 3                                                 ;
+    !text "**** STAR-FLEET RECORDS ****"                              ;
+    !byte $1f, 0  , 6                                                 ;
+    !text "Below is a list of the most highly rated"                  ;
+    !text "of Star-Fleet's past commanders."                          ;
+    !byte $1f, 13, 30                                                 ;
+    !text "Press <RETURN>"                                            ;
+
+; ----------------------------------------------------------------------------------
+enter_your_name_string
+    !byte $1f,  0, 10                                                 ;
+    !text "Enter your name for Star-Fleet records."                   ;
+    !byte $1f, 13, 16                                                 ;
+    !text "-------------"                                             ;
+    !byte $1f, 13, 15                                                 ;
+
+; ----------------------------------------------------------------------------------
+the_frontiers_string1
+    !byte $1f, 3, 5                                                   ; TAB
+    !text    "The frontiers of space are frequently"                  ;
+    !text "penetrated by hostile alien ships. These"                  ;
+    !text "are tackled by battle starships, the    "                  ;
+    !text "command of which is given to deserving  "                  ;
+    !text "captains from the Star-Fleet."                             ;
+
+; ----------------------------------------------------------------------------------
+the_frontiers_string2
+    !byte $1f, 11,  2                                                 ; TAB
+    !text "STARSHIP  COMMAND"                                         ;
+    !byte $1f,  6, 31                                                 ; TAB
+    !text "2022 Edition by TobyLobster"                               ;
+    !byte $1f,  6, 11                                                 ; TAB
+    !text "To begin your first command,"                              ;
+    !byte $1f, 12, 12                                                 ; TAB
+    !text "press <RETURN>"                                            ;

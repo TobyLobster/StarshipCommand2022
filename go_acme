@@ -6,7 +6,9 @@ mkdir -p build/disk
 #python starcommand.py -a >build/temp.asm
 #python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
-tools/acme --symbollist build/symbols.txt -r build/report.txt -o build/disk/STAR starcommand_acme.asm
+python3 tools/text_compression.py --input source/sc_text.txt --output build/sc_text.a
+
+tools/acme --symbollist build/symbols.txt -r build/report.txt -o build/disk/STAR source/starcommand_acme.asm
 sort -o build/symbols.txt build/symbols.txt
 
 # Find entry point
