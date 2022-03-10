@@ -302,8 +302,11 @@ lookup_bit                          = $1e
 result                              = $1f
 end_low                             = $20
 end_high                            = $21
-starship_low                        = $22
-starship_high                       = $23
+starship_low                        = $22   ; }
+cache_start_low                     = $22   ; } same location
+
+starship_high                       = $23   ; }
+cache_start_high                    = $23   ; } same location
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -2853,49 +2856,58 @@ plot_enemy_ship
 
 enemy_ship_isnt_cloaked
     lda enemy_ships_previous_x_pixels,x                               ;
-    sta temp10                                                        ;
-    sta x_pixels                                                      ;
+    sta temp10                                                        ; enemy x position
     lda enemy_ships_previous_y_pixels,x                               ;
-    sta temp9                                                         ;
-    sta y_pixels                                                      ;
+    sta temp9                                                         ; enemy y position
 
     lda enemy_ships_previous_angle,x                                  ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    sta temp11                                                        ; angle to draw at (0-31)
+    sta temp11                                                        ; enemy angle to draw at (0-31)
 
 debug_plot_enemy
-    lda #1
-    sta segment_angle_change_per_pixel                                ;
-
+    ; which enemy to use
     ldx enemy_ship_type                                               ;
     beq regular_ship                                                  ;
-regular_ship
-    lda command_number                                                ;
-    and #1                                                            ;
-    bne original_enemies                                              ;
-    inx
-    inx
-original_enemies
-    lda enemy_address_low,x                                           ;
+    lda #<enemy_cache_b                                               ;
     sta enemy_low                                                     ;
-    lda enemy_address_high,x                                          ;
+    lda #>enemy_cache_b                                               ;
+    sta enemy_high                                                    ;
+    jmp got_ship                                                      ;
+regular_ship
+    lda #<enemy_cache_a                                               ;
+    sta enemy_low                                                     ;
+    lda #>enemy_cache_a                                               ;
+    sta enemy_high                                                    ;
+got_ship
+    ldx temp11                                                        ; angle
+    lda enemy_offset_low,x                                            ;
+    clc                                                               ;
+    adc enemy_low                                                     ;
+    sta enemy_low                                                     ;
+    lda enemy_offset_high,x                                           ;
+    adc enemy_high                                                    ;
     sta enemy_high                                                    ;
 
-    ldy #0                                                            ;
-    sty plot_enemy_progress                                           ;
+    lda #1                                                            ;
+    sta segment_angle_change_per_pixel                                ;
+
+    ; move x,y
+    ; plot arcs
+    ldy #0
 plot_enemy_loop
     lda (enemy_low),y                                                 ;
-    beq plot_enemy_move_pixel                                         ;
-    bmi plot_enemy_done                                               ;
-    cmp #2
-    beq plot_enemy_new_move
+    clc                                                               ;
+    adc temp10                                                        ; enemy x position
+    sta x_pixels                                                      ;
     iny                                                               ;
     lda (enemy_low),y                                                 ;
     clc                                                               ;
-    adc temp11                                                        ;
-    and #$1f                                                          ;
+    adc temp9                                                         ; enemy y position
+    sta y_pixels                                                      ;
+    iny                                                               ;
+    lda (enemy_low),y                                                 ;
     sta segment_angle                                                 ;
     iny                                                               ;
     lda (enemy_low),y                                                 ;
@@ -2905,70 +2917,8 @@ plot_enemy_loop
     jsr plot_segment                                                  ;
 
     ldy plot_enemy_progress                                           ;
-    jmp plot_enemy_loop                                               ;
-plot_enemy_move_pixel
-    iny                                                               ;
-
-    lda (enemy_low),y                                                 ;
-    clc                                                               ;
-    adc temp11                                                        ;
-    and #$1f                                                          ;
-    tax                                                               ;
-    iny                                                               ;
-    sty plot_enemy_progress                                           ;
-
-    lda (enemy_low),y                                                 ;
-    clc                                                               ;
-    adc temp11                                                        ;
-    and #$1f                                                          ;
-    tay                                                               ;
-
-    lda centre_array_dx,y                                             ;
-    sec                                                               ;
-    sbc centre_array_dx,x                                             ;
-    clc                                                               ;
-    adc x_pixels                                                      ;
-    sta x_pixels                                                      ;
-
-    lda centre_array_dy,y                                             ;
-    sec                                                               ;
-    sbc centre_array_dy,x                                             ;
-    clc                                                               ;
-    adc y_pixels                                                      ;
-    sta y_pixels                                                      ;
-    ldy plot_enemy_progress                                           ;
-    iny                                                               ;
-    jmp plot_enemy_loop                                               ;
-
-plot_enemy_new_move
-    iny                                                               ;
-    lda (enemy_low),y                                                 ;
-    sta lookup_low                                                    ;
-    iny                                                               ;
-    lda (enemy_low),y                                                 ;
-    sta lookup_high                                                   ;
-
-    sty plot_enemy_progress                                           ;
-    lda temp11                                                        ;
-    asl                                                               ;
-    tay                                                               ;
-
-    lda (lookup_low),y                                                ;
-    clc                                                               ;
-    adc temp10                                                        ;
-    sta x_pixels                                                      ;
-
-    iny                                                               ;
-    lda (lookup_low),y                                                ;
-    clc                                                               ;
-    adc temp9                                                         ;
-    sta y_pixels                                                      ;
-
-    ldy plot_enemy_progress                                           ;
-    iny                                                               ;
-    jmp plot_enemy_loop                                               ;
-
-
+    cpy #4*5                                                          ; TODO: stride
+    bcc plot_enemy_loop                                               ;
 
 
 plot_enemy_done
@@ -2976,7 +2926,7 @@ enemy_ship_is_cloaked
     ldx temp8                                                         ;
     rts                                                               ;
 
-enemy_ship_shape_data
+
 ;
 ;
 ;                      31 00 01
@@ -3009,181 +2959,417 @@ enemy_ship_shape_data
 ; 24                  31  00  01                  08
 ; 23          29  30              02  03          09
 ;     22  28                              04  10
-;     21                                      05
+;     21                                      11
 ;
 
-enemy1_regular
-    !byte 2                 ;
-    !word enemy_move_33     ; move (3,3)
-    !byte 1,  3,  9         ; arc 1 (arc start, pixel length)
-    !byte 2                 ;
-    !word enemy_move_m55    ; move (-5, 5)
-    !byte 1, 21,  9         ; arc 2
-    !byte 2                 ;
-    !word enemy_move_m44    ; move (-4,4)
-    !byte 1, 28, 9          ; arc 3
-    !byte 0,  5,  9         ; move from 5 to 9
-    !byte 1, 21,  7         ; arc 4
-    !byte 1,  4,  8         ; arc 5
-    !byte $ff               ; terminator
+enemy_table_low
+    !byte <enemy1
+    !byte <enemy2
 
-enemy1_long
-    !byte 0, 28, 31         ; move from 28 to 31
-    !byte 1,  3,  8         ; arc 1 (arc start, pixel length)
-    !byte 0, 12, 21         ; move from 12 to 21
-    !byte 1, 28, 10         ; arc 2
-    !byte 0, 11, 22         ; move from 11 to 22
-    !byte 1, 21,  9         ; arc 3
-    !byte 0,  3,  5         ; move from 3 to 5
-    !byte 1, 20,  8         ; arc 4
-    !byte 1,  4,  8         ; arc 5
-    !byte $ff               ; terminator
+enemy_table_high
+    !byte >enemy1
+    !byte >enemy2
 
-enemy2_regular
-    !byte 0,   7, 14        ; move from 7 to 14
-    !byte 1,  21,  8        ; arc 1 (arc start, pixel length)
-    !byte 1,  25,  3        ; arc 2
-    !byte 1,   4,  3        ; arc 3
-    !byte 1,   3,  9        ; arc 4
-    !byte 0,  15, 21        ; move from 15 to 21
-    !byte 1,  29,  7        ; arc 5
-    !byte $ff               ; terminator
+enemy_arc_counts
+    !byte 5
+    !byte 5
 
-enemy2_long
-    !byte 0,  8, 12         ; move from 8 to 12
-    !byte 1, 30,  5         ; arc 1
-    !byte 0, 12, 17         ; move from 12 to 17
-    !byte 1, 19, 11         ; arc 2
-    !byte 0,  5, 10         ; move from 5 to 10
-    !byte 1, 21,  7         ; arc 3
-    !byte 1,  4,  9         ; arc 4
-    !byte 0, 22, 30         ; move from 22 to 30
-    !byte 1,  3, 11         ; arc 5
-    !byte $ff               ; terminator
+enemy_offset_low
+    !byte <4*5*0
+    !byte <4*5*1
+    !byte <4*5*2
+    !byte <4*5*3
+    !byte <4*5*4
+    !byte <4*5*5
+    !byte <4*5*6
+    !byte <4*5*7
+    !byte <4*5*8
+    !byte <4*5*9
+    !byte <4*5*10
+    !byte <4*5*11
+    !byte <4*5*12
+    !byte <4*5*13
+    !byte <4*5*14
+    !byte <4*5*15
+    !byte <4*5*16
+    !byte <4*5*17
+    !byte <4*5*18
+    !byte <4*5*19
+    !byte <4*5*20
+    !byte <4*5*21
+    !byte <4*5*22
+    !byte <4*5*23
+    !byte <4*5*24
+    !byte <4*5*25
+    !byte <4*5*26
+    !byte <4*5*27
+    !byte <4*5*28
+    !byte <4*5*29
+    !byte <4*5*30
+    !byte <4*5*31
 
-enemy_address_low
-    !byte <enemy1_regular
-    !byte <enemy1_long
-    !byte <enemy2_regular
-    !byte <enemy2_long
-enemy_address_high
-    !byte >enemy1_regular
-    !byte >enemy1_long
-    !byte >enemy2_regular
-    !byte >enemy2_long
+enemy_offset_high
+    !byte >4*5*0
+    !byte >4*5*1
+    !byte >4*5*2
+    !byte >4*5*3
+    !byte >4*5*4
+    !byte >4*5*5
+    !byte >4*5*6
+    !byte >4*5*7
+    !byte >4*5*8
+    !byte >4*5*9
+    !byte >4*5*10
+    !byte >4*5*11
+    !byte >4*5*12
+    !byte >4*5*13
+    !byte >4*5*14
+    !byte >4*5*15
+    !byte >4*5*16
+    !byte >4*5*17
+    !byte >4*5*18
+    !byte >4*5*19
+    !byte >4*5*20
+    !byte >4*5*21
+    !byte >4*5*22
+    !byte >4*5*23
+    !byte >4*5*24
+    !byte >4*5*25
+    !byte >4*5*26
+    !byte >4*5*27
+    !byte >4*5*28
+    !byte >4*5*29
+    !byte >4*5*30
+    !byte >4*5*31
 
-enemy_move_33
-    !byte  3, -3            ; 0
-    !byte  4, -2            ; 1
-    !byte  5, -1            ; 2
-    !byte  5,  0            ; 3
-    !byte  6,  1            ; 4
-    !byte  6,  2            ; 5
-    !byte  6,  3            ; 6
-    !byte  5,  4            ; 7
-    !byte  5,  5            ; 8
-    !byte  4,  6            ; 9
-    !byte  3,  7            ; 10
-    !byte  2,  7            ; 11
-    !byte  1,  8            ; 12
-    !byte  0,  8            ; 13
-    !byte -1,  8            ; 14
-    !byte -2,  7            ; 15
-    !byte -3,  7            ; 16
-    !byte -4,  6            ; 17
-    !byte -5,  5            ; 18
-    !byte -5,  4            ; 19
-    !byte -6,  3            ; 20
-    !byte -6,  2            ; 21
-    !byte -6,  1            ; 22
-    !byte -5,  0            ; 23
-    !byte -5, -1            ; 24
-    !byte -4, -2            ; 25
-    !byte -3, -3            ; 26
-    !byte -2, -3            ; 27
-    !byte -1, -4            ; 28
-    !byte  0, -4            ; 29
-    !byte  1, -4            ; 30
-    !byte  2, -3            ; 31
+enemy1
+    ; (x, y, start_angle, length)
+    !byte  3, -1, 3, 9
+    !byte -5,  7,21, 9
+    !byte -4,  6,28, 9
+    !byte -1,  3,21, 7
+    !byte  0, -4, 4, 8
 
-enemy_move_m55
-    !byte -5, 5             ; 0
-    !byte -5, 4             ; 1
-    !byte -6, 3             ; 2
-    !byte -6, 2             ; 3
-    !byte -6, 1             ; 4
-    !byte -5, 0             ; 5
-    !byte -5, -1            ; 6
-    !byte -4, -2            ; 7
-    !byte -3, -3            ; 8
-    !byte -2, -3            ; 9
-    !byte -1, -4            ; 10
-    !byte  0, -4            ; 11
-    !byte  1, -4            ; 12
-    !byte  2, -3            ; 13
-    !byte  3, -3            ; 14
-    !byte  4, -2            ; 15
-    !byte  5, -1            ; 16
-    !byte  5,  0            ; 17
-    !byte  6, 1             ; 18
-    !byte  6, 2             ; 19
-    !byte  6, 3             ; 20
-    !byte  5, 4             ; 21
-    !byte  5, 5             ; 22
-    !byte  4, 6             ; 23
-    !byte  3, 7             ; 24
-    !byte  2, 7             ; 25
-    !byte  1, 8             ; 26
-    !byte  0, 8             ; 27
-    !byte -1, 8             ; 28
-    !byte -2, 7             ; 29
-    !byte -3, 7             ; 30
-    !byte -4, 6             ; 31
+    !byte  3,  0, 4, 9
+    !byte -6,  6,22, 9
+    !byte -5,  5,29, 9
+    !byte -1,  3,22, 7
+    !byte  1, -4, 5, 8
 
-enemy_move_m44
-    !byte -4, 4             ; 0
-    !byte -4, 3             ; 1
-    !byte -5, 3             ; 2
-    !byte -5, 2             ; 3
-    !byte -5, 1             ; 4
-    !byte -4, 0             ; 5
-    !byte -4, 0             ; 6
-    !byte -3, -1            ; 7
-    !byte -2, -2            ; 8
-    !byte -2, -2            ; 9
-    !byte -1, -3            ; 10
-    !byte 0, -3             ; 11
-    !byte 1, -3             ; 12
-    !byte 3, -3             ; 13
-    !byte 3, -2             ; 14
-    !byte 3, -2             ; 15
-    !byte 4, -2             ; 16
-    !byte 5, -1             ; 17
-    !byte 6, 0              ; 18
-    !byte 6, 0              ; 19
-    !byte 5, 0              ; 20
-    !byte 5, 1              ; 21
-    !byte 5, 2              ; 22
-    !byte 4, 3              ; 23
-    !byte 4, 4              ; 24
-    !byte 3, 4              ; 25
-    !byte 2, 5              ; 26
-    !byte 1, 5              ; 27
-    !byte 0, 5              ; 28
-    !byte -1, 5             ; 29
-    !byte -2, 5             ; 30
-    !byte -3, 4             ; 31
+    !byte  4,  0, 5, 9
+    !byte -7,  4,23, 9
+    !byte -6,  4,30, 9
+    !byte -2,  2,23, 7
+    !byte  2, -4, 6, 8
 
+    !byte  3,  1, 6, 8
+    !byte -8,  3,24,10
+    !byte -7,  3,31, 9
+    !byte -2,  3,23, 8
+    !byte  3, -3, 7, 8
+
+    !byte  3,  1, 7, 7
+    !byte -7,  1,26, 8
+    !byte -7,  2, 0, 8
+    !byte -4,  2,25, 8
+    !byte  3, -3, 8, 9
+
+enemy2
+    ; (x, y, start_angle, length)
+    !byte  3, -1, 3, 9
+    !byte -5,  7,21, 9
+    !byte -4,  6,28, 9
+    !byte -1,  3,21, 7
+    !byte  0, -4, 4, 8
+
+    !byte  3,  0, 4, 9
+    !byte -6,  6,22, 9
+    !byte -5,  5,29, 9
+    !byte -1,  3,22, 7
+    !byte  1, -4, 5, 8
+
+    !byte  4,  0, 5, 9
+    !byte -7,  4,23, 9
+    !byte -6,  4,30, 9
+    !byte -2,  2,23, 7
+    !byte  2, -4, 6, 8
+
+    !byte  3,  1, 6, 8
+    !byte -8,  3,24,10
+    !byte -7,  3,31, 9
+    !byte -2,  3,23, 8
+    !byte  3, -3, 7, 8
+
+    !byte  3,  1, 7, 7
+    !byte -7,  1,26, 8
+    !byte -7,  2, 0, 8
+    !byte -4,  2,25, 8
+    !byte  3, -3, 8, 9
+
+enemy_arc_stride_a
+    !byte 4*5
+enemy_arc_stride_b
+    !byte 4*5
+
+enemy_cache_a
+    ; (x, y, start_angle, length) = 4 bytes
+    !skip 4*6*32        ; bytes * arcs * angles
+
+enemy_cache_b
+    ; (x, y, start_angle, length) = 4 bytes
+    !skip 4*6*32        ; bytes * arcs * angles
 
 ; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the circle
-circle_scale = 6
-
 centre_array_dy
     !byte -6,-6,-5,-5,-4,-3,-2,-1
 
 centre_array_dx
     !byte  0, 1, 2, 3, 4, 5, 5, 6, 6, 6, 5, 5, 4, 3, 2, 1
     !byte  0,-1,-2,-3,-4,-5,-5,-6,-6,-6,-5,-5,-4,-3,-2,-1
+
+enemy_number
+    !byte 0
+enemy_stride
+    !byte 0
+enemy_x
+    !byte 0
+enemy_y
+    !byte 0
+enemy_start_angle
+    !byte 0
+enemy_end_angle
+    !byte 0
+enemy_arc_length
+    !byte 0
+
+; ----------------------------------------------------------------------------------
+read_enemy_arc
+    lda (lookup_low),y                                                ;
+    sta enemy_x                                                       ;
+    iny                                                               ;
+    lda (lookup_low),y                                                ;
+    sta enemy_y                                                       ;
+    iny                                                               ;
+    lda (lookup_low),y                                                ;
+    sta enemy_start_angle                                             ;
+    iny                                                               ;
+    lda (lookup_low),y                                                ;
+    sta enemy_arc_length                                              ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+add_strides
+    lda lookup_low                                                    ;
+    clc                                                               ;
+    adc enemy_stride                                                  ;
+    sta lookup_low                                                    ;
+    bcc +                                                             ;
+    inc lookup_high                                                   ;
++
+    lda end_low                                                       ;
+    clc                                                               ;
+    adc enemy_stride                                                  ;
+    sta end_low                                                       ;
+    bcc +                                                             ;
+    inc end_high                                                      ;
++
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+backup_lookup_pointer
+    lda lookup_low                                                    ;
+    sec                                                               ;
+    sbc enemy_stride                                                  ;
+    sta lookup_low                                                    ;
+    bcs +                                                             ;
+    dec lookup_high                                                   ;
++
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+fill_enemy_cache
+    ldx #0                                                            ; X = enemy number
+    stx enemy_number                                                  ;
+    lda #<enemy_cache_a
+    sta end_low                                                       ;
+    sta cache_start_low                                               ;
+    lda #>enemy_cache_a                                               ;
+    sta end_high                                                      ;
+    sta cache_start_high                                              ;
+    jsr fill_one_enemy_cache                                          ;
+
+    inc enemy_number                                                  ;
+    lda #<enemy_cache_b                                               ;
+    sta end_low                                                       ;
+    sta cache_start_low                                               ;
+    lda #>enemy_cache_b                                               ;
+    sta end_high                                                      ;
+    sta cache_start_high                                              ;
+    ; fall through...
+
+; ----------------------------------------------------------------------------------
+fill_one_enemy_cache
+    ldx enemy_number                                                  ;
+    lda enemy_arc_counts,x                                            ;
+    asl                                                               ;
+    asl                                                               ;
+    sta enemy_stride                                                  ; four bytes * number of arcs
+
+    ; set lookup pointer
+    ldx enemy_number                                                  ;
+    lda enemy_table_low,x                                             ;
+    sta lookup_low                                                    ;
+    lda enemy_table_high,x                                            ;
+    sta lookup_high                                                   ;
+
+    ; copy first five angles
+    ldx #5                                                            ; five angles
+--
+    ldy #0                                                            ;
+-
+    lda (lookup_low),y                                                ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+    cpy enemy_stride                                                  ;
+    bne -                                                             ;
+    jsr add_strides                                                   ;
+    dex                                                               ;
+    bne --                                                            ;
+
+    ; append angles 5 to 7
+    ; go to the previous angle, angle 3
+    jsr backup_lookup_pointer
+    jsr backup_lookup_pointer
+
+    ldx #3                                                            ; three angles
+--
+    ldy #0                                                            ;
+-
+    jsr read_enemy_arc                                                ;
+    jsr convert_enemy_5to7                                            ;
+    cpy enemy_stride                                                  ;
+    bne -                                                             ;
+
+    jsr backup_lookup_pointer                                         ;
+
+    ; move destination pointer onwards
+    lda end_low                                                       ;
+    clc                                                               ;
+    adc enemy_stride                                                  ;
+    sta end_low                                                       ;
+    bcc +                                                             ;
+    inc end_high                                                      ;
++
+    dex                                                               ;
+    bne --                                                            ;
+
+    ; append remaining angles 8 to 31
+    lda cache_start_low                                               ;
+    sta lookup_low                                                    ;
+    lda cache_start_high                                              ;
+    sta lookup_high                                                   ;
+
+    ldx #24                                                           ; twenty four angles
+--
+    ldy #0                                                            ;
+-
+    jsr read_enemy_arc                                                ;
+    jsr convert_enemy_8to31                                           ;
+    cpy enemy_stride                                                  ;
+    bne -                                                             ;
+    jsr add_strides                                                   ;
+    dex                                                               ;
+    bne --                                                            ;
+    rts                                                               ;
+
+; preserves X
+; increments Y
+; ----------------------------------------------------------------------------------
+convert_enemy_5to7
+    stx temp_x                                                        ;
+    dey                                                               ;
+    dey                                                               ;
+    dey                                                               ;
+    lda enemy_start_angle                                             ;
+    clc                                                               ;
+    adc enemy_arc_length                                              ;
+    sec                                                               ;
+    sbc #1                                                            ;
+    and #31                                                           ;
+    sta enemy_end_angle                                               ;
+    tax                                                               ;
+
+    ; x' = circle[start].y - circle[end].y - y
+    ldx enemy_start_angle                                             ;
+    lda centre_array_dy,x                                             ;
+    ldx enemy_end_angle                                               ;
+    sec                                                               ;
+    sbc centre_array_dy,x                                             ;
+    sec                                                               ;
+    sbc enemy_y                                                       ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; y' = circle[end].x - circle[start].x + x
+    ldx enemy_start_angle                                             ;
+    lda centre_array_dx,x                                             ;
+    ldx enemy_end_angle                                               ;
+    sec                                                               ;
+    sbc centre_array_dx,x                                             ;
+    sec                                                               ;
+    sbc enemy_x                                                       ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; start' = (40-end) & 31
+    lda #40                                                           ;
+    sec                                                               ;
+    sbc enemy_end_angle                                               ;
+    and #31                                                           ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; length' = length
+    lda enemy_arc_length                                              ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ldx temp_x                                                        ;
+    rts                                                               ;
+
+; preserves X
+; increments Y
+; ----------------------------------------------------------------------------------
+convert_enemy_8to31
+    dey                                                               ;
+    dey                                                               ;
+    dey                                                               ;
+
+    ; x' = -y
+    lda #0                                                            ;
+    sec                                                               ;
+    sbc enemy_y                                                       ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; y = x
+    lda enemy_x                                                       ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; start' = (start+8) & 31
+    lda enemy_start_angle                                             ;
+    clc                                                               ;
+    adc #8                                                            ;
+    and #31                                                           ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+
+    ; length' = length
+    lda enemy_arc_length                                              ;
+    sta (end_low),y                                                   ;
+    iny                                                               ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 starship_has_exploded
@@ -6745,6 +6931,9 @@ prepare_starship_for_next_command
     lda #$7f                                                          ;
     sta starship_energy_low                                           ;
 
+    ; fill enemy ship cache
+    jsr fill_enemy_cache
+
     ; clear screen
     lda #$0c                                                          ;
     jsr oswrch                                                        ;
@@ -7127,63 +7316,61 @@ debug_get_key_press
 
 ; ----------------------------------------------------------------------------------
 debug
-    lda #0
-    sta temp11
+    lda #0                                                            ;
+    sta temp11                                                        ;
 
-    lda #36
-    sta column
+    lda #36                                                           ;
+    sta column                                                        ;
 
-    lda #30
-    sta row
+    lda #30                                                           ;
+    sta row                                                           ;
 
-    lda #1
-    sta command_number
-    lda #0
-    sta enemy_ship_type
+    lda #1                                                            ;
+    sta command_number                                                ;
+    lda #0                                                            ;
+    sta enemy_ship_type                                               ;
 
-    lda #0
-    sta counter
+    lda #0                                                            ;
+    sta counter                                                       ;
 
 --
+    lda column                                                        ;
+    clc                                                               ;
+    adc #20                                                           ;
+    sta column                                                        ;
+    sta x_pixels                                                      ;
+    sta temp10                                                        ;
 
-    lda column
-    clc
-    adc #20
-    sta column
-    sta x_pixels
-    sta temp10
+    lda row                                                           ;
+    sta y_pixels                                                      ;
+    sta temp9                                                         ;
 
-    lda row
-    sta y_pixels
-    sta temp9
+    jsr debug_plot_enemy                                              ;
 
-    jsr debug_plot_enemy
+    lda temp11                                                        ;
+    clc                                                               ;
+    adc #1                                                            ;
+    and #$1f                                                          ;
+    sta temp11                                                        ;
 
-    lda temp11
-    clc
-    adc #1
-    and #$1f
-    sta temp11
+    inc counter                                                       ;
+    lda counter                                                       ;
+    cmp #8                                                            ;
+    bcc --                                                            ;
 
-    inc counter
-    lda counter
-    cmp #8
-    bcc --
+    lda #0                                                            ;
+    sta counter                                                       ;
 
-    lda #0
-    sta counter
+    lda #36                                                           ;
+    sta column                                                        ;
 
-    lda #36
-    sta column
+    lda row                                                           ;
+    clc                                                               ;
+    adc #20                                                           ;
+    sta row                                                           ;
 
-    lda row
-    clc
-    adc #20
-    sta row
-
-    cmp #100
-
-    bcc --
+    cmp #100                                                          ;
+    bcc --                                                            ;
 
     ; interactive bit
 --
@@ -7220,8 +7407,9 @@ debug
 
 ; ----------------------------------------------------------------------------------
 main_game_loop
-
-;    jsr debug
+!if do_debug {
+    jsr debug
+}
 
     lda #0                                                            ;
     sta enemy_torpedo_hits_against_starship                           ;
@@ -7321,31 +7509,6 @@ threshold_table
 
 ; ----------------------------------------------------------------------------------
 plot_debriefing
-;    lda #10                                                           ;
-;    jsr oswrch                                                        ;
-;    ldy #$0d                                                          ;
-;plot_row_of_starships_top_line_loop
-;    lda #' '                                                          ;
-;    jsr oswrch                                                        ;
-;    lda #$e0                                                          ;
-;    jsr oswrch                                                        ;
-;    lda #$e1                                                          ;
-;    jsr oswrch                                                        ;
-;    dey                                                               ;
-;    bne plot_row_of_starships_top_line_loop                           ;;;
-;
-;    lda #' '                                                          ;
-;    jsr oswrch                                                        ;
-;    ldy #$0d                                                          ;
-;plot_row_of_starships_bottom_line_loop
-;    lda #$20                                                          ;
-;    jsr oswrch                                                        ;
-;    lda #$e2                                                          ;
-;    jsr oswrch                                                        ;
-;    lda #$e3                                                          ;
-;    jsr oswrch                                                        ;
-;    dey                                                               ;
-;    bne plot_row_of_starships_bottom_line_loop                        ;
     jsr plot_starship_heading                                         ;
 
     ldx #0                                                            ;
