@@ -363,8 +363,12 @@ enemy_ships_temporary_behaviour_flags   = $0488
 enemy_ships_energy                      = $0489
 enemy_ships_firing_cooldown             = $048a
 
-squares_low                             = $0900
-squares_high                            = $0b00
+xandf8                                  = $0500  ; }
+xbit_table                              = $0600  ; } tables of constants
+xinverse_bit_table                      = $0700  ; }
+
+squares_low                             = $0900  ; } 256 entries of 16 bit value (i*i)/4
+squares_high                            = $0b00  ; }
 
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
@@ -440,29 +444,6 @@ play_area_row_table_high
     !for i, 0, 255 {
         !byte >($5800 + (i & 7) + (i/8) * $0140)
     }
-xandf8
-    !for i, 0, 255 {
-        !byte (i & $f8)
-    }
-
-xbit_table
-    !for i, 0, 255 {
-        !byte $80 >> (i & 7)
-    }
-
-xinverse_bit_table
-    !for i, 0, 255 {
-        !byte ($80 >> (i & 7)) XOR 255
-    }
-
-;squares_low
-;    !for i, 0, 511 {
-;        !byte <((i*i)/4)
-;    }
-;squares_high
-;    !for i, 0, 511 {
-;        !byte >((i*i)/4)
-;    }
 
 ; ----------------------------------------------------------------------------------
 !if ((* & 255) != 0) {
@@ -8654,6 +8635,7 @@ not_done
 done
     jsr initialise_envelopes                                          ;
     jsr create_square_tables                                          ;
+    jsr create_other_tables                                           ;
 
     ; set up timer
     lda #0                                                            ;
@@ -8728,6 +8710,10 @@ sq
 ; routine to create a table of squares / 4
 ; ----------------------------------------------------------------------------------
 create_square_tables
+    lda #>squares_low
+    sta lookup_high
+    lda #>squares_high
+    sta end_high
     ldy #0
     sty lookup_low
     sty end_low
@@ -8738,13 +8724,15 @@ create_square_tables
     sty delta+2
     sty squares_low
     sty squares_high
+
+    ; first entry is zero
+    tya
+    sta (lookup_low),Y
+    sta (end_low),Y
+
     iny
     lda #$40
     sta delta
-    lda #>squares_low
-    sta lookup_high
-    lda #>squares_high
-    sta end_high
     ldx #1
 
 square_loop1
@@ -8775,4 +8763,41 @@ square_loop1
     inc end_high
     dex
     bpl square_loop1
+    rts
+
+create_other_tables
+    ; create xandf8 table
+    ;    !for i, 0, 255 {
+    ;        !byte (i & $f8)
+    ;    }
+    ldx #0
+-
+    txa
+    and #$f8
+    sta xandf8,x
+    inx
+    bne -
+
+    ; create xbit_table:
+    ;    !for i, 0, 255 {
+    ;        !byte $80 >> (i & 7)
+    ;    }
+    ;
+    ; and xinverse_bit_table:
+    ;    !for i, 0, 255 {
+    ;        !byte ($80 >> (i & 7)) XOR 255
+    ;    }
+    lda #$80
+    ldx #0
+-
+    sta xbit_table,x
+    eor #$ff
+    sta xinverse_bit_table,x
+    eor #$ff
+    lsr
+    bcc +
+    lda #$80
++
+    inx
+    bne -
     rts
