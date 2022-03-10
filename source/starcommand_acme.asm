@@ -3044,30 +3044,36 @@ enemy_offset_high
 
 enemy1
     ; (x, y, start_angle, length)
+
+    ; angle 0
     !byte  3, -1, 3, 9
     !byte -5,  7,21, 9
     !byte -4,  6,28, 9
     !byte -1,  3,21, 7
     !byte  0, -4, 4, 8
 
+    ; angle 1
     !byte  3,  0, 4, 9
     !byte -6,  6,22, 9
     !byte -5,  5,29, 9
     !byte -1,  3,22, 7
     !byte  1, -4, 5, 8
 
+    ; angle 2
     !byte  4,  0, 5, 9
     !byte -7,  4,23, 9
     !byte -6,  4,30, 9
     !byte -2,  2,23, 7
     !byte  2, -4, 6, 8
 
+    ; angle 3
     !byte  3,  1, 6, 8
     !byte -8,  3,24,10
     !byte -7,  3,31, 9
     !byte -2,  3,23, 8
     !byte  3, -3, 7, 8
 
+    ; angle 4
     !byte  3,  1, 7, 7
     !byte -7,  1,26, 8
     !byte -7,  2, 0, 8
@@ -3076,33 +3082,34 @@ enemy1
 
 enemy2
     ; (x, y, start_angle, length)
-    !byte  3, -1, 3, 9
-    !byte -5,  7,21, 9
-    !byte -4,  6,28, 9
-    !byte -1,  3,21, 7
+    ; angle 0
+    !byte  3,  1, 3, 9
+    !byte -5,  9,21, 9
+    !byte -4,  8,28, 9
+    !byte  0,  4,20, 8
     !byte  0, -4, 4, 8
 
-    !byte  3,  0, 4, 9
-    !byte -6,  6,22, 9
-    !byte -5,  5,29, 9
+    !byte  2,  2, 4, 9
+    !byte -6,  8,22, 9
+    !byte -5,  7,30, 8
     !byte -1,  3,22, 7
     !byte  1, -4, 5, 8
 
-    !byte  4,  0, 5, 9
-    !byte -7,  4,23, 9
-    !byte -6,  4,30, 9
-    !byte -2,  2,23, 7
+    !byte  2,  2, 5, 8
+    !byte -7,  6,23, 8
+    !byte -6,  6,31, 8
+    !byte -1,  3,22, 8
     !byte  2, -4, 6, 8
 
-    !byte  3,  1, 6, 8
-    !byte -8,  3,24,10
-    !byte -7,  3,31, 9
+    !byte  2,  2, 6, 8
+    !byte -9,  5,24,10
+    !byte -8,  5,31, 9
     !byte -2,  3,23, 8
     !byte  3, -3, 7, 8
 
-    !byte  3,  1, 7, 7
-    !byte -7,  1,26, 8
-    !byte -7,  2, 0, 8
+    !byte  1,  3, 7, 7
+    !byte -9,  3,26, 8
+    !byte -8,  3, 0, 8
     !byte -4,  2,25, 8
     !byte  3, -3, 8, 9
 
