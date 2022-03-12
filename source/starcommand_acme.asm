@@ -2868,26 +2868,21 @@ enemy_ship_isnt_cloaked
 
 debug_plot_enemy
     ; which enemy to use
-    ldx enemy_ship_type                                               ;
+    lda enemy_ship_type                                               ;
     beq regular_ship                                                  ;
-    lda #<enemy_cache_b                                               ;
-    sta enemy_low                                                     ;
-    lda #>enemy_cache_b                                               ;
-    sta enemy_high                                                    ;
-    jmp got_ship                                                      ;
-regular_ship
-    lda #<enemy_cache_a                                               ;
-    sta enemy_low                                                     ;
-    lda #>enemy_cache_a                                               ;
-    sta enemy_high                                                    ;
-got_ship
-    ldx temp11                                                        ; angle
-    lda enemy_offset_low,x                                            ;
+
+    ; alternate ship
+    lda temp11                                                        ; angle
     clc                                                               ;
-    adc enemy_low                                                     ;
+    adc #32                                                           ; move to alternate ship angles
+    tax                                                               ;
+    bne got_ship                                                      ; ALWAYS branch
+regular_ship
+    ldx temp11                                                        ; angle
+got_ship
+    lda enemy_address_low,x                                           ;
     sta enemy_low                                                     ;
-    lda enemy_offset_high,x                                           ;
-    adc enemy_high                                                    ;
+    lda enemy_address_high,x                                          ;
     sta enemy_high                                                    ;
 
     lda #1                                                            ;
@@ -2895,7 +2890,7 @@ got_ship
 
     ; move x,y
     ; plot arcs
-    ldy #0
+    ldy #0                                                            ;
 plot_enemy_loop
     lda (enemy_low),y                                                 ;
     clc                                                               ;
@@ -2916,10 +2911,11 @@ plot_enemy_loop
     sty plot_enemy_progress                                           ;
     jsr plot_segment                                                  ;
 
+    ldx enemy_number                                                  ;
     ldy plot_enemy_progress                                           ;
-    cpy #4*5                                                          ; TODO: stride
+    tya                                                               ;
+    cmp enemy_strides,x                                               ; stride between angles
     bcc plot_enemy_loop                                               ;
-
 
 plot_enemy_done
 enemy_ship_is_cloaked
@@ -2927,7 +2923,7 @@ enemy_ship_is_cloaked
     rts                                                               ;
 
 
-;
+; The Circle
 ;
 ;                      31 00 01
 ;                29 30          02 03
@@ -2946,7 +2942,7 @@ enemy_ship_is_cloaked
 ;
 
 
-;
+; Enemy 1
 ;
 ;                         04
 ;                     27      05
@@ -2963,86 +2959,41 @@ enemy_ship_is_cloaked
 ;
 
 enemy_table_low
+    !byte <enemy0
     !byte <enemy1
     !byte <enemy2
+    !byte <enemy3
 
 enemy_table_high
+    !byte >enemy0
     !byte >enemy1
     !byte >enemy2
+    !byte >enemy3
 
 enemy_arc_counts
     !byte 5
     !byte 5
+    !byte 5
+    !byte 5
 
-enemy_offset_low
-    !byte <4*5*0
-    !byte <4*5*1
-    !byte <4*5*2
-    !byte <4*5*3
-    !byte <4*5*4
-    !byte <4*5*5
-    !byte <4*5*6
-    !byte <4*5*7
-    !byte <4*5*8
-    !byte <4*5*9
-    !byte <4*5*10
-    !byte <4*5*11
-    !byte <4*5*12
-    !byte <4*5*13
-    !byte <4*5*14
-    !byte <4*5*15
-    !byte <4*5*16
-    !byte <4*5*17
-    !byte <4*5*18
-    !byte <4*5*19
-    !byte <4*5*20
-    !byte <4*5*21
-    !byte <4*5*22
-    !byte <4*5*23
-    !byte <4*5*24
-    !byte <4*5*25
-    !byte <4*5*26
-    !byte <4*5*27
-    !byte <4*5*28
-    !byte <4*5*29
-    !byte <4*5*30
-    !byte <4*5*31
+enemy_strides
+    !byte 4*5
+    !byte 4*5
+    !byte 4*5
+    !byte 4*5
 
-enemy_offset_high
-    !byte >4*5*0
-    !byte >4*5*1
-    !byte >4*5*2
-    !byte >4*5*3
-    !byte >4*5*4
-    !byte >4*5*5
-    !byte >4*5*6
-    !byte >4*5*7
-    !byte >4*5*8
-    !byte >4*5*9
-    !byte >4*5*10
-    !byte >4*5*11
-    !byte >4*5*12
-    !byte >4*5*13
-    !byte >4*5*14
-    !byte >4*5*15
-    !byte >4*5*16
-    !byte >4*5*17
-    !byte >4*5*18
-    !byte >4*5*19
-    !byte >4*5*20
-    !byte >4*5*21
-    !byte >4*5*22
-    !byte >4*5*23
-    !byte >4*5*24
-    !byte >4*5*25
-    !byte >4*5*26
-    !byte >4*5*27
-    !byte >4*5*28
-    !byte >4*5*29
-    !byte >4*5*30
-    !byte >4*5*31
+; 64 table entries. Each entry has a high byte and a low byte.
+; The first  32 entries are the address of each angle of enemy_a.
+; The second 32 entries are the address of each angle of enemy_b.
+; These addresses depend upon the number of arcs in each enemy,
+; so are filled in in fill_enemy_cache.
+enemy_address_low
+    !skip 64
 
-enemy1
+enemy_address_high
+    !skip 64
+
+enemy0
     ; (x, y, start_angle, length)
 
     ; angle 0
@@ -3080,8 +3031,9 @@ enemy1
     !byte -4,  2,25, 8
     !byte  3, -3, 8, 9
 
-enemy2
+enemy1
     ; (x, y, start_angle, length)
+
     ; angle 0
     !byte  3,  1, 3, 9
     !byte -5,  9,21, 9
@@ -3089,35 +3041,112 @@ enemy2
     !byte  0,  4,20, 8
     !byte  0, -4, 4, 8
 
+    ; angle 1
     !byte  2,  2, 4, 9
     !byte -6,  8,22, 9
     !byte -5,  7,30, 8
     !byte -1,  3,22, 7
     !byte  1, -4, 5, 8
 
+    ; angle 2
     !byte  2,  2, 5, 8
     !byte -7,  6,23, 8
     !byte -6,  6,31, 8
     !byte -1,  3,22, 8
     !byte  2, -4, 6, 8
 
+    ; angle 3
     !byte  2,  2, 6, 8
     !byte -9,  5,24,10
     !byte -8,  5,31, 9
     !byte -2,  3,23, 8
     !byte  3, -3, 7, 8
 
+    ; angle 4
     !byte  1,  3, 7, 7
     !byte -9,  3,26, 8
     !byte -8,  3, 0, 8
     !byte -4,  2,25, 8
     !byte  3, -3, 8, 9
 
-enemy_arc_stride_a
-    !byte 4*5
-enemy_arc_stride_b
-    !byte 4*5
+enemy2
+    ; (x, y, start_angle, length)
 
+    ; angle 0
+    !byte  3, -1, 4, 8
+    !byte -4,  6,21, 8
+    !byte -3,  4,29, 7
+    !byte  0, -5, 4, 4
+    !byte -1, -4, 8, 3
+
+    ; angle 1
+    !byte  3, -1, 5, 8
+    !byte -4,  5,21, 8
+    !byte -3,  4,30, 6
+    !byte  1, -5, 5, 4
+    !byte  0, -5, 9, 4
+
+    ; angle 2
+    !byte  3, -1, 5, 9
+    !byte -5,  4,23, 7
+    !byte -4,  3,31, 6
+    !byte  3, -2,22, 4
+    !byte  1, -5, 9, 4
+
+    ; angle 3
+    !byte  2,  0, 6, 9
+    !byte -6,  4,23, 8
+    !byte -5,  3,31, 6
+    !byte  3, -4, 8, 4
+    !byte  2, -5,12, 4
+
+    ; angle 4
+    !byte  2,  1, 7, 8
+    !byte -7,  2,26, 8
+    !byte -6,  1, 1, 7
+    !byte  4, -4, 8, 5
+    !byte  3, -4,12, 4
+
+enemy3
+    ; (x, y, start_angle, length)
+
+    ; angle 0
+    !byte  3, -1, 4, 8
+    !byte -4,  6,21, 8
+    !byte -3,  4,29, 7
+    !byte  0, -5, 4, 4
+    !byte -1, -4, 8, 3
+
+    ; angle 1
+    !byte  3, -1, 5, 8
+    !byte -4,  5,21, 8
+    !byte -3,  4,30, 6
+    !byte  1, -5, 5, 4
+    !byte  0, -5, 9, 4
+
+    ; angle 2
+    !byte  3, -1, 5, 9
+    !byte -5,  4,23, 7
+    !byte -4,  3,31, 6
+    !byte  3, -2,22, 4
+    !byte  1, -5, 9, 4
+
+    ; angle 3
+    !byte  2,  0, 6, 9
+    !byte -6,  4,23, 8
+    !byte -5,  3,31, 6
+    !byte  3, -4, 8, 4
+    !byte  2, -5,12, 4
+
+    ; angle 4
+    !byte  2,  1, 7, 8
+    !byte -7,  2,26, 8
+    !byte -6,  1, 1, 7
+    !byte  4, -4, 8, 5
+    !byte  3, -4,12, 4
+
+
+; 1.5K of enemy definition cache
 enemy_cache_a
     ; (x, y, start_angle, length) = 4 bytes
     !skip 4*6*32        ; bytes * arcs * angles
@@ -3148,6 +3177,8 @@ enemy_end_angle
     !byte 0
 enemy_arc_length
     !byte 0
+enemy_index
+    !byte 0
 
 ; ----------------------------------------------------------------------------------
 read_enemy_arc
@@ -3165,7 +3196,20 @@ read_enemy_arc
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+store_enemy_address
+    stx temp_x                                                        ;
+    ldx enemy_index                                                   ;
+    lda end_low                                                       ;
+    sta enemy_address_low,x                                           ;
+    lda end_high                                                      ;
+    sta enemy_address_high,x                                          ;
+    inc enemy_index                                                   ;
+    ldx temp_x                                                        ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
 add_strides
+    jsr store_enemy_address                                           ;
     lda lookup_low                                                    ;
     clc                                                               ;
     adc enemy_stride                                                  ;
@@ -3195,9 +3239,12 @@ backup_lookup_pointer
 
 ; ----------------------------------------------------------------------------------
 fill_enemy_cache
+    ; DEBUG: Set enemy number based on command number
     ldx #0                                                            ; X = enemy number
     stx enemy_number                                                  ;
-    lda #<enemy_cache_a
+    ldx #0                                                            ;
+    stx enemy_index                                                   ;
+    lda #<enemy_cache_a                                               ;
     sta end_low                                                       ;
     sta cache_start_low                                               ;
     lda #>enemy_cache_a                                               ;
@@ -3239,6 +3286,7 @@ fill_one_enemy_cache
     iny                                                               ;
     cpy enemy_stride                                                  ;
     bne -                                                             ;
+
     jsr add_strides                                                   ;
     dex                                                               ;
     bne --                                                            ;
@@ -3257,6 +3305,7 @@ fill_one_enemy_cache
     cpy enemy_stride                                                  ;
     bne -                                                             ;
 
+    jsr store_enemy_address                                           ;
     jsr backup_lookup_pointer                                         ;
 
     ; move destination pointer onwards
@@ -3284,6 +3333,7 @@ fill_one_enemy_cache
     jsr convert_enemy_8to31                                           ;
     cpy enemy_stride                                                  ;
     bne -                                                             ;
+
     jsr add_strides                                                   ;
     dex                                                               ;
     bne --                                                            ;
@@ -8367,9 +8417,11 @@ wait_for_return_in_frontiers_loop
 return_pressed
     lda #0                                                            ;
     sta screen_start_high                                             ; regular start to drawing
+
     lda rnd_1                                                         ;
     eor #$cd                                                          ;
     sta rnd_2                                                         ;
+
     lda #$0d                                                          ;
     jsr oswrch                                                        ;
     jsr combat_preparation_screen                                     ;
