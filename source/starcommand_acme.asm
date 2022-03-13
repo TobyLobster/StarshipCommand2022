@@ -597,6 +597,10 @@ plus_angle40
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
 plus_angle41
+    jsr eor_play_area_pixel                                           ;
+    dec x_pixels                                                      ;
+    inc y_pixels                                                      ;
+plus_angle42
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -654,6 +658,7 @@ plot_table_offset
     !byte <plus_angle39
     !byte <plus_angle40
     !byte <plus_angle41
+    !byte <plus_angle42
 
 
 segment_angle_to_x_deltas_table
@@ -2872,12 +2877,20 @@ debug_plot_enemy
     beq regular_ship                                                  ;
 
     ; alternate ship
+    ldx enemy_number                                                  ;
+    lda enemy_strides,x                                               ;
+    sta enemy_stride                                                  ;
     lda temp11                                                        ; angle
     clc                                                               ;
     adc #32                                                           ; move to alternate ship angles
     tax                                                               ;
     bne got_ship                                                      ; ALWAYS branch
+
 regular_ship
+    ldx enemy_number                                                  ;
+    dex                                                               ;
+    lda enemy_strides,x                                               ;
+    sta enemy_stride                                                  ;
     ldx temp11                                                        ; angle
 got_ship
     lda enemy_address_low,x                                           ;
@@ -2911,10 +2924,8 @@ plot_enemy_loop
     sty plot_enemy_progress                                           ;
     jsr plot_segment                                                  ;
 
-    ldx enemy_number                                                  ;
     ldy plot_enemy_progress                                           ;
-    tya                                                               ;
-    cmp enemy_strides,x                                               ; stride between angles
+    cpy enemy_stride                                                  ; stride between angles (in bytes)
     bcc plot_enemy_loop                                               ;
 
 plot_enemy_done
@@ -2963,24 +2974,32 @@ enemy_table_low
     !byte <enemy1
     !byte <enemy2
     !byte <enemy3
+    !byte <enemy4
+    !byte <enemy5
 
 enemy_table_high
     !byte >enemy0
     !byte >enemy1
     !byte >enemy2
     !byte >enemy3
+    !byte >enemy4
+    !byte >enemy5
 
 enemy_arc_counts
     !byte 5
     !byte 5
     !byte 5
     !byte 5
+    !byte 5
+    !byte 6
 
 enemy_strides
     !byte 4*5
     !byte 4*5
     !byte 4*5
     !byte 4*5
+    !byte 4*5
+    !byte 4*6
 
 ; 64 table entries. Each entry has a high byte and a low byte.
 ; The first  32 entries are the address of each angle of enemy_a.
@@ -3111,39 +3130,116 @@ enemy3
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  3, -1, 4, 8
-    !byte -4,  6,21, 8
-    !byte -3,  4,29, 7
-    !byte  0, -5, 4, 4
-    !byte -1, -4, 8, 3
+    !byte  2, -2, 3,11
+    !byte -2,  8,19,11
+    !byte -2,  6,30, 5
+    !byte -1,  3,21, 7
+    !byte  0, -4, 4, 9
 
     ; angle 1
-    !byte  3, -1, 5, 8
-    !byte -4,  5,21, 8
-    !byte -3,  4,30, 6
-    !byte  1, -5, 5, 4
-    !byte  0, -5, 9, 4
+    !byte  3, -1, 5,10
+    !byte -5,  6,21,11
+    !byte -4,  4,31, 6
+    !byte -1,  3,22, 7
+    !byte  1, -4, 5, 8
 
     ; angle 2
-    !byte  3, -1, 5, 9
-    !byte -5,  4,23, 7
-    !byte -4,  3,31, 6
-    !byte  3, -2,22, 4
-    !byte  1, -5, 9, 4
+    !byte  4,  0, 7, 9
+    !byte -7,  3,24, 9
+    !byte -6,  2, 0, 7
+    !byte -2,  2,23, 7
+    !byte  2, -4, 6, 9
 
     ; angle 3
-    !byte  2,  0, 6, 9
-    !byte -6,  4,23, 8
-    !byte -5,  3,31, 6
-    !byte  3, -4, 8, 4
-    !byte  2, -5,12, 4
+    !byte  3,  1, 7,10
+    !byte -7,  4,24, 9
+    !byte -6,  3, 0, 6
+    !byte -2,  3,23, 8
+    !byte  3, -3, 7, 8
 
     ; angle 4
-    !byte  2,  1, 7, 8
-    !byte -7,  2,26, 8
-    !byte -6,  1, 1, 7
-    !byte  4, -4, 8, 5
-    !byte  3, -4,12, 4
+    !byte  3,  0, 7,11
+    !byte -7,  4,23,11
+    !byte -6,  3, 2, 5
+    !byte -4,  2,25, 8
+    !byte  3, -3, 8, 9
+
+enemy4
+    ; angle 0
+    !byte  1, -5, 1,11
+    !byte  4,  5,12,11
+    !byte -6,  2,23, 9
+    !byte -1,  3,21, 7
+    !byte  0, -4, 4, 9
+
+    ; angle 1
+    !byte  2, -4, 2,10
+    !byte  4,  5,12,11
+    !byte -6,  2,23,10
+    !byte -1,  3,22, 7
+    !byte  1, -4, 5, 8
+
+    ; angle 2
+    !byte  3, -4, 3, 9
+    !byte  4,  5,12,11
+    !byte -6,  2,23,11
+    !byte -2,  2,23, 7
+    !byte  2, -4, 6, 9
+
+    ; angle 3
+    !byte  4, -3, 4,10
+    !byte  2,  6,14,11
+    !byte -6,  0,25,10
+    !byte -2,  3,23, 8
+    !byte  3, -3, 7, 8
+
+    ; angle 4
+    !byte  4, -3, 4,10
+    !byte  2,  6,14,11
+    !byte -6,  0,25,10
+    !byte -4,  2,25, 8
+    !byte  3, -3, 8, 9
+
+enemy5
+    ; angle 0
+    !byte  3,  3,21, 7
+    !byte -1,  0,31, 3
+    !byte  4, -4, 4, 9
+    !byte -5,  3,21, 7
+    !byte -4, -4, 4, 9
+    !byte  0, -3, 7, 3
+
+    ; angle 1
+    !byte  3,  4,22, 7
+    !byte -1, -1, 1, 3
+    !byte  5, -3, 5, 8
+    !byte -5,  3,22, 7
+    !byte -3, -4, 5, 8
+    !byte  1, -3, 9, 3
+
+    ; angle 2
+    !byte  1,  4,23, 7
+    !byte -1, -1, 1, 3
+    !byte  5, -2, 6, 9
+    !byte -6,  1,23, 7
+    !byte -2, -5, 6, 9
+    !byte  1, -3, 8, 3
+
+    ; angle 3
+    !byte  1,  4,23, 8
+    !byte  0,  0, 1, 2
+    !byte  6, -2, 7, 8
+    !byte -5,  1,23, 8
+    !byte  0, -5, 7, 8
+    !byte  2, -3,11, 3
+
+    ; angle 4
+    !byte -1,  5,25, 8
+    !byte  0,  0, 1, 2
+    !byte  6,  0, 8, 9
+    !byte -6,  0,25, 8
+    !byte  1, -5, 8, 9
+    !byte  3, -3,11, 3
 
 
 ; 1.5K of enemy definition cache
@@ -3177,7 +3273,7 @@ enemy_end_angle
     !byte 0
 enemy_arc_length
     !byte 0
-enemy_index
+enemy_temp_index
     !byte 0
 
 ; ----------------------------------------------------------------------------------
@@ -3198,12 +3294,12 @@ read_enemy_arc
 ; ----------------------------------------------------------------------------------
 store_enemy_address
     stx temp_x                                                        ;
-    ldx enemy_index                                                   ;
+    ldx enemy_temp_index                                              ;
     lda end_low                                                       ;
     sta enemy_address_low,x                                           ;
     lda end_high                                                      ;
     sta enemy_address_high,x                                          ;
-    inc enemy_index                                                   ;
+    inc enemy_temp_index                                              ;
     ldx temp_x                                                        ;
     rts                                                               ;
 
@@ -3239,11 +3335,8 @@ backup_lookup_pointer
 
 ; ----------------------------------------------------------------------------------
 fill_enemy_cache
-    ; DEBUG: Set enemy number based on command number
-    ldx #0                                                            ; X = enemy number
-    stx enemy_number                                                  ;
     ldx #0                                                            ;
-    stx enemy_index                                                   ;
+    stx enemy_temp_index                                              ;
     lda #<enemy_cache_a                                               ;
     sta end_low                                                       ;
     sta cache_start_low                                               ;
@@ -3252,7 +3345,7 @@ fill_enemy_cache
     sta cache_start_high                                              ;
     jsr fill_one_enemy_cache                                          ;
 
-    inc enemy_number                                                  ;
+    inc enemy_number                                                  ; enemy number incremented to alternative enemy type
     lda #<enemy_cache_b                                               ;
     sta end_low                                                       ;
     sta cache_start_low                                               ;
@@ -5607,6 +5700,9 @@ starship_addresses_low
     !byte <starship_sprite_6
     !byte <starship_sprite_7
     !byte <starship_sprite_8
+    !byte <starship_sprite_9
+    !byte <starship_sprite_10
+    !byte <starship_sprite_11
 starship_addresses_high
     !byte >starship_sprite_1
     !byte >starship_sprite_2
@@ -5616,6 +5712,10 @@ starship_addresses_high
     !byte >starship_sprite_6
     !byte >starship_sprite_7
     !byte >starship_sprite_8
+    !byte >starship_sprite_9
+    !byte >starship_sprite_10
+    !byte >starship_sprite_11
+num_starships = * - starship_addresses_high
 
 ; ----------------------------------------------------------------------------------
 starship_sprite_1
@@ -5889,6 +5989,112 @@ starship_sprite_8
     !byte %#....##.                                                   ;
     !byte %#....##.                                                   ;
     !byte %.....##.                                                   ;
+
+; TOBY:
+starship_sprite_9
+    !byte %.......#                                                   ; .......#........
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %.....#..                                                   ; .....#...#......
+    !byte %.....#.#                                                   ; .....#.#.#......
+    !byte %....#.#.                                                   ; ....#.#.#.#.....
+    !byte %#..#.###                                                   ; #..#.#####.#..#.
+    !byte %##.#....                                                   ; ##.#.......#.##.
+    !byte %........                                                   ; #.##...#...##.#.
+    !byte %#.......                                                   ; #..#..#.#..#..#.
+    !byte %#.......                                                   ; #...##...##...#.
+    !byte %.#......                                                   ; #...#.....#...#.
+    !byte %.#......                                                   ; #..#.......#..#.
+    !byte %#.#.....                                                   ; #.#.........#.#.
+    !byte %##.#..#.                                                   ; .#...........#..
+    !byte %...#.##.                                                   ; ..###########...
+    !byte %#.##...#
+    !byte %#..#..#.
+    !byte %#...##..
+    !byte %#...#...
+    !byte %#..#....
+    !byte %#.#.....
+    !byte %.#......
+    !byte %..######
+    !byte %...##.#.
+    !byte %#..#..#.
+    !byte %.##...#.
+    !byte %..#...#.
+    !byte %...#..#.
+    !byte %....#.#.
+    !byte %.....#..
+    !byte %#####...
+
+; ADE:
+starship_sprite_10
+    !byte %..#.....                                                   ; ..#.........#...
+    !byte %.##....#                                                   ; .##....#....##..
+    !byte %.#.#...#                                                   ; .#.#...#...#.#..
+    !byte %.#.#..##                                                   ; .#.#..###..#.#..
+    !byte %#...#.##                                                   ; #...#.###.#...#.
+    !byte %#...#.##                                                   ; #...#.###.#...#.
+    !byte %#....###                                                   ; #....#####....#.
+    !byte %#..#..##                                                   ; #..#..###..#..#.
+    !byte %....#...                                                   ; #.###.###.###.#.
+    !byte %....##..                                                   ; .#.#..###..#.#..
+    !byte %...#.#..                                                   ; .#....###....#..
+    !byte %#..#.#..                                                   ; ..#..#####..#...
+    !byte %#.#...#.                                                   ; ...##..#..##....
+    !byte %#.#...#.                                                   ; ....##...##.....
+    !byte %##....#.                                                   ; ....##...##.....
+    !byte %#..#..#.                                                   ; .....#####......
+    !byte %#.###.##
+    !byte %.#.#..##
+    !byte %.#....##
+    !byte %..#..###
+    !byte %...##..#
+    !byte %....##..
+    !byte %....##..
+    !byte %.....###
+    !byte %#.###.#.
+    !byte %#..#.#..
+    !byte %#....#..
+    !byte %##..#...
+    !byte %..##....
+    !byte %.##.....
+    !byte %.##.....
+    !byte %##......
+
+; TOBY
+starship_sprite_11
+    !byte %.......#                                                   ; .......#........
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %.....#..                                                   ; .....#...#......
+    !byte %....#..#                                                   ; ....#..#..#.....
+    !byte %..##..#.                                                   ; ..##..#.#..##...
+    !byte %.#..#..#                                                   ; .#..#..#..#..#..
+    !byte %#....#.#                                                   ; #....#.#.#....#.
+    !byte %........                                                   ; #..#..#.#..#..#.
+    !byte %#.......                                                   ; #.#.#..#..#.#.#.
+    !byte %#.......                                                   ; #..#.#.#.#.#..#.
+    !byte %.#......                                                   ; .#....#.#....#..
+    !byte %..#.....                                                   ; ..#..#...#..#...
+    !byte %#..##...                                                   ; .#.##..#..##.#..
+    !byte %..#..#..                                                   ; #....#####....#.
+    !byte %.#....#.                                                   ; #.............#.
+    !byte %#..#..#.
+    !byte %#.#.#..#
+    !byte %#..#.#.#
+    !byte %.#....#.
+    !byte %..#..#..
+    !byte %.#.##..#
+    !byte %#....###
+    !byte %#.......
+    !byte %#..#..#.
+    !byte %..#.#.#.
+    !byte %.#.#..#.
+    !byte %#....#..
+    !byte %.#..#...
+    !byte %..##.#..
+    !byte %##....#.
+    !byte %......#.
+
 
 ; ----------------------------------------------------------------------------------
 velocity_gauge_position
@@ -6942,7 +7148,31 @@ subtraction_from_starship_regeneration_when_shields_active
 
 ; ----------------------------------------------------------------------------------
 prepare_starship_for_next_command
-    inc starship_type                                                 ;
+    ldx starship_type                                                 ;
+    inx                                                               ;
+    cpx #num_starships                                                ;
+    bcc +                                                             ;
+    ldx #0                                                            ;
++
+    stx starship_type                                                 ;
+
+    ; Enemy designs range from 0-5. There are two designs per command
+    ; the pairs: (0,1) (2,3) (4,5) the regular design and the
+    ; alternative design.
+
+    ; We increment the enemy number to be the next regular ship.
+    ; Up to this point it has been pointing at the alternative ship
+    ; from the previous round. The call to fill_enemy_cache below
+    ; will increment it again to be the alternative ship again for
+    ; the duration of this command.
+    inc enemy_number                                                  ;
+    ldx enemy_number                                                  ;
+    cpx #6                                                            ;
+    bcc +                                                             ;
+    ldx #0                                                            ;
++
+    stx enemy_number                                                  ;
+
     inc command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
     lda command_number                                                ;
     clc                                                               ;
@@ -6989,7 +7219,7 @@ prepare_starship_for_next_command
     sta starship_energy_low                                           ;
 
     ; fill enemy ship cache
-    jsr fill_enemy_cache
+    jsr fill_enemy_cache                                              ;
 
     ; clear screen
     lda #$0c                                                          ;
@@ -7384,7 +7614,7 @@ debug
 
     lda #1                                                            ;
     sta command_number                                                ;
-    lda #0                                                            ;
+    lda #0                                                            ; Zero for regular ship, 1 for alternative ship
     sta enemy_ship_type                                               ;
 
     lda #0                                                            ;
@@ -8266,6 +8496,7 @@ start_game
     lda #$ff                                                          ;
     sta command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
     sta starship_type                                                 ;
+    sta enemy_number                                                  ;
     lda #0                                                            ;
     sta command_number                                                ;
     sta score_as_bcd + 2                                              ;
