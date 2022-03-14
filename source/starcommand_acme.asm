@@ -245,6 +245,8 @@ irq_accumulator                     = $fc
 irq1_vector_low                     = $0204
 irq1_vector_high                    = $0205
 
+videoULAPaletteRegister             = $fe21         ; Video ULA palette register
+
 userVIATimer1CounterLow             = $fe64         ; Timer 1 counter (low)
 userVIATimer1CounterHigh            = $fe65         ; Timer 1 counter (high)
 userVIATimer1LatchLow               = $fe66         ; Timer 1 latch (low)
@@ -252,6 +254,11 @@ userVIATimer1LatchHigh              = $fe67         ; Timer 1 latch (high)
 userVIAAuxiliaryControlRegister     = $fe6b         ; auxiliary control register
 userVIAInterruptFlagRegister        = $fe6d         ; Interrupt flag register
 userVIAInterruptEnableRegister      = $fe6e         ; Interrupt enable register
+
+systemVIATimer1LatchLow             = $fe46         ;
+systemVIATimer1LatchHigh            = $fe47         ;
+systemVIAAuxiliaryControlRegister   = $fe4b         ;
+systemVIAInterruptFlagRegister      = $fe4d         ;
 
 oswrch                              = $ffee
 osword                              = $fff1
@@ -307,6 +314,12 @@ cache_start_low                     = $22   ; } same location
 
 starship_high                       = $23   ; }
 cache_start_high                    = $23   ; } same location
+
+enemy_number                        = $24   ; Enemy definition 0-5
+enemy_stride                        = $25   ; offset in bytes to get from one enemy angle definition to the next
+
+irq_counter                         = $26   ;
+danger_height                       = $27   ;
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -380,7 +393,8 @@ energy_screen_address                   = $6e48
 ; ----------------------------------------------------------------------------------
 ; game constants
 ; ----------------------------------------------------------------------------------
-game_speed                              = 1
+; Number of 50Hz frames between game updates = 39 / game_speed = 39/60 ~= 1.53
+game_speed                              = 60
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
@@ -422,9 +436,10 @@ desired_velocity_for_intact_enemy_ships                             = $18
 minimum_number_of_stars                                             = 1
 
 
-; This is the delay between interrupts.
-; (480 pixel rows. Each frame is 312 pixel rows, so ~1.5 frames at 50Hz)
-ShortTimerValue  = 480*64 - 2
+; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
+; Each frame is 312 pixel rows.
+; Interrupt every eight pixel rows.
+ShortTimerValue  = 8*64 - 2
 
 ; ----------------------------------------------------------------------------------
 ; code and data
@@ -2155,15 +2170,13 @@ return7
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_enemy_ships
-    lda #maximum_number_of_enemy_ships                                ;
-    sta enemy_ships_still_to_consider                                 ;
-    ldx #0                                                            ;
-plot_enemy_ships_loop
-    lda enemy_ships_previous_on_screen,x                              ;
-    sta enemy_ship_was_previously_on_screen                           ;
-    lda enemy_ships_energy,x                                          ;
-    bne explosion_continuing                                          ;
+enemy_ship_update_done
+    !byte 0,0,0,0,0,0,0,0
+
+
+; ----------------------------------------------------------------------------------
+plot_enemy_update_explosion
+    ; update explosion
     ldy enemy_ships_still_to_consider                                 ;
     lda enemy_ships_explosion_number - 1,y                            ;
     tay                                                               ;
@@ -2171,28 +2184,62 @@ plot_enemy_ships_loop
     sta temp5                                                         ;
     lda enemy_explosion_address_high_table - 1,y                      ;
     sta temp6                                                         ;
-    lda enemy_ship_was_previously_on_screen                           ;
+    lda enemy_ship_was_previously_on_screen                           ; 0=previously on screen, $ff=otherwise
     bne not_previously_on_screen                                      ;
-    dec enemy_ship_was_previously_on_screen                           ;
+    dec enemy_ship_was_previously_on_screen                           ; set not previously on screen (=$ff)
     jsr update_enemy_explosion_pieces                                 ;
+
 not_previously_on_screen
+    ; wait for explosion to finish
     dec enemy_ships_flags_or_explosion_timer,x                        ;
-    bne explosion_continuing                                          ;
+    bne +                                                             ;
+
+    ; create new ship
     jsr initialise_enemy_ship                                         ;
-explosion_continuing
++
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; On Exit:
+;   Preserves X
+; ----------------------------------------------------------------------------------
+try_plot_enemy_ship
+    ldy enemy_ships_still_to_consider                                 ;
+    lda enemy_ship_update_done - 1,y                                  ;
+    bmi skip_enemy_altogether                                         ; if (already updated) then branch
+
+    ; check if we are in the danger zone, if so then skip this one
+    ; DEBUG!
+;    lda enemy_ships_y_pixels,x                                        ;
+;    jsr is_in_danger_area                                             ;
+;    bcc skip_enemy_altogether                                         ; if in danger zone, skip this enemy
+
+    lda enemy_ships_previous_on_screen,x                              ;
+    sta enemy_ship_was_previously_on_screen                           ;
+    lda enemy_ships_energy,x                                          ;
+    bne skip_explosion                                                ; if (non zero energy) then branch
+
+    jsr plot_enemy_update_explosion                                   ;
+
+skip_explosion
     lda enemy_ships_on_screen,x                                       ;
     sta enemy_ship_was_on_screen                                      ;
     bne not_on_screen                                                 ;
+
+    ; if enemy ship has run out of energy
     lda enemy_ships_energy,x                                          ;
     bne skip_extra_delay                                              ;
-    dec enemy_ship_was_on_screen                                      ;
-    bne skip_extra_delay                                              ;
+    dec enemy_ship_was_on_screen                                      ; mark as off screen
+
 not_on_screen
 skip_extra_delay
     lda enemy_ship_was_previously_on_screen                           ;
-    bne skip_unplotting                                               ;
+    bne skip_unplotting                                               ; if not previously on screen, skip unplot
 
 unplot_enemy_ship
+    ; DEBUG
+    ;jsr debug_make_background_green
+
     jsr plot_enemy_ship                                               ; unplot
 skip_unplotting
     lda enemy_ships_angle,x                                           ;
@@ -2202,16 +2249,28 @@ skip_unplotting
     lda enemy_ships_x_pixels,x                                        ;
     sta enemy_ships_previous_x_pixels,x                               ;
     lda enemy_ship_was_on_screen                                      ;
-    beq plot_enemy_ship_and_copy_position                             ;
-    bpl copy_position_without_plotting                                ;
-    jsr plot_enemy_ship_explosion                                     ; plot
+    beq plot_enemy_ship_and_copy_position                             ; if (was on screen) then branch (to plot)
+    bpl copy_position_without_plotting                                ; if (not exploding) then branch
+
+    jsr plot_enemy_ship_explosion                                     ; plot explosion
     jmp copy_position_without_plotting                                ;
 
 plot_enemy_ship_and_copy_position
     jsr plot_enemy_ship                                               ;
+
+    ; DEBUG
+    ;jsr debug_make_background_black                                   ;
+
 copy_position_without_plotting
+    ; mark enemy as done
+    ldy enemy_ships_still_to_consider                                 ;
+    lda #$ff                                                          ;
+    sta enemy_ship_update_done - 1,y                                  ;
+
     lda enemy_ships_on_screen,x                                       ;
     sta enemy_ships_previous_on_screen,x                              ;
+
+    ; store position off screen
     lda enemy_ships_y_screens,x                                       ;
     sta enemy_ships_previous_y_screens,x                              ;
     lda enemy_ships_y_fraction,x                                      ;
@@ -2220,16 +2279,100 @@ copy_position_without_plotting
     sta enemy_ships_previous_x_screens,x                              ;
     lda enemy_ships_x_fraction,x                                      ;
     sta enemy_ships_previous_x_fraction,x                             ;
+
+skip_enemy_altogether
+    ; move X onto next enemy
     txa                                                               ;
     clc                                                               ;
     adc #$0b                                                          ;
     tax                                                               ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+plot_enemy_ships
+    lda #15                                                           ;
+    sta danger_height                                                 ;
+
+    ; initialize the array to zero (nothing done yet)
+    ldx #maximum_number_of_enemy_ships-1                              ;
+    lda #0                                                            ;
+-
+    sta enemy_ship_update_done,x                                      ;
+    dex                                                               ;
+    bpl -                                                             ;
+
+retry_loop
+    ldx #0                                                            ;
+    lda #maximum_number_of_enemy_ships                                ;
+    sta enemy_ships_still_to_consider                                 ;
+
+plot_enemy_ships_loop
+    jsr try_plot_enemy_ship                                           ;
+
     dec enemy_ships_still_to_consider                                 ;
-    beq return8                                                       ;
-    jmp plot_enemy_ships_loop                                         ;
+    bne plot_enemy_ships_loop                                         ;
+
+    ; check if all enemies have updated
+    ldx #maximum_number_of_enemy_ships-1                              ;
+    lda #$ff                                                          ;
+-
+    and enemy_ship_update_done,x                                      ;
+    dex                                                               ;
+    bpl -                                                             ;
+    tax                                                               ;
+    beq retry_loop                                                    ;
 
 return8
     rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+debug_make_background_black
+    pha
+    php
+    ; DEBUG
+    LDA #$07
+    STA videoULAPaletteRegister
+    LDA #$17
+    STA videoULAPaletteRegister
+    LDA #$27
+    STA videoULAPaletteRegister
+    LDA #$37
+    STA videoULAPaletteRegister
+    LDA #$47
+    STA videoULAPaletteRegister
+    LDA #$57
+    STA videoULAPaletteRegister
+    LDA #$67
+    STA videoULAPaletteRegister
+    LDA #$77
+    STA videoULAPaletteRegister
+    plp
+    pla
+    RTS
+
+debug_make_background_green
+    ; DEBUG
+    pha
+    php
+    LDA #$05
+    STA videoULAPaletteRegister
+    LDA #$15
+    STA videoULAPaletteRegister
+    LDA #$25
+    STA videoULAPaletteRegister
+    LDA #$35
+    STA videoULAPaletteRegister
+    LDA #$45
+    STA videoULAPaletteRegister
+    LDA #$55
+    STA videoULAPaletteRegister
+    LDA #$65
+    STA videoULAPaletteRegister
+    LDA #$75
+    STA videoULAPaletteRegister
+    plp
+    pla
+    rts
 
 
 ; ----------------------------------------------------------------------------------
@@ -2851,6 +2994,8 @@ return14
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Exit:
+;   Preserves X
 plot_enemy_ship
     stx temp8                                                         ;
     lda enemy_ships_type,x                                            ;
@@ -2969,6 +3114,7 @@ enemy_ship_is_cloaked
 ;     21                                      11
 ;
 
+; start address of the definition of each enemy
 enemy_table_low
     !byte <enemy0
     !byte <enemy1
@@ -2985,6 +3131,7 @@ enemy_table_high
     !byte >enemy4
     !byte >enemy5
 
+; The number of arcs that define the enemy
 enemy_arc_counts
     !byte 5
     !byte 5
@@ -2993,6 +3140,8 @@ enemy_arc_counts
     !byte 5
     !byte 6
 
+; the stride of an enemy is the number of bytes to get from the definition of one angle
+; of the enemy to the next. Four times the number of arcs of the enemy.
 enemy_strides
     !byte 4*5
     !byte 4*5
@@ -3012,6 +3161,9 @@ enemy_address_low
 enemy_address_high
     !skip 64
 
+; There are 32 angles for each enemy covering the full 360 degrees.
+; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
+; are copies of these rotated and/or reflected into a cache used for the current command.
 enemy0
     ; (x, y, start_angle, length)
 
@@ -3241,6 +3393,7 @@ enemy5
     !byte  1, -5, 8, 9
     !byte  3, -3,11, 3
 
+; Enemy definitions for the current command
 
 ; 1.5K of enemy definition cache
 enemy_cache_a
@@ -3251,7 +3404,8 @@ enemy_cache_b
     ; (x, y, start_angle, length) = 4 bytes
     !skip 4*6*32        ; bytes * arcs * angles
 
-; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the circle
+; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the
+; perimeter of the circle. 32 entries, with the tables overlapping.
 centre_array_dy
     !byte -6,-6,-5,-5,-4,-3,-2,-1
 
@@ -3259,10 +3413,6 @@ centre_array_dx
     !byte  0, 1, 2, 3, 4, 5, 5, 6, 6, 6, 5, 5, 4, 3, 2, 1
     !byte  0,-1,-2,-3,-4,-5,-5,-6,-6,-6,-5,-5,-4,-3,-2,-1
 
-enemy_number
-    !byte 0
-enemy_stride
-    !byte 0
 enemy_x
     !byte 0
 enemy_y
@@ -7692,6 +7842,48 @@ debug
     jmp --                                                            ;
 }
 
+; ***************************************************************************************
+; On Entry:
+;   A = Y coordinate to plot at
+;   danger_height = height in character rows of the danger zone
+; On Exit:
+;   Carry clear if in danger area
+;   Preserves X,Y
+; ***************************************************************************************
+is_in_danger_area
+    clc                                                     ; }
+    sbc #$dd                                                ; }
+    eor #$ff                                                ; } A = ($dd - sprite_y)/8
+    lsr                                                     ; }
+    lsr                                                     ; }
+    lsr                                                     ; }
+    sec                                                     ;
+    sbc irq_counter                                         ;
+    cmp danger_height                                       ;
+    rts                                                     ;
+
+; ***************************************************************************************
+wait_for_danger_area_to_pass
+    stx danger_height                                       ;
+    sta sprite_y                                            ;
+-
+sprite_y = * + 1
+    lda #$ff                                                ; }
+    clc                                                     ; }
+    sbc #$dd                                                ; }
+    eor #$ff                                                ; } A = ($dd - sprite_y)/8
+    lsr                                                     ; }
+    lsr                                                     ; }
+    lsr                                                     ; }
+    sec                                                     ;
+    sbc irq_counter                                         ;
+    cmp danger_height                                       ;
+    bcc -                                                   ; check if in danger zone wand wait
+    adc #38                                                 ; add 39 (carry is set)
+    cmp danger_height                                       ;
+    bcc -                                                   ;
+    rts                                                     ;
+
 ; ----------------------------------------------------------------------------------
 main_game_loop
 !if do_debug {
@@ -7717,6 +7909,7 @@ main_game_loop
     jsr plot_enemy_ships_on_scanners                                  ;
 skip_scanner_update
 
+wait_for_timer
     ; wait for some time to have elapsed
 -
     lda timing_counter                                                ;
@@ -7724,6 +7917,8 @@ skip_scanner_update
     sbc old_timing_counter                                            ;
     cmp #game_speed                                                   ;
     bcc -                                                             ;
+
+post_wait_for_timer
     clc                                                               ;
     adc old_timing_counter                                            ;
     sta old_timing_counter                                            ;
@@ -8729,14 +8924,43 @@ irq_routine
     lda userVIAInterruptFlagRegister                        ; get interrupt flag register
     and #$c0                                                ;
     cmp #$c0                                                ;
-    bne pass_on_irq                                         ; if not our interrupt, branch
+    bne check_vsync                                         ; if not our interrupt, branch
     sta userVIAInterruptFlagRegister                        ; clear interrupt
 
+    ; increment timing counter
     inc timing_counter                                      ;
+
+    ; increment irq_counter
+    lda irq_counter                                         ;
+    clc                                                     ;
+    adc #1                                                  ;
+    cmp #39                                                 ;
+    bcc +                                                   ;
+    lda #0                                                  ;
++
+    sta irq_counter                                         ;
+
+
     lda irq_accumulator                                     ;
     rti                                                     ;
 
-pass_on_irq
+; ***************************************************************************************
+check_vsync
+    lda systemVIAInterruptFlagRegister                      ; get interrupt flag register
+    and #$82                                                ;
+    cmp #$82                                                ;
+    bne call_old_irq                                        ; unknown interrupt
+
+    ; Set timer to fire every 'short time' (set latch)
+    lda #<ShortTimerValue                                   ;
+    sta userVIATimer1LatchLow                               ;
+    lda #>ShortTimerValue                                   ;
+    sta userVIATimer1LatchHigh                              ;
+
+    lda #29                                                 ;
+    sta irq_counter                                         ;
+
+call_old_irq
     lda irq_accumulator                                     ;
     jmp (old_irq1_low)                                      ;
 
@@ -9093,9 +9317,11 @@ done
     ; set up timer
     lda #0                                                            ;
     sta timing_counter                                                ;
+    sta irq_counter                                                   ;
+
+    sei                                                               ;
 
     ; enable timer 1 in free run mode
-    sei                                                               ;
     lda #$c0                                                          ; Enable timer 1
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
     lda #$c0                                                          ; Enable free run mode
@@ -9111,6 +9337,7 @@ done
     sta irq1_vector_low                                               ;
     lda #>irq_routine                                                 ;
     sta irq1_vector_high                                              ;
+
     cli                                                               ;
 
     ; Set timer to fire every 'short time' (set latch)
