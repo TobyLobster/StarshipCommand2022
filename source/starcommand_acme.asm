@@ -1079,16 +1079,14 @@ temp_y = *+1
 
 ; ----------------------------------------------------------------------------------
 multiply_torpedo_position_by_starship_rotation_cosine
-    lda starship_rotation_cosine                                      ;
-    sta temp8                                                         ;
     lda (temp0_low),y                                                 ;
-    beq shortcut
+    beq shortcut                                                      ;
 
     sty temp_y                                                        ; remember y
 
-    ; 8x8 multiply 'A * temp8', result in A (high byte only needed)
+    ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
     sta addition                                                      ;
-    ldx temp8                                                         ;
+    ldx starship_rotation_cosine                                      ;
     jsr mul8x8                                                        ;
 
     ldy temp_y                                                        ; recall y
@@ -2208,11 +2206,17 @@ try_plot_enemy_ship
     lda enemy_ship_update_done - 1,y                                  ;
     bmi skip_enemy_altogether                                         ; if (already updated) then branch
 
+    lda enemy_ships_on_screen,x                                       ;
+    bne not_on_screen_a                                               ;
+
     ; check if we are in the danger zone, if so then skip this one
-    ; DEBUG!
-;    lda enemy_ships_y_pixels,x                                        ;
-;    jsr is_in_danger_area                                             ;
-;    bcc skip_enemy_altogether                                         ; if in danger zone, skip this enemy
+    lda enemy_ships_y_pixels,x                                        ;
+    jsr is_in_danger_area                                             ;
+    bcc skip_enemy_altogether                                         ; if in danger zone, skip this enemy
+
+not_on_screen_a
+    ; DEBUG
+    ; jsr debug_make_background_green
 
     lda enemy_ships_previous_on_screen,x                              ;
     sta enemy_ship_was_previously_on_screen                           ;
@@ -2226,20 +2230,17 @@ skip_explosion
     sta enemy_ship_was_on_screen                                      ;
     bne not_on_screen                                                 ;
 
-    ; if enemy ship has run out of energy
+    ; if enemy ship has run out of energy, mark as off screen
     lda enemy_ships_energy,x                                          ;
-    bne skip_extra_delay                                              ;
-    dec enemy_ship_was_on_screen                                      ; mark as off screen
+    bne skip30                                                        ;
+    dec enemy_ship_was_on_screen                                      ;
 
 not_on_screen
-skip_extra_delay
+skip30
     lda enemy_ship_was_previously_on_screen                           ;
     bne skip_unplotting                                               ; if not previously on screen, skip unplot
 
 unplot_enemy_ship
-    ; DEBUG
-    ;jsr debug_make_background_green
-
     jsr plot_enemy_ship                                               ; unplot
 skip_unplotting
     lda enemy_ships_angle,x                                           ;
@@ -2258,10 +2259,10 @@ skip_unplotting
 plot_enemy_ship_and_copy_position
     jsr plot_enemy_ship                                               ;
 
-    ; DEBUG
-    ;jsr debug_make_background_black                                   ;
-
 copy_position_without_plotting
+    ; DEBUG
+    ; jsr debug_make_background_black
+
     ; mark enemy as done
     ldy enemy_ships_still_to_consider                                 ;
     lda #$ff                                                          ;
@@ -2290,7 +2291,7 @@ skip_enemy_altogether
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships
-    lda #15                                                           ;
+    lda #8                                                           ;
     sta danger_height                                                 ;
 
     ; initialize the array to zero (nothing done yet)
@@ -2313,13 +2314,14 @@ plot_enemy_ships_loop
     bne plot_enemy_ships_loop                                         ;
 
     ; check if all enemies have updated
-    ldx #maximum_number_of_enemy_ships-1                              ;
-    lda #$ff                                                          ;
--
-    and enemy_ship_update_done,x                                      ;
-    dex                                                               ;
-    bpl -                                                             ;
-    tax                                                               ;
+    lda enemy_ship_update_done                                        ;
+    and enemy_ship_update_done+1                                      ;
+    and enemy_ship_update_done+2                                      ;
+    and enemy_ship_update_done+3                                      ;
+    and enemy_ship_update_done+4                                      ;
+    and enemy_ship_update_done+5                                      ;
+    and enemy_ship_update_done+6                                      ;
+    and enemy_ship_update_done+7                                      ;
     beq retry_loop                                                    ;
 
 return8
@@ -3151,10 +3153,10 @@ enemy_strides
     !byte 4*6
 
 ; 64 table entries. Each entry has a high byte and a low byte.
-; The first  32 entries are the address of each angle of enemy_a.
-; The second 32 entries are the address of each angle of enemy_b.
+; The first  32 entries are the address of each angle of the regular enemy.
+; The second 32 entries are the address of each angle of the alternative enemy.
 ; These addresses depend upon the number of arcs in each enemy,
-; so are filled in in fill_enemy_cache.
+; so are filled in via code (in fill_enemy_cache).
 enemy_address_low
     !skip 64
 
@@ -3163,7 +3165,7 @@ enemy_address_high
 
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
-; are copies of these rotated and/or reflected into a cache used for the current command.
+; are copies of these rotated and/or reflected into a cache for the current command.
 enemy0
     ; (x, y, start_angle, length)
 
@@ -4253,6 +4255,7 @@ move_to_next_piece
 ; ----------------------------------------------------------------------------------
 plot_enemy_ship_explosion
     jsr plot_enemy_ship_or_explosion_segments                         ;
+
     ldy #number_of_bytes_per_enemy_explosion                          ;
 plot_enemy_ship_explosion_loop
     dey                                                               ;
@@ -7851,38 +7854,18 @@ debug
 ;   Preserves X,Y
 ; ***************************************************************************************
 is_in_danger_area
-    clc                                                     ; }
-    sbc #$dd                                                ; }
-    eor #$ff                                                ; } A = ($dd - sprite_y)/8
-    lsr                                                     ; }
-    lsr                                                     ; }
-    lsr                                                     ; }
-    sec                                                     ;
-    sbc irq_counter                                         ;
-    cmp danger_height                                       ;
-    rts                                                     ;
-
-; ***************************************************************************************
-wait_for_danger_area_to_pass
-    stx danger_height                                       ;
-    sta sprite_y                                            ;
--
-sprite_y = * + 1
-    lda #$ff                                                ; }
-    clc                                                     ; }
-    sbc #$dd                                                ; }
-    eor #$ff                                                ; } A = ($dd - sprite_y)/8
-    lsr                                                     ; }
-    lsr                                                     ; }
-    lsr                                                     ; }
-    sec                                                     ;
-    sbc irq_counter                                         ;
-    cmp danger_height                                       ;
-    bcc -                                                   ; check if in danger zone wand wait
-    adc #38                                                 ; add 39 (carry is set)
-    cmp danger_height                                       ;
-    bcc -                                                   ;
-    rts                                                     ;
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ; A = character row
+    sec                                                               ;
+    sbc irq_counter                                                   ;
+    cmp danger_height                                                 ;
+    bcc done1                                                         ;
+    sec                                                               ;
+    sbc #256-38                                                       ;
+    cmp danger_height                                                 ;
+done1
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 main_game_loop
@@ -8931,16 +8914,13 @@ irq_routine
     inc timing_counter                                      ;
 
     ; increment irq_counter
+    inc irq_counter                                         ;
     lda irq_counter                                         ;
-    clc                                                     ;
-    adc #1                                                  ;
     cmp #39                                                 ;
     bcc +                                                   ;
     lda #0                                                  ;
-+
     sta irq_counter                                         ;
-
-
++
     lda irq_accumulator                                     ;
     rti                                                     ;
 
@@ -8957,7 +8937,7 @@ check_vsync
     lda #>ShortTimerValue                                   ;
     sta userVIATimer1LatchHigh                              ;
 
-    lda #29                                                 ;
+    lda #34                                                 ;
     sta irq_counter                                         ;
 
 call_old_irq
