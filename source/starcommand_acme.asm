@@ -882,7 +882,7 @@ unset_pixel
 ; if it isn't, it's because the point left one side of the play area and back on the other side
 ; ----------------------------------------------------------------------------------
 eor_pixel_with_boundary_check
-    lda x_pixels                                                      ;
+    txa                                                               ;
     sec                                                               ;
     sbc temp10                                                        ;
     bcs skip_inversion_x                                              ;
@@ -898,7 +898,6 @@ skip_inversion_x
 skip_inversion_y
     cmp #$20                                                          ;
     bcs return                                                        ;
-    ldx x_pixels                                                      ;
 eor_play_area_pixel
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
@@ -2566,6 +2565,7 @@ plot_segment_fast_loop
     rts                                                               ;
 
 plot_segment_loop
+    ldx x_pixels                                                      ;
     jsr eor_pixel_with_boundary_check                                 ;
 
     ldy segment_angle                                                 ;
@@ -4344,16 +4344,17 @@ skip_uninversion_cosine1
     adc temp9                                                         ;
     sta y_pixels                                                      ; y = origin_y + radius * cos(piece / 2)
     sty temp11                                                        ;
+    ldx x_pixels                                                      ;
     jsr eor_pixel_with_boundary_check                                 ;
     lda segment_angle                                                 ;
     bmi leave_after_restoring_y                                       ;
-    inc x_pixels                                                      ;
+    inx
     jsr eor_pixel_with_boundary_check                                 ;
     lda segment_angle                                                 ;
     bne leave_after_restoring_y                                       ;
     inc y_pixels                                                      ;
     jsr eor_pixel_with_boundary_check                                 ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_pixel_with_boundary_check                                 ;
 leave_after_restoring_y
     ldy temp11                                                        ;
