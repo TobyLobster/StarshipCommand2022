@@ -470,28 +470,28 @@ play_area_row_table_high
 
 plus_angle0
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle1
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle2
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle3
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle4
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle5
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
 plus_angle6
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle7
     jsr eor_play_area_pixel                                           ;
@@ -501,53 +501,53 @@ plus_angle8
     inc y_pixels                                                      ;
 plus_angle9
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
 plus_angle10
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
 plus_angle11
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
 plus_angle12
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
 plus_angle13
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
 plus_angle14
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
 plus_angle15
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
 plus_angle16
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
 plus_angle17
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
 plus_angle18
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
 plus_angle19
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
 plus_angle20
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
 plus_angle21
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
 plus_angle22
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
 plus_angle23
     jsr eor_play_area_pixel                                           ;
@@ -557,53 +557,53 @@ plus_angle24
     dec y_pixels                                                      ;
 plus_angle25
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
 plus_angle26
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
 plus_angle27
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
 plus_angle28
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
 plus_angle29
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle30
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
 plus_angle31
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle32
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle33
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle34
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
 plus_angle35
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle36
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle37
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
 plus_angle38
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     inc y_pixels                                                      ;
 plus_angle39
     jsr eor_play_area_pixel                                           ;
@@ -613,7 +613,7 @@ plus_angle40
     inc y_pixels                                                      ;
 plus_angle41
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
 plus_angle42
     rts                                                               ;
@@ -898,13 +898,13 @@ skip_inversion_x
 skip_inversion_y
     cmp #$20                                                          ;
     bcs return                                                        ;
+    ldx x_pixels                                                      ;
 eor_play_area_pixel
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
     sta screen_address_high                                           ;
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
-    ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
     lda xbit_table,x                                                  ;
     eor (screen_address_low),y                                        ;
@@ -1621,51 +1621,51 @@ empty_torpedo_slot
 
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
-    inc x_pixels                                                      ;
+    inx                                                               ; x coordinate
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
     ldy #2                                                            ;
     lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
+    tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jmp eor_play_area_pixel                                           ;
@@ -1681,10 +1681,11 @@ update_stars
 update_stars_loop
     ldy #0                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
+    ldx x_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
+    tax                                                               ;
     ldy #3                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
@@ -1783,7 +1784,7 @@ return5
 plot_starship_torpedo
     ldy #2                                                            ; Plot pixel for head of torpedo
     lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
+    tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
@@ -1795,7 +1796,7 @@ plot_starship_torpedo
 small_starship_torpedoes
     ldy #2                                                            ; Plot pixel for tail of torpedo
     lda (temp1_low),y                                                 ;
-    sta x_pixels                                                      ;
+    tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp1_low),y                                                 ;
     sta y_pixels                                                      ;
@@ -1808,7 +1809,7 @@ small_starship_torpedoes
     lda (temp0_low),y                                                 ;
     adc (temp1_low),y                                                 ;
     ror                                                               ;
-    sta x_pixels                                                      ;
+    tax                                                               ; x coordinate
     iny                                                               ;
     lda (temp0_low),y                                                 ;
     clc                                                               ;
@@ -2038,7 +2039,7 @@ move_to_next_enemy
 plot_enemy_torpedo
     ldy #2                                                            ;
     lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
+    tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
@@ -2046,11 +2047,11 @@ plot_enemy_torpedo
 enemy_torpedo_type_instruction
     rts                                                               ; self modifying code
     ; ... actually NOP if (option_enemy_torpedoes == 1)
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
@@ -2539,6 +2540,8 @@ plot_segment
     beq plot_segment_unrolled                                         ;
 
 plot_segment_fast_loop
+    ldx x_pixels                                                      ;
+    ldy y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
 
     ldy segment_angle                                                 ;
@@ -2600,6 +2603,7 @@ plot_segment_unrolled
     stx remember_x                                                    ; remember the address (low) to finish at
     lda #$60                                                          ; opcode for RTS
     sta plus_angle0,x                                                 ;
+    ldx x_pixels                                                      ;
 jump_address = * + 1
     jsr plus_angle0                                                   ;
     ldx remember_x                                                    ; recall the address (low)
@@ -4077,29 +4081,30 @@ skip_uninversion_cosine
 
 ; ----------------------------------------------------------------------------------
 plot_variable_size_fragment
+    ldx x_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     cmp #$c0                                                          ;
     beq return15                                                      ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     bmi return15                                                      ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
     lda temp8                                                         ;
     bne return15                                                      ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jmp eor_play_area_pixel                                           ;
 
 ; ----------------------------------------------------------------------------------
@@ -5462,20 +5467,19 @@ mark_escape_capsule_as_off_screen
 
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule
-    lda escape_capsule_x_pixels                                       ;
-    sta x_pixels                                                      ;
-    lda escape_capsule_y_pixels                                       ;
-    sta y_pixels                                                      ;
+    ldx escape_capsule_x_pixels                                       ;
+    ldy escape_capsule_y_pixels                                       ;
+    sty y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     jsr eor_play_area_pixel                                           ;
-    dec x_pixels                                                      ;
+    dex                                                               ;
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
-    inc x_pixels                                                      ;
+    inx                                                               ;
     dec y_pixels                                                      ;
     jmp eor_play_area_pixel                                           ;
 
