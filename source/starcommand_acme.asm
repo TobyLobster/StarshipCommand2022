@@ -7,7 +7,7 @@
 ; Based on the excellent Level 7 disassembly:
 ; http://www.level7.org.uk/miscellany/starship-command-disassembly.txt
 ;
-; The Level 7 disassembly starts with the following notes which are very useful in
+; The Level 7 disassembly contains the following notes which are very useful in
 ; understanding the code:
 ;
 ; "
@@ -108,15 +108,17 @@
 ; Points are scored for destroyed enemy ships as follows:
 ;
 ;     regular enemy ship, starship torpedo                    8
-;     large enemy ship, starship torpedo                     12
-;     regular enemy ship, enemy torpedo                       1
-;     large enemy ship, enemy torpedo                         2
-;     regular enemy ship, escape capsule                     32
-;     large enemy ship, escape capsule                       40
-;     regular enemy ship, collision with other enemy ship     1
-;     large enemy ship, collision with other enemy ship       2
+;     regular enemy ship, enemy torpedo                       3
+;     regular enemy ship, escape capsule                     70
+;     regular enemy ship, collision with other enemy ship     3
 ;     regular enemy ship, collision with starship             2
-;     large enemy ship, collision with starship               4
+;
+;     large enemy ship, starship torpedo                     12
+;     large enemy ship, enemy torpedo                         4
+;     large enemy ship, escape capsule                       90
+;     large enemy ship, collision with other enemy ship       4
+;     large enemy ship, collision with starship               3
+;
 ;
 ; A random, undisclosed factor of between 0 and 39 points is added to the score
 ; at the end of a command, for comparison against the following table:
@@ -320,6 +322,7 @@ enemy_stride                        = $25   ; offset in bytes to get from one en
 
 irq_counter                         = $26   ;
 danger_height                       = $27   ;
+temp_y                              = $28   ;
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -393,8 +396,8 @@ energy_screen_address                   = $6e48
 ; ----------------------------------------------------------------------------------
 ; game constants
 ; ----------------------------------------------------------------------------------
-; Number of 50Hz frames between game updates = 39 / game_speed = 39/60 ~= 1.53
-game_speed                              = 60
+; Number of 50Hz frames between game updates = game_speed/39 = 60/39 ~= 1.53
+game_speed                              = 65
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
@@ -1008,14 +1011,16 @@ multiply_torpedo_position_by_starship_rotation_sine_magnitude
 ; then we calculate c*b as a 16 bit number and add t
 ; Average cycles: 168.7
 ;
-; Y is preserved
+; On Exit:
+;   output_pixels (low) and output_fraction (high)
+;   Y is preserved
 ; ----------------------------------------------------------------------------------
 mul16x8
     sty temp_y                                                        ; remember Y
     lda a                                                             ;
     ldx b                                                             ;
     jsr mul8x8                                                        ;
-    sta t                                                             ;
+    sta t                                                             ; high byte only
     lda c                                                             ;
     ldx b                                                             ;
     jsr mul8x8                                                        ;
@@ -1027,8 +1032,7 @@ mul16x8
     bcc +                                                             ;
     inc output_fraction                                               ;
 +
-temp_y = *+1
-    ldy #$ff                                                          ; restore Y
+    ldy temp_y                                                        ; restore Y
     rts                                                               ;
 
 ; Alternative: multiply without tables (but not as fast as the tables version above):
@@ -1072,10 +1076,12 @@ temp_y = *+1
 ;    sty output_pixels                                                 ;
 ;    lda z                                                             ;
 ;    sta output_fraction                                               ;
-;temp_y = *+1
-;    ldy #$ff                                                          ; restore Y
+;    ldy temp_y                                                        ; restore Y
 ;    rts                                                               ;
 
+; ----------------------------------------------------------------------------------
+; On Exit:
+;   Result in A (high byte) and temp8 (low byte)
 ; ----------------------------------------------------------------------------------
 multiply_torpedo_position_by_starship_rotation_cosine
     lda (temp0_low),y                                                 ;
@@ -1086,7 +1092,7 @@ multiply_torpedo_position_by_starship_rotation_cosine
     ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
     sta addition                                                      ;
     ldx starship_rotation_cosine                                      ;
-    jsr mul8x8                                                        ;
+    jsr mul8x8                                                        ; high byte only
 
     ldy temp_y                                                        ; recall y
 
@@ -1134,70 +1140,79 @@ skip_inversion
 
 ; ----------------------------------------------------------------------------------
 update_position_for_rotation
-    dey                                                               ;
+    dey                                                               ; y position
     jsr multiply_torpedo_position_by_starship_rotation_sine_magnitude ;
     dey                                                               ;
-    dey                                                               ;
+    dey                                                               ; x position
     jsr multiply_torpedo_position_by_starship_rotation_cosine         ;
     clc                                                               ;
-    adc output_pixels                                                 ;
-    sta temp9                                                         ;
-    lda temp8                                                         ;
-    adc output_fraction                                               ;
-    sta temp10                                                        ;
+    adc output_pixels                                                 ; sine_y_fraction
+    sta temp9                                                         ; cosine_x_plus_sine_y_fraction
+    lda temp8                                                         ; cosine_x_pixels
+    adc output_fraction                                               ; sine_y_pixels
+    sta temp10                                                        ; cosine_x_plus_sine_y_pixels
+
     jsr multiply_torpedo_position_by_starship_rotation_sine_magnitude ;
     iny                                                               ;
-    iny                                                               ;
+    iny                                                               ; y position
     jsr multiply_torpedo_position_by_starship_rotation_cosine         ;
     sec                                                               ;
-    sbc output_pixels                                                 ;
-    sta (temp0_low),y                                                 ;
+    sbc output_pixels                                                 ; sine_x_fraction
+    sta (temp0_low),y                                                 ; object_y_fraction
     iny                                                               ;
-    lda temp8                                                         ;
-    sbc output_fraction                                               ;
-    sta (temp0_low),y                                                 ;
+    lda temp8                                                         ; cosine_y_pixels
+    sbc output_fraction                                               ; sine_x_pixels
+    sta (temp0_low),y                                                 ; object_y_pixels
     dey                                                               ;
     dey                                                               ;
     dey                                                               ;
+
+    ; do correction
     ldx starship_rotation_magnitude                                   ;
-    lda temp9                                                         ;
+    lda temp9                                                         ; cosine_x_plus_sine_y_fraction
     sec                                                               ;
     sbc rotated_x_correction_lsb,x                                    ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_x_fraction
     iny                                                               ;
-    lda temp10                                                        ;
+
+    lda temp10                                                        ; cosine_x_plus_sine_y_pixels
     sbc rotated_x_correction_screens,x                                ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_x_pixels
+
+    ; fix sign
     lda starship_rotation                                             ;
     bmi skip_uninversion                                              ;
     dey                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_x_fraction
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_x_fraction
     iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_x_pixels
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_x_pixels
 skip_uninversion
     iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_y_fraction
     clc                                                               ;
     adc rotated_y_correction_lsb,x                                    ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_y_fraction
     iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_y_pixels
     adc rotated_y_correction_screens,x                                ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_y_pixels
+    ; fall through...
+
+; ----------------------------------------------------------------------------------
 add_starship_velocity_to_position
     dey                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_y_fraction
     clc                                                               ;
     adc starship_velocity_low                                         ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_y_fraction
     iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; object_y_pixels
     adc starship_velocity_high                                        ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; object_y_pixels
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1266,7 +1281,7 @@ mul16x8a
     lda starship_rotation_cosine                                      ;
     ldx b                                                             ;
     jsr mul8x8                                                        ;
-    sta t                                                             ;
+    sta t                                                             ; high byte only
     lda starship_rotation_cosine                                      ;
     ldx c                                                             ;
     jsr mul8x8                                                        ;
@@ -6275,16 +6290,17 @@ score_as_digits
     !byte 0                                                           ;
     !byte 0                                                           ;
 scores_for_destroying_enemy_ships
-    !byte 8     ; regular ship, starship torpedo                           ; how_enemy_ship_was_damaged = 0
-    !byte 18    ; large or cloaked ship, starship torpedo
-    !byte 3     ; regular ship, enemy torpedo                              ; how_enemy_ship_was_damaged = 1
-    !byte 4     ; large or cloaked ship, enemy torpedo
-    !byte 112   ; regular ship, escape capsule                             ; how_enemy_ship_was_damaged = 2
-    !byte 144   ; large or cloaked ship, escape capsule
-    !byte 3     ; regular ship, collision with other enemy ship            ; how_enemy_ship_was_damaged = -1
-    !byte 4     ; large or cloaked ship, collision with other enemy ship
-    !byte 2     ; regular ship, collision with starship                    ; how_enemy_ship_was_damaged = -1
-    !byte 3     ; large ship, collision with starship
+    ; BCD scores
+    !byte $08   ; regular ship, starship torpedo                           ; how_enemy_ship_was_damaged = 0
+    !byte $12   ; large or cloaked ship, starship torpedo
+    !byte $03   ; regular ship, enemy torpedo                              ; how_enemy_ship_was_damaged = 1
+    !byte $04   ; large or cloaked ship, enemy torpedo
+    !byte $70   ; regular ship, escape capsule                             ; how_enemy_ship_was_damaged = 2
+    !byte $90   ; large or cloaked ship, escape capsule
+    !byte $03   ; regular ship, collision with other enemy ship            ; how_enemy_ship_was_damaged = -1
+    !byte $04   ; large or cloaked ship, collision with other enemy ship
+    !byte $02   ; regular ship, collision with starship                    ; how_enemy_ship_was_damaged = -1
+    !byte $03   ; large ship, collision with starship
 
 ; ----------------------------------------------------------------------------------
 score_points_for_destroying_enemy_ship
@@ -6394,7 +6410,7 @@ convert_score_as_bcd_to_score_as_digits
     ; display the characters for the score
     ldy #5                                                            ;
     ldx #$20                                                          ; plot score with leading " "s
-plot_score_loop
+print_score_loop
     lda score_as_digits,y                                             ;
     bne non_zero_digit                                                ;
     txa                                                               ;
@@ -6407,7 +6423,7 @@ non_zero_digit
 leading_zero
     jsr oswrch                                                        ;
     dey                                                               ;
-    bpl plot_score_loop                                               ;
+    bpl print_score_loop                                              ;
 return32
     rts                                                               ;
 
@@ -7974,8 +7990,130 @@ previous_score_as_bcd
 allowed_another_command
     !byte 0                                                           ;
 
-threshold_table
-    !byte 2  , 3  , 4  , 7  , $0d, $14, $1e                           ;
+; ----------------------------------------------------------------------------------
+; twenty times these values are the score thresholds to reach
+score_threshold_table
+    ; entry * 20 = score to reach |  emotion when reached
+    ; ----------------------------+-----------------------------------
+    ;                0            |  "furious"
+    ;     2 * 20 =  40            |  "displeased"
+    ;     3 * 20 =  60            |  "disappointed" and they retire you from active service.
+    ;     4 * 20 =  80            |  "disappointed" but they allow you the command of another starship.
+    ;     7 * 20 = 140            |  "satisfied"
+    ;    13 * 20 = 260            |  "pleased"
+    ;    20 * 20 = 400            |  "impressed"
+    ;    30 * 20 = 600            |  "delighted"
+    ; ----------------------------+-----------------------------------
+    !byte 2, 3, 4, 7, 13, 20, 30                                      ;
+
+; ----------------------------------------------------------------------------------
+print_command_number
+    ldy #5                                                            ;
+    ldx #28                                                           ;
+    jsr tab_to_x_y                                                    ;
+    lda command_number                                                ;
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ;
+    beq single_digit_command_number1                                  ;
+    clc                                                               ;
+    adc #'0'                                                          ;
+    jsr oswrch                                                        ;
+single_digit_command_number1
+    lda command_number                                                ;
+    and #$0f                                                          ;
+    clc                                                               ;
+    adc #'0'                                                          ;
+    jmp oswrch                                                        ;
+
+; ----------------------------------------------------------------------------------
+plot_score_in_debriefing
+    ldy #5                                                            ; loop counter
+    ldx #0                                                            ; 0 = no digit printed yet
+plot_score_in_debriefing_loop
+    lda score_as_digits,y                                             ; score digit 0-9
+    bne non_zero_digit1                                               ; if (not zero) then branch
+    tya                                                               ;
+    beq non_zero_digit1                                               ; don't skip final digit, even if it is zero
+    txa                                                               ;
+    beq skip_leading_zeros                                            ; only skip leading zeros
+    lda #0                                                            ; print non-leading zero
+non_zero_digit1
+    clc                                                               ;
+    adc #'0'                                                          ;
+    jsr oswrch                                                        ;
+    inx                                                               ; digit printed
+skip_leading_zeros
+    dey                                                               ;
+    bpl plot_score_in_debriefing_loop                                 ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+no_escape_capsule
+    ldx #no_string                                                    ;
+    jsr print_compressed_string                                       ;
+
+    ; Print " escape capsule was launched "
+    ldx #escape_capsule_was_launched_string                           ;
+    jsr print_compressed_string                                       ;
+
+    ; Print "before the starship exploded."
+    ldx #before_the_starship_exploded_string                          ;
+    jsr print_compressed_string                                       ;
+    jmp print_experience                                              ;
+
+calculate_emotion
+    ; add random amount $00-$3f to BCD version of score.
+    ; Implementation seems odd, mixing a regular number with BCD number.
+    lda rnd_2                                                         ; add random &00 - &3f to score
+    and #$3f                                                          ;
+    clc                                                               ;
+    adc previous_score_as_bcd                                         ;
+    sta previous_score_as_bcd                                         ;
+    lda previous_score_as_bcd + 1                                     ;
+    adc #0                                                            ;
+
+    ; divide by 20 (shifts BCD number five times)
+    ldy #5                                                            ;
+division_loop1
+    lsr                                                               ;
+    ror previous_score_as_bcd                                         ;
+    dey                                                               ;
+    bne division_loop1                                                ;
+
+    ; automatic delighted if score > 10000
+    ldy #8                                                            ; emotion index
+    ora previous_score_as_bcd + 2                                     ;
+    bne end_of_calculation                                            ;
+
+    ldy #1                                                            ; emotion index
+    lda previous_score_as_bcd                                         ;
+check_threshold_loop
+    cmp score_threshold_table - 1,y                                   ; otherwise, compare against threshold
+    bcc end_of_calculation                                            ;
+    iny                                                               ; emotion index
+    cpy #8                                                            ;
+    bne check_threshold_loop                                          ;
+
+end_of_calculation
+    sty y_pixels                                                      ; to find authorities' emotion
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+print_quoted_emotion
+    ; print quote, emotion, quote
+    lda #'"'                                                          ;
+    jsr oswrch                                                        ;
+
+    tya                                                               ;
+    clc                                                               ;
+    adc #emotions_1 - 1                                               ;
+    tax                                                               ;
+    jsr print_compressed_string                                       ;
+
+    lda #'"'                                                          ;
+    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 plot_debriefing
@@ -7986,70 +8124,47 @@ plot_debriefing
     jsr tab_to_x_y                                                    ;
     jsr plot_line_of_underscores_raw                                  ;
 
+    ; Print heading
+    ldx #combat_experience_heading_string                             ;
+    jsr print_compressed_string                                       ;
+
+    ; Print command number
+    jsr print_command_number                                          ;
+    jsr plot_line_of_underscores                                      ;
+
+    ldx #3                                                            ;
+    ldy #10                                                           ;
+    jsr tab_to_x_y                                                    ;
+
+    lda escape_capsule_launched                                       ;
+    beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
+
+    ; Print "An"
+    ldx #an_string                                                    ;
+    jsr print_compressed_string                                       ;
+
+    ; Print " escape capsule was launched "
+    ldx #escape_capsule_was_launched_string                           ;
+    jsr print_compressed_string                                       ;
+
+    ; Print one of:
+    ;   "and returned safely from the combat zone."
+    ;   "but collided with an enemy ship."
+    ldx #but_collided_string                                          ;
+    lda escape_capsule_destroyed                                      ;
+    bne +                                                             ; if (capsule destroyed) then branch
+    ldx #and_returned_safely_string                                   ;
++
+    jsr print_compressed_string                                       ;
+
+print_experience
+    ; Print "Your official combat experience rating is now recorded as."
     ldx #combat_experience_rating_string                              ;
     jsr print_compressed_string                                       ;
 
-plot_command_number1
-    ldy #5                                                            ;
-    ldx #$1c                                                          ;
-    jsr tab_to_x_y                                                    ;
-    lda command_number                                                ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    beq single_digit_command_number1                                  ;
-    clc                                                               ;
-    adc #$30                                                          ;
-    jsr oswrch                                                        ;
-single_digit_command_number1
-    lda command_number                                                ;
-    and #$0f                                                          ;
-    clc                                                               ;
-    adc #$30                                                          ;
-    jsr oswrch                                                        ;
-    jsr plot_line_of_underscores                                      ;
-    lda escape_capsule_launched                                       ;
-    bne escape_capsule_was_launched                                   ;
+    jsr plot_score_in_debriefing                                      ;
 
-    ldx #no_before_the_starship_exploded_string                       ;
-    jsr print_compressed_string                                       ;
-    jmp plot_score_in_debriefing                                      ;
-
-escape_capsule_was_launched
-    lda escape_capsule_destroyed                                      ;
-    bne escape_capsule_was_destroyed                                  ;
-
-    ldx #and_returned_safely_text                                     ;
-    jsr print_compressed_string                                       ;
-    jmp plot_score_in_debriefing                                      ;
-
-escape_capsule_was_destroyed
-    ldx #but_collided_string                                          ;
-    jsr print_compressed_string                                       ;
-
-plot_score_in_debriefing
-    ldy #$11                                                          ;
-    ldx #$1e                                                          ;
-    jsr tab_to_x_y                                                    ;
-    ldx #$fe                                                          ;
-    ldy #5                                                            ;
-plot_score_in_debriefing_loop
-    lda score_as_digits,y                                             ; plot score with leading "."s
-    bne non_zero_digit1                                               ;
-    tya                                                               ;
-    beq non_zero_digit1                                               ; except for final digit
-    txa                                                               ;
-    jmp leading_zero1                                                 ;
-
-non_zero_digit1
-    ldx #0                                                            ;
-leading_zero1
-    clc                                                               ;
-    adc #$30                                                          ;
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl plot_score_in_debriefing_loop                                 ;
+    ; add previous command score to total score
     lda score_as_bcd                                                  ;
     sec                                                               ;
     sei                                                               ;
@@ -8064,9 +8179,11 @@ leading_zero1
     sta previous_score_as_bcd + 2                                     ;
     cld                                                               ;
     cli                                                               ;
+
     lda escape_capsule_destroyed                                      ;
-    eor escape_capsule_launched                                       ;
+    eor escape_capsule_launched                                       ; check for 'launched and not destroyed'
     sta allowed_another_command                                       ;
+
     lda command_number                                                ;
     cmp #1                                                            ;
     beq skip_previous_command_score                                   ;
@@ -8074,6 +8191,7 @@ leading_zero1
     ldx #having_just_gained_string                                    ;
     jsr print_compressed_string                                       ;
 
+    ; print previous score
     ldx #1                                                            ;
     lda previous_score_as_bcd + 2                                     ;
     jsr plot_bcd_number_as_two_digits                                 ;
@@ -8083,83 +8201,44 @@ leading_zero1
     jsr plot_bcd_number_as_two_digits                                 ;
     txa                                                               ;
     beq skip_previous_command_score                                   ;
-    lda #$30                                                          ;
+    lda #'0'                                                          ;
     jsr oswrch                                                        ;
+
 skip_previous_command_score
+    lda #'.'                                                          ; End with full stop
+    jsr oswrch                                                        ;
+
     lda allowed_another_command                                       ;
-    bne plot_after_your_performance                                   ;
-    jmp leave_after_plotting_line_of_underscores                      ;
+    beq leave_after_plotting_line_of_underscores                      ;
 
 plot_after_your_performance
+    ; print "After your performance on this command the Star-Fleet authorities are said to be \""
     ldx #after_your_performance_string                                ;
     jsr print_compressed_string                                       ;
 
 judge_player
-    lda rnd_2                                                         ; add random &00 - &3f to score
-    and #$3f                                                          ;
-    clc                                                               ;
-    adc previous_score_as_bcd                                         ;
-    sta previous_score_as_bcd                                         ;
-    lda previous_score_as_bcd + 1                                     ;
-    adc #0                                                            ;
-    ldy #5                                                            ;
-division_loop1
-    lsr                                                               ;
-    ror previous_score_as_bcd                                         ;
-    dey                                                               ;
-    bne division_loop1                                                ;
-    ldy #8                                                            ;
-    ora previous_score_as_bcd + 2                                     ; automatic delighted if score > 10000
-    bne end_of_calculation                                            ;
-    ldy #1                                                            ;
-    lda previous_score_as_bcd                                         ;
-check_threshold_loop
-    cmp threshold_table - 1,y                                         ; otherwise, compare against threshold
-    bcc end_of_calculation                                            ;
-    iny                                                               ;
-    cpy #8                                                            ;
-    bne check_threshold_loop                                          ;
-end_of_calculation
-    sty y_pixels                                                      ; to find authorities' emotion
-
-    ; print quote, emotion, quote
-    lda #'"'                                                          ;
-    jsr oswrch                                                        ;
-
-    tya                                                               ;
-    clc                                                               ;
-    adc #emotions_1 - 1                                               ;
-    tax                                                               ;
-    jsr print_compressed_string                                       ;
-
-    lda #'"'                                                          ;
-    jsr oswrch                                                        ;
+    jsr calculate_emotion                                             ;
+    jsr print_quoted_emotion                                          ;
 
     ; check for retired
-    lda y_pixels                                                      ;
+    lda y_pixels                                                      ; emotion
     cmp #4                                                            ;
-    bcc player_retired                                                ;
+    bcc player_retired                                                ; if (retired) then branch
 
-    ; tab
-    ldy #$1a                                                          ;
-    ldx #3                                                            ;
-    jsr tab_to_x_y                                                    ;
-
+    ; print "and" / "but"
+    ldx #and_string                                                   ;
     lda y_pixels                                                      ;
     cmp #4                                                            ;
     bne do_and
 do_but
     ldx #but_string                                                   ;
-    jsr print_compressed_string                                       ;
-    jmp they_allow
 do_and
-    ldx #and_string                                                   ;
     jsr print_compressed_string                                       ;
 
-they_allow
+    ; print " they allow you the command of another starship"
     ldx #they_allow_string                                            ;
     jsr print_compressed_string                                       ;
-    jmp plot_line_of_underscores                                      ;
+    jmp leave_after_plotting_line_of_underscores                      ;
 
 player_retired
     ldy #0                                                            ;
@@ -8167,8 +8246,10 @@ player_retired
 
     ldx #and_they_retire_you_string                                   ;
     jsr print_compressed_string                                       ;
+
 leave_after_plotting_line_of_underscores
-    jmp plot_line_of_underscores                                      ;
+    lda #29                                                           ;
+    jmp plot_line_of_underscores_at_y                                 ;
 
 ; ----------------------------------------------------------------------------------
 plot_line_of_underscores
@@ -9265,6 +9346,15 @@ enemy_torpedoes_table
 
 ; ----------------------------------------------------------------------------------
 entry_point
+    lda #140                                                          ; *TAPE
+    ldx #0                                                            ;
+    jsr osbyte                                                        ;
+
+    lda #225                                                          ; Function keys are
+    ldx #0                                                            ; not expanded.
+    ldy #0                                                            ;
+    jsr osbyte                                                        ;
+
     lda #0                                                            ;
     tay                                                               ;
     sta $80                                                           ;

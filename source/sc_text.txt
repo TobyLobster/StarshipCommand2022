@@ -1,86 +1,84 @@
 
 ; ----------------------------------------------------------------------------------
-combat_experience_rating_string
+combat_experience_heading_string
     !byte $1f, $0b, 5                                                 ;
     !text "STARSHIP COMMAND"                                          ;
-    !byte $1f,  5, 10                                                 ;
-    !text "An escape capsule was launched"                            ;
-    !byte $1f,  4, 15                                                 ;
-    !text "Your official combat experience"                           ;
-    !byte $1f,  4, 17                                                 ;
-    !text "rating is now recorded as."                                ;
     !byte $1f, 13, 31                                                 ;
     !text "Press <RETURN>"                                            ;
 
 ; ----------------------------------------------------------------------------------
-no_before_the_starship_exploded_string
-    !byte $1f, 5, 10                                                  ;
-    !text "NO"                                                        ;
-    !byte $1f, 5, 11                                                  ;
+an_string
+    !text "An"
+
+; ----------------------------------------------------------------------------------
+no_string
+    !text "No"
+
+; ----------------------------------------------------------------------------------
+escape_capsule_was_launched_string
+    !text " escape capsule was launched "                             ;
+
+; ----------------------------------------------------------------------------------
+before_the_starship_exploded_string
     !text "before the starship exploded."                             ;
 
 ; ----------------------------------------------------------------------------------
-and_returned_safely_text
-    !byte $1f, 5, 11                                                  ;
-    !text "and returned safely from the"                              ;
-    !byte $1f, 5, 12                                                  ;
-    !text "combat zone."                                              ;
+and_returned_safely_string
+    !text "and    returned safely from the combat zone."              ;
 
 ; ----------------------------------------------------------------------------------
 but_collided_string
-    !byte $1f, 5, 12                                                  ;
-    !text "but collided with an enemy ship."                          ;
+    !text "but    collided with an enemy ship."                       ;
+
+; ----------------------------------------------------------------------------------
+combat_experience_rating_string
+    !text 13,10,13,10,13,10, "   Your official combat experience",13,10 ;
+    !text " rating is now recorded as "                                      ;
 
 ; ----------------------------------------------------------------------------------
 having_just_gained_string
-    !byte $1f, 4, 19                                                  ;
-    !text "having  just  gained  "                                    ;
+    !text ", having",13,10," just gained "                            ;
 
 ; ----------------------------------------------------------------------------------
 after_your_performance_string
-    !byte $1f, 3, 22                                                  ;
-    !text "After  your  performance  on  this"                        ;
-    !byte $1f, 3, 23                                                  ;
-    !text "command the Star-Fleet authorities"                        ;
-    !byte $1f, 3, 24                                                  ;
-    !text "are  said  to  be  \""                                     ;
+    !text 13,10,13,10,13,10
+    !text "   After your performance on this ",13,10,
+    !text " command the Star-Fleet authorities",13,10,
+    !text " are said to be \"" ;
 
 ; ----------------------------------------------------------------------------------
 emotions_1
-    !text "furious"                                                   ;  < 40, 1
+    !text "furious"                                                   ;  < 40
 emotions_2
-    !text "displeased"                                                ;  < 60, 2
-emotions_3                                                            ;  < 80, 3, and they retire you from active service
+    !text "displeased"                                                ;  < 60
+emotions_3                                                            ;  < 80, and they retire you from active service
     !text "disappointed"
-emotions_4                                                            ;  <100, 4, but they allow you another command
+emotions_4                                                            ;  <140, but they allow you another command
     !text "disappointed"
 emotions_5
-    !text "satisfied"                                                 ;  <200, 5, and they allow you another command
+    !text "satisfied"                                                 ;  <260, and they allow you another command
 emotions_6
-    !text "pleased"                                                   ;  <280, 6
+    !text "pleased"                                                   ;  <400
 emotions_7
-    !text "impressed"                                                 ;  <400, 7
+    !text "impressed"                                                 ;  <600
 emotions_8
-    !text "delighted"                                                 ; >=400, 8
+    !text "delighted"                                                 ; >=600
 
 ; ----------------------------------------------------------------------------------
 and_string
-    !text "and"
+    !text " and"                                                      ;
 
 ; ----------------------------------------------------------------------------------
 but_string
-    !text "but"
+    !text " but"                                                      ;
 
 ; ----------------------------------------------------------------------------------
 they_allow_string
-    !text " they allow you the command of"                            ;
-    !byte $1f, 3, 27                                                  ;
-    !text "another starship."                                         ;
+    !text " they",13,10," allow you the command of another",13,10," starship."         ;
 
 ; ----------------------------------------------------------------------------------
 and_they_retire_you_string
-    !byte $1f, 0, 26                                                  ;
-    !text "and they retire you from active service."                  ;
+    !text " and they", 13,10," retire you from active service."        ;
 
 ; ----------------------------------------------------------------------------------
 instructions_string1
