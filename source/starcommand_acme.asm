@@ -328,6 +328,11 @@ danger_height                       = $27   ;
 temp_x                              = $28   ;
 temp_y                              = $29   ;
 
+object_x_fraction                   = $2a   ;
+object_x_pixels                     = $2b   ;
+object_y_fraction                   = $2c   ;
+object_y_pixels                     = $2d   ;
+
 screen_address_low                  = $70
 screen_address_high                 = $71
 output_pixels                       = $72   ; } same location
@@ -998,11 +1003,8 @@ multiply_object_position_by_starship_rotation_sine_magnitude
 
     lda starship_rotation_sine_magnitude                              ;
     sta b                                                             ;
-    lda (temp0_low),y                                                 ; position (low)
-    sta a                                                             ;
-    iny                                                               ;
-    lda (temp0_low),y                                                 ; position (high)
-    sta c                                                             ;
+    stx a                                                             ;
+    sty c                                                             ;
     ; fall through to multiply routine...
 
 ; ----------------------------------------------------------------------------------
@@ -1019,10 +1021,8 @@ multiply_object_position_by_starship_rotation_sine_magnitude
 ;
 ; On Exit:
 ;   output_pixels (low) and output_fraction (high)
-;   Y is preserved
 ; ----------------------------------------------------------------------------------
 mul16x8
-    sty temp_y                                                        ; remember Y
     lda a                                                             ;
     ldx b                                                             ;
     jsr mul8x8                                                        ;
@@ -1038,7 +1038,6 @@ mul16x8
     bcc +                                                             ;
     inc output_fraction                                               ;
 +
-    ldy temp_y                                                        ; restore Y
     rts                                                               ;
 
 ; Alternative: multiply without tables (but not as fast as the tables version above):
@@ -1086,21 +1085,23 @@ mul16x8
 ;    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   X = low byte of position (one coordinate)
+;   Y = high byte of position (one coordinate)
 ; On Exit:
 ;   Result in A (low byte) and temp8 (high byte)
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_cosine
-    lda (temp0_low),y                                                 ; position
+    cpy #0                                                            ;
     beq shortcut                                                      ;
 
-    sty temp_y                                                        ; remember y
+    stx temp_x                                                        ; remember x
 
     ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
-    sta position                                                      ;
+    sty position                                                      ;
+    tya                                                               ;
     ldx starship_rotation_cosine                                      ;
     jsr mul8x8                                                        ; high byte only
-
-    ldy temp_y                                                        ; recall y
 
     sec                                                               ;
     sbc position                                                      ;
@@ -1109,74 +1110,66 @@ multiply_object_position_by_starship_rotation_cosine
     sbc #0                                                            ;
     sta temp8                                                         ;
     txa                                                               ;
-    dey                                                               ;
     clc                                                               ;
-    adc (temp0_low),y                                                 ;
+    adc temp_x                                                        ;
     bcc return1                                                       ;
     inc temp8                                                         ;
 return1
     rts                                                               ;
 
 shortcut
+    tya                                                               ;
     sta temp8                                                         ;
     rts                                                               ;
 
-    ; get coordinates of object
-;    lda (temp0_low),y
-;    sta object_x_fraction
-;    iny
-;    lda (temp0_low),y
-;    sta object_x_pixels
-;    sta x_pixels                                                      ;
-;    iny
-;    lda (temp0_low),y
-;    sta object_y_fraction
-;    iny
-;    lda (temp0_low),y
-;    sta object_y_pixels
-;    sta y_pixels                                                      ;
-;
-;    ldx starship_rotation                                             ;
-;    bmi skip_inversion                                                ;
-;
-;    lda object_x_fraction
-;    eor #$ff
-;    sta object_x_fraction
-;    lda object_x_pixels
-;    eor #$ff
-;    sta object_x_pixels
-;
-;skip_inversion
-
 ; ----------------------------------------------------------------------------------
 update_object_position_for_starship_rotation_and_speed
+    ; get coordinates of object
+    ; store them in (object_x_fraction / pixel, object_y_fraction / pixel)
+    lda (temp0_low),y                                                 ;
+    sta object_x_fraction                                             ;
     iny                                                               ;
-    lda (temp0_low),y                                                 ; object_x_pixels
+
+    lda (temp0_low),y                                                 ;
+    sta object_x_pixels                                               ;
     sta x_pixels                                                      ;
+
+    iny                                                               ;
+    lda (temp0_low),y                                                 ;
+    sta object_y_fraction                                             ;
+
+    iny                                                               ;
+    lda (temp0_low),y                                                 ;
+    sta object_y_pixels                                               ;
+    sta y_pixels                                                      ;
+
     ldx starship_rotation                                             ;
     bmi skip_inversion                                                ;
+
+    ; invert X if ship is turning left (i.e. stars turning right)
+    lda object_x_fraction                                             ;
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ; object_x_pixels
-    dey                                                               ;
-    lda (temp0_low),y                                                 ; object_x_fraction
+    sta object_x_fraction                                             ;
+
+    lda object_x_pixels                                               ;
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ; object_x_fraction
-    iny                                                               ;
+    sta object_x_pixels                                               ;
+
 skip_inversion
-    iny                                                               ;
-    iny                                                               ;
-    lda (temp0_low),y                                                 ; object_y_pixels
-    sta y_pixels                                                      ;
     ldx starship_rotation_sine_magnitude                              ;
     bne update_position_for_rotation                                  ;
     jmp add_starship_velocity_to_position                             ;
 
 ; ----------------------------------------------------------------------------------
 update_position_for_rotation
-    dey                                                               ; y position
+    sty temp_y                                                        ; remember Y
+
+    ldx object_y_fraction                                             ;
+    ldy object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    dey                                                               ;
-    dey                                                               ; x position
+
+    ldx object_x_fraction                                             ;
+    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
     clc                                                               ;
     adc output_pixels                                                 ; sine_y_fraction
@@ -1185,67 +1178,75 @@ update_position_for_rotation
     adc output_fraction                                               ; sine_y_pixels
     sta temp10                                                        ; cosine_x_plus_sine_y_pixels
 
+    ldx object_x_fraction                                             ;
+    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    iny                                                               ;
-    iny                                                               ; y position
+    ldx object_y_fraction                                             ;
+    ldy object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
     sec                                                               ;
     sbc output_pixels                                                 ; sine_x_fraction
-    sta (temp0_low),y                                                 ; object_y_fraction
-    iny                                                               ;
+    sta object_y_fraction                                             ;
     lda temp8                                                         ; cosine_y_pixels
     sbc output_fraction                                               ; sine_x_pixels
-    sta (temp0_low),y                                                 ; object_y_pixels
-    dey                                                               ;
-    dey                                                               ;
-    dey                                                               ;
+    sta object_y_pixels                                               ;
 
-    ; do correction
+    ; do correction for X
     ldx starship_rotation_magnitude                                   ;
     lda temp9                                                         ; cosine_x_plus_sine_y_fraction
     sec                                                               ;
     sbc rotated_x_correction_lsb,x                                    ;
-    sta (temp0_low),y                                                 ; object_x_fraction
-    iny                                                               ;
+    sta object_x_fraction                                             ;
 
     lda temp10                                                        ; cosine_x_plus_sine_y_pixels
     sbc rotated_x_correction_screens,x                                ;
-    sta (temp0_low),y                                                 ; object_x_pixels
+    sta object_x_pixels                                               ;
 
     ; fix sign
     lda starship_rotation                                             ;
     bmi skip_uninversion                                              ;
-    dey                                                               ;
-    lda (temp0_low),y                                                 ; object_x_fraction
+    lda object_x_fraction                                             ;
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ; object_x_fraction
-    iny                                                               ;
-    lda (temp0_low),y                                                 ; object_x_pixels
+    sta object_x_fraction                                             ;
+    lda object_x_pixels                                               ;
     eor #$ff                                                          ;
-    sta (temp0_low),y                                                 ; object_x_pixels
+    sta object_x_pixels                                               ;
+
 skip_uninversion
-    iny                                                               ;
-    lda (temp0_low),y                                                 ; object_y_fraction
+    ; do correction for Y
+    lda object_y_fraction                                             ;
     clc                                                               ;
     adc rotated_y_correction_lsb,x                                    ;
-    sta (temp0_low),y                                                 ; object_y_fraction
-    iny                                                               ;
-    lda (temp0_low),y                                                 ; object_y_pixels
+    sta object_y_fraction                                             ;
+
+    lda object_y_pixels                                               ;
     adc rotated_y_correction_screens,x                                ;
-    sta (temp0_low),y                                                 ; object_y_pixels
+    sta object_y_pixels                                               ;
+
+    ldy temp_y                                                        ; recall Y
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
 add_starship_velocity_to_position
-    dey                                                               ;
-    lda (temp0_low),y                                                 ; object_y_fraction
+    dey
+    lda object_y_fraction                                             ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
     sta (temp0_low),y                                                 ; object_y_fraction
     iny                                                               ;
-    lda (temp0_low),y                                                 ; object_y_pixels
+
+    lda object_y_pixels                                               ;
     adc starship_velocity_high                                        ;
     sta (temp0_low),y                                                 ; object_y_pixels
+    dey                                                               ;
+    dey                                                               ;
+
+    lda object_x_pixels                                               ;
+    sta (temp0_low),y                                                 ; object_x_pixels
+    dey                                                               ;
+
+    lda object_x_fraction                                             ;
+    sta (temp0_low),y                                                 ; object_x_fraction
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
