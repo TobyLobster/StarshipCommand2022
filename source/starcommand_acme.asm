@@ -333,6 +333,10 @@ object_x_pixels                     = $2b   ;
 object_y_fraction                   = $2c   ;
 object_y_pixels                     = $2d   ;
 
+rnd_1                               = $2e   ;
+rnd_2                               = $2f   ;
+
+
 screen_address_low                  = $70
 screen_address_high                 = $71
 output_pixels                       = $72   ; } same location
@@ -449,10 +453,21 @@ partial_velocity_for_damaged_enemy_ships                            = 6
 desired_velocity_for_intact_enemy_ships                             = $18
 minimum_number_of_stars                                             = 1
 
+starship_torpedo_cooldown_after_firing                              = 1
+starship_energy_drain_from_non_zero_rotation                        = 4
+starship_torpedoes_per_round                                        = 4
+strength_of_player_rotation                                         = $f0
+strength_of_rotation_dampers                                        = $40
+minimum_energy_value_to_avoid_starship_destruction                  = 4
+starship_energy_drain_from_acceleration                             = 4
+starship_acceleration_from_player                                   = $40
+starship_acceleration_from_velocity_damper                          = $20
+starship_torpedo_cooldown_after_round                               = 2
+starship_energy_drain_from_firing_torpedo                           = 4
+
 
 ; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
-; Each frame is 312 pixel rows.
-; Interrupt every sixteen pixel rows.
+; Each frame is 312 pixel rows. Interrupt every sixteen pixel rows.
 ShortTimerValue  = 16*64 - 2
 
 ; ----------------------------------------------------------------------------------
@@ -795,8 +810,6 @@ starship_shields_active
 
 starship_torpedo_cooldown
     !byte 0                                                           ;
-starship_torpedo_cooldown_after_firing
-    !byte 1                                                           ;
 fire_pressed
     !byte 0                                                           ;
 starship_energy_low
@@ -809,8 +822,6 @@ damage_low
     !byte 0                                                           ;
 starship_destroyed
     !byte 0                                                           ;
-minimum_energy_value_to_avoid_starship_destruction
-    !byte 4                                                           ;
 starship_energy_divided_by_sixteen
     !byte 0                                                           ;
 starship_energy_regeneration
@@ -825,22 +836,10 @@ rotation_delta
     !byte 0                                                           ;
 starship_rotation_fraction
     !byte 0                                                           ;
-strength_of_player_rotation
-    !byte $f0                                                         ;
-strength_of_rotation_dampers
-    !byte $40                                                         ;
-starship_energy_drain_from_acceleration
-    !byte 4                                                           ;
 rotation_damper
     !byte 0                                                           ;
-starship_energy_drain_from_non_zero_rotation
-    !byte 4                                                           ;
 velocity_delta
     !byte 0                                                           ;
-starship_acceleration_from_player
-    !byte $40                                                         ;
-starship_acceleration_from_velocity_damper
-    !byte $20                                                         ;
 velocity_damper
     !byte 0                                                           ;
 enemy_ship_x_plus_half_sine
@@ -851,12 +850,6 @@ enemy_ship_type
     !byte 0                                                           ;
 starship_torpedo_counter
     !byte 0                                                           ;
-starship_torpedoes_per_round
-    !byte 4                                                           ;
-starship_torpedo_cooldown_after_round
-    !byte 2                                                           ;
-starship_energy_drain_from_firing_torpedo
-    !byte 4                                                           ;
 previous_starship_automatic_shields
     !byte 0                                                           ;
 
@@ -1118,7 +1111,7 @@ return1
     rts                                                               ;
 
 shortcut
-    tya                                                               ;
+    tya                                                               ; zero
     sta temp8                                                         ;
     rts                                                               ;
 
@@ -2544,7 +2537,6 @@ skip11
     jsr explode_enemy_ship                                            ;
     pla                                                               ;
     sta enemy_ships_still_to_consider                                 ;
-    inc enemy_ship_was_hit_by_collision_with_other_enemy_ship         ;
 enemy_ship_isnt_destroyed_by_collision
     lda enemy_ships_type,x                                            ;
     cmp #4                                                            ;
@@ -2682,7 +2674,7 @@ handle_player_movement
 
 ; ----------------------------------------------------------------------------------
 reset_starship_torpedo_round
-    lda starship_torpedoes_per_round                                  ;
+    lda #starship_torpedoes_per_round                                 ;
     sta starship_torpedo_counter                                      ;
 skip_reset_starship_torpedo_round
     jsr check_for_keypresses                                          ;
@@ -2695,13 +2687,13 @@ starship_isnt_destroyed
     bne player_is_accelerating                                        ;
     lda velocity_damper                                               ;
     beq finished_accelerating                                         ;
-    lda starship_acceleration_from_velocity_damper                    ;
+    lda #starship_acceleration_from_velocity_damper                   ;
     jmp set_deceleration                                              ;
 
 ; ----------------------------------------------------------------------------------
 player_is_accelerating
     bmi starship_is_decelerating                                      ;
-    lda starship_acceleration_from_player                             ;
+    lda #starship_acceleration_from_player                            ;
     sta temp8                                                         ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
@@ -2718,7 +2710,7 @@ skip12
     sta starship_velocity_low                                         ;
     beq finished_accelerating                                         ;
 starship_is_decelerating
-    lda starship_acceleration_from_player                             ;
+    lda #starship_acceleration_from_player                            ;
 set_deceleration
     sta temp8                                                         ;
     lda starship_velocity_low                                         ;
@@ -2733,7 +2725,7 @@ set_deceleration
     sta starship_velocity_high                                        ;
     beq finished_accelerating                                         ;
 incur_damage_from_acceleration
-    lda starship_energy_drain_from_acceleration                       ;
+    lda #starship_energy_drain_from_acceleration                      ;
     jsr incur_low_damage                                              ;
 finished_accelerating
     lda starship_rotation_fraction                                    ;
@@ -2746,20 +2738,20 @@ finished_accelerating
     dex                                                               ;
     bpl finished_rotating                                             ;
     sec                                                               ;
-    sbc strength_of_rotation_dampers                                  ;
+    sbc #strength_of_rotation_dampers                                 ;
     jmp store_rotation                                                ;
 
 ; ----------------------------------------------------------------------------------
 starship_was_turned_clockwise
     clc                                                               ;
-    adc strength_of_rotation_dampers                                  ;
+    adc #strength_of_rotation_dampers                                 ;
     jmp set_starship_rotation_fraction_and_consider_rotating          ;
 
 ; ----------------------------------------------------------------------------------
 player_is_turning
     bpl player_is_turning_clockwise                                   ;
     sec                                                               ;
-    sbc strength_of_player_rotation                                   ;
+    sbc #strength_of_player_rotation                                  ;
 store_rotation
     sta starship_rotation_fraction                                    ;
     bcs incur_energy_drain_from_rotation                              ;
@@ -2770,7 +2762,7 @@ store_rotation
     beq set_starship_rotation_fraction                                ;
 player_is_turning_clockwise
     clc                                                               ;
-    adc strength_of_player_rotation                                   ;
+    adc #strength_of_player_rotation                                  ;
 set_starship_rotation_fraction_and_consider_rotating
     sta starship_rotation_fraction                                    ;
     bcc incur_energy_drain_from_rotation                              ;
@@ -2802,7 +2794,7 @@ skip_inversion3
     lda starship_rotation_cosine_table,y                              ;
     sta starship_rotation_cosine                                      ;
 incur_energy_drain_from_rotation
-    lda starship_energy_drain_from_non_zero_rotation                  ;
+    lda #starship_energy_drain_from_non_zero_rotation                 ;
     jsr incur_low_damage                                              ;
 finished_rotating
     lda fire_pressed                                                  ;
@@ -2811,19 +2803,19 @@ finished_rotating
     bne player_isnt_firing                                            ;
     dec starship_torpedo_counter                                      ;
     bne not_end_of_round                                              ;
-    lda starship_torpedoes_per_round                                  ;
+    lda #starship_torpedoes_per_round                                 ;
     sta starship_torpedo_counter                                      ;
-    lda starship_torpedo_cooldown_after_round                         ;
+    lda #starship_torpedo_cooldown_after_round                        ;
     jmp set_starship_torpedo_cooldown                                 ;
 
 not_end_of_round
-    lda starship_torpedo_cooldown_after_firing                        ;
+    lda #starship_torpedo_cooldown_after_firing                       ;
 set_starship_torpedo_cooldown
     sta starship_torpedo_cooldown                                     ;
     jsr fire_starship_torpedo                                         ;
     lda starship_fired_torpedo                                        ;
     beq player_isnt_firing                                            ;
-    lda starship_energy_drain_from_firing_torpedo                     ;
+    lda #starship_energy_drain_from_firing_torpedo                    ;
     jsr incur_low_damage                                              ;
 player_isnt_firing
     jsr plot_auto_shields_string                                      ;
@@ -2931,7 +2923,7 @@ reset_damage_counter
     ror                                                               ;
     lsr temp3                                                         ;
     ror                                                               ;
-    cmp minimum_energy_value_to_avoid_starship_destruction            ;
+    cmp #minimum_energy_value_to_avoid_starship_destruction           ;
     bcs skip_destruction                                              ;
     inc starship_destroyed                                            ;
 skip_destruction
@@ -3740,10 +3732,6 @@ starship_explosion_countdown
     !byte 0                                                           ;
 create_new_enemy_explosion_piece_after_one_dies
     !byte 0                                                           ;
-rnd_1
-    !byte $ca                                                         ;
-rnd_2
-    !byte $48                                                         ;
 keyboard_or_joystick
     !byte 0                                                           ;
 sound_enabled
@@ -4474,7 +4462,7 @@ plot_enemy_explosion_segments
 ; weird random number generator
 ; ----------------------------------------------------------------------------------
 random_number_generator
-    stx temp_x
+    stx temp_x                                                        ;
 
     lda rnd_1                                                         ;
     sta y_pixels                                                      ;
@@ -4497,26 +4485,27 @@ random_number_generator
     sta rnd_2                                                         ;
     lda temp8                                                         ;
     sta rnd_1                                                         ;
-    ldx temp_x
+
+    ldx temp_x                                                        ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 game_key_table
-    !byte $9e                                                         ;
-    !byte $bd                                                         ;
-    !byte $9a                                                         ;
-    !byte $99                                                         ;
-    !byte $aa                                                         ;
-    !byte $ac                                                         ;
-    !byte $bc                                                         ;
-    !byte $df                                                         ;
-    !byte $8e                                                         ;
-    !byte $ce                                                         ;
-    !byte $ee                                                         ;
-    !byte $9c                                                         ;
-    !byte $9b                                                         ;
-    !byte $ad                                                         ;
-    !byte $96                                                         ;
+    !byte $9e                                                         ; 'Z'
+    !byte $bd                                                         ; 'X'
+    !byte $9a                                                         ; 'M'
+    !byte $99                                                         ; ','
+    !byte $aa                                                         ; 'N'
+    !byte $ac                                                         ; 'G'
+    !byte $bc                                                         ; 'F'
+    !byte $df                                                         ; 'f0'
+    !byte $8e                                                         ; 'f1'
+    !byte $ce                                                         ; '2'
+    !byte $ee                                                         ; '3'
+    !byte $9c                                                         ; 'V'
+    !byte $9b                                                         ; 'B'
+    !byte $ad                                                         ; 'C'
+    !byte $96                                                         ; 'Copy'
 
 ; ----------------------------------------------------------------------------------
 ; Start of new command
@@ -5000,8 +4989,6 @@ sound_needed_for_low_energy
     !byte 0                                                           ;
 energy_flash_timer
     !byte 0                                                           ;
-enemy_ship_was_hit_by_collision_with_other_enemy_ship
-    !byte 4                                                           ;
 starship_collided_with_enemy_ship
     !byte 0                                                           ;
 
@@ -5012,7 +4999,7 @@ flash_energy_when_low
     lda starship_energy_divided_by_sixteen                            ;
     cmp #$32                                                          ;
     bcs consider_warning_sound                                        ;
-    lda #4                                                            ;
+    lda #5                                                            ;
     sta energy_flash_timer                                            ;
     jsr invert_energy_text                                            ;
     jmp consider_warning_sound                                        ;
@@ -5294,7 +5281,6 @@ skip_floor
     sta enemy_ships_energy,x                                          ;
     bne first_ship_survives_collision                                 ;
     jsr explode_enemy_ship                                            ;
-    inc enemy_ship_was_hit_by_collision_with_other_enemy_ship         ;
 first_ship_survives_collision
     lda enemy_ships_type,x                                            ;
     cmp #4                                                            ;
@@ -9430,6 +9416,9 @@ done
     jsr initialise_envelopes                                          ;
     jsr create_square_tables                                          ;
     jsr create_other_tables                                           ;
+
+    lda #$ca                                                          ;
+    sta rnd_1                                                         ; seed random numbers
 
     ; set up timer
     lda #0                                                            ;
