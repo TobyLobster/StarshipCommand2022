@@ -6958,18 +6958,16 @@ handle_failed_scanner
     ldx #8                                                            ;
 update_static_row_loop
     ldy #$3f                                                          ;
+    lda y_pixels                                                      ;
 update_static_column_loop
-    lda (temp0_low),y                                                 ;
-    eor y_pixels                                                      ;
+    eor (temp0_low),y                                                 ;
     sta (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
     dey                                                               ;
-    lda (temp0_low),y                                                 ;
-    eor y_pixels                                                      ;
+    eor (temp0_low),y                                                 ;
     sta (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
     dey                                                               ;
     bpl update_static_column_loop                                     ;
+    sta y_pixels                                                      ;
     lda temp0_low                                                     ;
     clc                                                               ;
     adc #$40                                                          ;
