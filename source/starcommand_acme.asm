@@ -7,8 +7,8 @@
 ; Based on the excellent Level 7 disassembly:
 ; http://www.level7.org.uk/miscellany/starship-command-disassembly.txt
 ;
-; The Level 7 disassembly contains the following notes which are very useful in
-; understanding the code:
+; The Level 7 disassembly contains the following notes which I reproduce here
+; with minor corrections, which are very useful in understanding the code:
 ;
 ; "
 ; Technical notes
@@ -275,7 +275,7 @@ a                                   = $00
 b                                   = $01
 c                                   = $02
 z                                   = $03
-addition                            = $04
+position                            = $04
 temp_m2                             = $05
 prod_low                            = $06
 t                                   = $07
@@ -322,7 +322,8 @@ enemy_stride                        = $25   ; offset in bytes to get from one en
 
 irq_counter                         = $26   ;
 danger_height                       = $27   ;
-temp_y                              = $28   ;
+temp_x                              = $28   ;
+temp_y                              = $29   ;
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -358,6 +359,7 @@ temp7                               = $88
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
+; enemy data $0400-$0457
 enemy_ships_previous_on_screen          = $0400
 enemy_ships_previous_x_fraction         = $0401
 enemy_ships_previous_x_pixels           = $0402
@@ -370,6 +372,7 @@ enemy_ships_velocity                    = $0408
 enemy_ships_flags_or_explosion_timer    = $0409
 enemy_ships_type                        = $040a
 
+; enemy data $0480-$04d8
 enemy_ships_on_screen                   = $0480
 enemy_ships_x_fraction                  = $0481
 enemy_ships_x_pixels                    = $0482
@@ -1081,25 +1084,25 @@ mul16x8
 
 ; ----------------------------------------------------------------------------------
 ; On Exit:
-;   Result in A (high byte) and temp8 (low byte)
+;   Result in A (low byte) and temp8 (high byte)
 ; ----------------------------------------------------------------------------------
 multiply_torpedo_position_by_starship_rotation_cosine
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; position
     beq shortcut                                                      ;
 
     sty temp_y                                                        ; remember y
 
     ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
-    sta addition                                                      ;
+    sta position                                                      ;
     ldx starship_rotation_cosine                                      ;
     jsr mul8x8                                                        ; high byte only
 
     ldy temp_y                                                        ; recall y
 
     sec                                                               ;
-    sbc addition                                                      ;
+    sbc position                                                      ;
     tax                                                               ;
-    lda addition                                                      ;
+    lda position                                                      ;
     sbc #0                                                            ;
     sta temp8                                                         ;
     txa                                                               ;
@@ -1292,8 +1295,7 @@ mul16x8a
     bcc +                                                             ;
     inc temp8                                                         ;
 +
-temp_x = * + 1
-    ldx #$ff                                                          ; restore x
+    ldx temp_x                                                        ; restore x
 
     ; update enemy position
     clc                                                               ;
@@ -2539,23 +2541,22 @@ plot_segment
     ; check if we are close to the side of the screen.
     ; If not we can forego the boundary checks and run faster.
     lda temp10                                                        ;
-    cmp #32                                                           ;
-    bcc plot_segment_loop                                             ;
-    cmp #256 - 32                                                     ;
-    bcs plot_segment_loop                                             ;
+    cmp #16                                                           ;
+    bcc plot_segment_with_boundary_checks                             ;
+    cmp #256 - 16                                                     ;
+    bcs plot_segment_with_boundary_checks                             ;
     lda temp9                                                         ;
-    cmp #32                                                           ;
-    bcc plot_segment_loop                                             ;
-    cmp #256 - 32                                                     ;
-    bcs plot_segment_loop                                             ;
+    cmp #16                                                           ;
+    bcc plot_segment_with_boundary_checks                             ;
+    cmp #256 - 16                                                     ;
+    bcs plot_segment_with_boundary_checks                             ;
 
     lda segment_angle_change_per_pixel                                ;
     cmp #1                                                            ;
     beq plot_segment_unrolled                                         ;
 
-plot_segment_fast_loop
+plot_segment_regular_loop
     ldx x_pixels                                                      ;
-    ldy y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
 
     ldy segment_angle                                                 ;
@@ -2576,18 +2577,21 @@ plot_segment_fast_loop
     sta segment_angle                                                 ;
 
     dec segment_length                                                ;
-    bne plot_segment_fast_loop                                        ;
+    bne plot_segment_regular_loop                                     ;
     rts                                                               ;
 
-plot_segment_loop
+; ----------------------------------------------------------------------------------
+plot_segment_with_boundary_checks
     ldx x_pixels                                                      ;
+
+plot_segment_loop
     jsr eor_pixel_with_boundary_check                                 ;
 
     ldy segment_angle                                                 ;
-    lda segment_angle_to_x_deltas_table,y                             ;
+    txa                                                               ;
     clc                                                               ;
-    adc x_pixels                                                      ; update x
-    sta x_pixels                                                      ;
+    adc segment_angle_to_x_deltas_table,y                             ; update x
+    tax                                                               ;
 
     lda segment_angle_to_y_deltas_table,y                             ;
     clc                                                               ;
@@ -2608,7 +2612,7 @@ plot_segment_loop
 plot_segment_unrolled
     ldx segment_angle                                                 ; based on start angle,
     lda plot_table_offset,x                                           ; look up in a table
-    sta jump_address                                                  ; the address we jump to
+    sta jump_address                                                  ; the address we jump to (low byte)
     txa                                                               ;
     clc                                                               ;
     adc segment_length                                                ; add the segment length
@@ -4400,7 +4404,7 @@ plot_enemy_explosion_segments
     sta x_pixels                                                      ;
     lda temp9                                                         ;
     sta y_pixels                                                      ;
-    lda #$0a                                                          ;
+    lda #10                                                           ;
     sta segment_length                                                ;
     lda #1                                                            ;
     sta segment_angle_change_per_pixel                                ;
@@ -4412,7 +4416,7 @@ plot_enemy_explosion_segments
     sta segment_angle                                                 ;
     lda #7                                                            ;
     sta segment_length                                                ;
-    inc segment_angle_change_per_pixel                                ;
+    inc segment_angle_change_per_pixel                                ; two
     jsr plot_segment                                                  ;
     ldx temp7                                                         ;
     lda temp10                                                        ;
@@ -8991,9 +8995,11 @@ return31
 ; ----------------------------------------------------------------------------------
 irq_routine
     lda userVIAInterruptFlagRegister                        ; get interrupt flag register
-    and #$c0                                                ;
-    cmp #$c0                                                ;
-    bne check_vsync                                         ; if not our interrupt, branch
+    bpl check_vsync                                         ; if (not a user via interrupt) then branch
+
+    ; At the entry point for the program we disabled every interrupt on the user via
+    ; except for timer 1, so we know this must be a timer 1 interrupt. We clear it here.
+    lda #$40                                                ;
     sta userVIAInterruptFlagRegister                        ; clear interrupt
 
     ; increment timing counter
@@ -9014,8 +9020,8 @@ irq_routine
 check_vsync
     lda systemVIAInterruptFlagRegister                      ; get interrupt flag register
     and #$82                                                ;
-    cmp #$82                                                ;
-    bne call_old_irq                                        ; unknown interrupt
+    cmp #$82                                                ; check for vsync
+    bne call_old_irq                                        ; if (not vsync) then branch
 
     ; Set timer to fire every 'short time' (set latch)
     lda #<ShortTimerValue                                   ;
@@ -9396,10 +9402,12 @@ done
 
     sei                                                               ;
 
-    ; enable timer 1 in free run mode
+    ; enable timer 1 in free run mode (on the User VIA)
+    lda #0                                                            ; Disable all interrupts on the User VIA
+    sta userVIAInterruptEnableRegister                                ;
     lda #$c0                                                          ; Enable timer 1
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
-    lda #$c0                                                          ; Enable free run mode
+    lda #$40                                                          ; Enable free run mode for timer 1
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
 
     ; set up our own IRQ routine to increment a timer
