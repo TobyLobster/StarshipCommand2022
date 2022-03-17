@@ -123,16 +123,19 @@
 ; A random, undisclosed factor of between 0 and 39 points is added to the score
 ; at the end of a command, for comparison against the following table:
 ;
-;     < 40    furious, and they retire you from active service
-;     < 60    displeased, and they retire you from active service
-;     < 80    disappointed, and they retire you from active service
-;     < 100   disappointed, but they allow you the command of another starship
-;     < 200   satisfied, and they allow you the command of another starship
-;     < 280   pleased, and they allow you the command of another starship
-;     < 400   impressed, and they allow you the command of another starship
-;       400+  delighted, and they allow you the command of another starship
+;  score range  |  result
+; --------------+------------------------------------------------------------------
+;     0 -  39   |  furious,      and they retire you from active service
+;    40 -  59   |  displeased,   and they retire you from active service
+;    60 -  79   |  disappointed, and they retire you from active service
+;    80 - 139   |  disappointed, but they allow you the command of another starship
+;   140 - 259   |  satisfied,    and they allow you the command of another starship
+;   260 - 399   |  pleased,      and they allow you the command of another starship
+;   400 - 599   |  impressed,    and they allow you the command of another starship
+;      600+     |  delighted,    and they allow you the command of another starship
+; --------------+------------------------------------------------------------------
 ;
-; The player must thus score at least 100 points to guarantee another command.
+; The player must thus score at least 80 points to guarantee another command.
 ;
 ; Notes
 ; =====
@@ -179,7 +182,7 @@
 ;
 ; Enemy torpedoes are stored in array 'enemy_torpedoes_table', 6 bytes per torpedo:
 ;
-;        +0 ttl
+;        +0 ttl                 (time to live, in frames)
 ;        +1 x_fraction
 ;        +2 x_pixels
 ;        +3 y_fraction
@@ -188,7 +191,7 @@
 ;
 ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
 ;
-;        +0 ttl
+;        +0 ttl                 (time to live, in frames)
 ;        +1 x_fraction for head of torpedo
 ;        +2 x_pixels
 ;        +3 y_fraction
@@ -399,8 +402,8 @@ energy_screen_address                   = $6e48
 ; ----------------------------------------------------------------------------------
 ; game constants
 ; ----------------------------------------------------------------------------------
-; Number of 50Hz frames between game updates = game_speed/39 = 60/39 ~= 1.53
-game_speed                              = 65
+; Number of 50Hz frames between game updates = 2*game_speed/39 = 60/39 ~= 1.53
+game_speed                              = 30
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
@@ -444,8 +447,8 @@ minimum_number_of_stars                                             = 1
 
 ; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
 ; Each frame is 312 pixel rows.
-; Interrupt every eight pixel rows.
-ShortTimerValue  = 8*64 - 2
+; Interrupt every sixteen pixel rows.
+ShortTimerValue  = 16*64 - 2
 
 ; ----------------------------------------------------------------------------------
 ; code and data
@@ -991,7 +994,7 @@ mul8x8
 
 ; ----------------------------------------------------------------------------------
 ; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
-multiply_torpedo_position_by_starship_rotation_sine_magnitude
+multiply_object_position_by_starship_rotation_sine_magnitude
 
     lda starship_rotation_sine_magnitude                              ;
     sta b                                                             ;
@@ -1086,7 +1089,7 @@ mul16x8
 ; On Exit:
 ;   Result in A (low byte) and temp8 (high byte)
 ; ----------------------------------------------------------------------------------
-multiply_torpedo_position_by_starship_rotation_cosine
+multiply_object_position_by_starship_rotation_cosine
     lda (temp0_low),y                                                 ; position
     beq shortcut                                                      ;
 
@@ -1118,6 +1121,33 @@ shortcut
     sta temp8                                                         ;
     rts                                                               ;
 
+    ; get coordinates of object
+;    lda (temp0_low),y
+;    sta object_x_fraction
+;    iny
+;    lda (temp0_low),y
+;    sta object_x_pixels
+;    sta x_pixels                                                      ;
+;    iny
+;    lda (temp0_low),y
+;    sta object_y_fraction
+;    iny
+;    lda (temp0_low),y
+;    sta object_y_pixels
+;    sta y_pixels                                                      ;
+;
+;    ldx starship_rotation                                             ;
+;    bmi skip_inversion                                                ;
+;
+;    lda object_x_fraction
+;    eor #$ff
+;    sta object_x_fraction
+;    lda object_x_pixels
+;    eor #$ff
+;    sta object_x_pixels
+;
+;skip_inversion
+
 ; ----------------------------------------------------------------------------------
 update_object_position_for_starship_rotation_and_speed
     iny                                                               ;
@@ -1144,10 +1174,10 @@ skip_inversion
 ; ----------------------------------------------------------------------------------
 update_position_for_rotation
     dey                                                               ; y position
-    jsr multiply_torpedo_position_by_starship_rotation_sine_magnitude ;
+    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     dey                                                               ;
     dey                                                               ; x position
-    jsr multiply_torpedo_position_by_starship_rotation_cosine         ;
+    jsr multiply_object_position_by_starship_rotation_cosine          ;
     clc                                                               ;
     adc output_pixels                                                 ; sine_y_fraction
     sta temp9                                                         ; cosine_x_plus_sine_y_fraction
@@ -1155,10 +1185,10 @@ update_position_for_rotation
     adc output_fraction                                               ; sine_y_pixels
     sta temp10                                                        ; cosine_x_plus_sine_y_pixels
 
-    jsr multiply_torpedo_position_by_starship_rotation_sine_magnitude ;
+    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     iny                                                               ;
     iny                                                               ; y position
-    jsr multiply_torpedo_position_by_starship_rotation_cosine         ;
+    jsr multiply_object_position_by_starship_rotation_cosine          ;
     sec                                                               ;
     sbc output_pixels                                                 ; sine_x_fraction
     sta (temp0_low),y                                                 ; object_y_fraction
@@ -1481,12 +1511,14 @@ torpedo_still_alive
     jsr update_object_position_for_starship_rotation_and_speed        ;
     ldy #5                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
+
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     sec                                                               ;
     sbc (temp1_low),y                                                 ;
     sta output_pixels                                                 ;
-    iny                                                               ;
+
+    iny                                                               ; two
     lda (temp0_low),y                                                 ;
     sbc (temp1_low),y                                                 ;
     asl output_pixels                                                 ;
@@ -1494,12 +1526,13 @@ torpedo_still_alive
     asl output_pixels                                                 ;
     rol                                                               ;
     sta output_fraction                                               ;
-    iny                                                               ;
+
+    iny                                                               ; three
     lda (temp0_low),y                                                 ;
     sec                                                               ;
     sbc (temp1_low),y                                                 ;
     sta temp9                                                         ;
-    iny                                                               ;
+    iny                                                               ; four
     lda (temp0_low),y                                                 ;
     sbc (temp1_low),y                                                 ;
     asl temp9                                                         ;
@@ -1507,42 +1540,45 @@ torpedo_still_alive
     asl temp9                                                         ;
     rol                                                               ;
     sta temp10                                                        ;
+
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc output_pixels                                                 ;
     sta (temp0_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; two
     lda (temp0_low),y                                                 ;
     adc output_fraction                                               ;
     sta (temp0_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; three
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc temp9                                                         ;
     sta (temp0_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; four
     lda (temp0_low),y                                                 ;
     adc temp10                                                        ;
     sta (temp0_low),y                                                 ;
+
     ldy #1                                                            ;
     lda (temp1_low),y                                                 ;
     clc                                                               ;
     adc output_pixels                                                 ;
     sta (temp1_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; two
     lda (temp1_low),y                                                 ;
     adc output_fraction                                               ;
     sta (temp1_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; three
     lda (temp1_low),y                                                 ;
     clc                                                               ;
     adc temp9                                                         ;
     sta (temp1_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; four
     lda (temp1_low),y                                                 ;
     adc temp10                                                        ;
     sta (temp1_low),y                                                 ;
+
     jsr check_for_collision_with_enemy_ships                          ;
     bcs update_next_torpedo                                           ;
     ldy #0                                                            ;
@@ -9005,14 +9041,15 @@ irq_routine
     ; increment timing counter
     inc timing_counter                                      ;
 
-    ; increment irq_counter
-    inc irq_counter                                         ;
+    ; increment irq_counter by two
     lda irq_counter                                         ;
+    clc                                                     ;
+    adc #2                                                  ;
     cmp #39                                                 ;
     bcc +                                                   ;
     lda #0                                                  ;
-    sta irq_counter                                         ;
 +
+    sta irq_counter                                         ;
     lda irq_accumulator                                     ;
     rti                                                     ;
 
