@@ -82,27 +82,27 @@ and_they_retire_you_string
 
 ; ----------------------------------------------------------------------------------
 award_string
-    !text "In recognition of your accomplishments on the field of battle, you have been posthumously awarded "
+    !text 13,10,13,10,"   In recognition of your fearless",13,10,"accomplishments on the field of battle, you have been posthumously awarded ",13,10
 
-; 1. a citation for distinguished service
-; 2. a citation for gallantry
-; 3. the Badge of Excellence
-; 4. the Badge of Honour
-; 5. the Badge of Valour
-; 6. the Medal of Excellence
-; 7. the Medal of Honour
-; 8. the Medal of Valour
-; 9. the Cross of Meritorious Honour
-; 10. the Cross of Conspicuous Gallantry
-; 11. the Cross of Outstanding Heroism
+; 0. a citation for distinguished service
+; 1. a citation for gallantry
+; 2. the Badge of Excellence
+; 3. the Badge of Honour
+; 4. the Badge of Valour
+; 5. the Medal of Excellence
+; 6. the Medal of Honour
+; 7. the Medal of Valour
+; 8. the Cross of Meritorious Honour
+; 9. the Cross of Conspicuous Gallantry
+; 10. the Cross of Outstanding Heroism
 
-award_type_1
+award_type_citation
     !text "a citation for "
-award_type_2
+award_type_badge
     !text "the Badge of "
-award_type_3
+award_type_medal
     !text "the Medal of "
-award_type_4
+award_type_cross
     !text "the Cross of "
 
 award_level_1

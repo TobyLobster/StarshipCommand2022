@@ -8163,7 +8163,7 @@ print_experience
 
     jsr plot_score_in_debriefing                                      ;
 
-    ; add previous command score to total score
+    ; subtract the previous total score from the current total score, to get the amount gained in the last command
     lda score_as_bcd                                                  ;
     sec                                                               ;
     sei                                                               ;
@@ -8208,7 +8208,7 @@ skip_previous_command_score
     jsr oswrch                                                        ;
 
     lda allowed_another_command                                       ;
-    beq leave_after_plotting_line_of_underscores                      ;
+    beq show_any_posthumous_award                                     ;
 
 plot_after_your_performance
     ; print "After your performance on this command the Star-Fleet authorities are said to be \""
@@ -8263,6 +8263,86 @@ plot_line_of_underscores_loop
     jsr oswrch                                                        ;
     dey                                                               ;
     bne plot_line_of_underscores_loop                                 ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+award_type_string_index
+    !byte award_type_citation                                         ; 0. a citation for distinguished service
+    !byte award_type_citation                                         ; 1. a citation for gallantry
+    !byte award_type_badge                                            ; 2. the Badge of Excellence
+    !byte award_type_badge                                            ; 3. the Badge of Honour
+    !byte award_type_badge                                            ; 4. the Badge of Valour
+    !byte award_type_medal                                            ; 5. the Medal of Excellence
+    !byte award_type_medal                                            ; 6. the Medal of Honour
+    !byte award_type_medal                                            ; 7. the Medal of Valour
+    !byte award_type_cross                                            ; 8. the Cross of Meritorious Honour
+    !byte award_type_cross                                            ; 9. the Cross of Conspicuous Gallantry
+    !byte award_type_cross                                            ; 10. the Cross of Outstanding Heroism
+
+award_level_string_index
+    !byte award_level_1                                               ; 0. a citation for distinguished service
+    !byte award_level_2                                               ; 1. a citation for gallantry
+    !byte award_level_3                                               ; 2. the Badge of Excellence
+    !byte award_level_4                                               ; 3. the Badge of Honour
+    !byte award_level_5                                               ; 4. the Badge of Valour
+    !byte award_level_3                                               ; 5. the Medal of Excellence
+    !byte award_level_4                                               ; 6. the Medal of Honour
+    !byte award_level_5                                               ; 7. the Medal of Valour
+    !byte award_level_6                                               ; 8. the Cross of Meritorious Honour
+    !byte award_level_7                                               ; 9. the Cross of Conspicuous Gallantry
+    !byte award_level_8                                               ; 10. the Cross of Outstanding Heroism
+
+; ----------------------------------------------------------------------------------
+award_thresholds
+    !byte $02                                                         ; 0.   200 <= score < 300
+    !byte $03                                                         ; 1.   300 <= score < 400
+    !byte $04                                                         ; 2.   400 <= score < 400
+    !byte $05                                                         ; 3.   500 <= score < 500
+    !byte $06                                                         ; 4.   600 <= score < 600
+    !byte $07                                                         ; 5.   700 <= score < 700
+    !byte $08                                                         ; 6.   800 <= score < 800
+    !byte $09                                                         ; 7.   900 <= score < 900
+    !byte $10                                                         ; 8.  1000 <= score < 1000
+    !byte $11                                                         ; 9.  1100 <= score < 1100
+    !byte $12                                                         ; 10. 1200 <= score
+
+num_award_levels = * - award_thresholds
+
+; ----------------------------------------------------------------------------------
+show_any_posthumous_award
+    jsr calculate_award                                               ;
+    bmi no_award                                                      ;
+    sty temp_y                                                        ;
+    ldx #award_string                                                 ;
+    jsr print_compressed_string                                       ;
+    ldy temp_y                                                        ;
+    ldx award_type_string_index,y                                     ;
+    jsr print_compressed_string                                       ;
+    ldy temp_y                                                        ;
+    ldx award_level_string_index,y                                    ;
+    jsr print_compressed_string                                       ;
+    lda #'.'                                                          ;
+    jsr oswrch                                                        ;
+no_award
+    jmp leave_after_plotting_line_of_underscores                      ;
+
+; ----------------------------------------------------------------------------------
+; On Exit:
+;   Y = 0-10 is the award index, or $ff means no award
+; ----------------------------------------------------------------------------------
+calculate_award
+    ldy #num_award_levels-1                                           ; start at highest award level
+    lda score_as_bcd + 2                                              ;
+    bne done_award                                                    ;
+    lda score_as_bcd + 1                                              ;
+    iny                                                               ;
+-
+    dey
+    bmi done_award                                                    ;
+    cmp award_thresholds,y                                            ;
+    bcc -
+done_award
+    tya                                                               ; set the negative flag for testing if we have an award
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
