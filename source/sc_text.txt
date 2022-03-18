@@ -81,8 +81,11 @@ and_they_retire_you_string
     !text " and they", 13,10," retire you from active service."        ;
 
 ; ----------------------------------------------------------------------------------
-award_string
-    !text 13,10,13,10,"   In recognition of your fearless",13,10,"accomplishments on the field of battle, you have been posthumously awarded ",13,10
+award_survived_string
+    !text 13,10,13,10,13,10,"   However, in recognition of your",13,10," accomplishments on the field of battle, you have been officially awarded",13,10," "
+
+award_posthumously_string
+    !text 13,10,13,10,13,10,"   In recognition of your fearless",13,10," accomplishments on the field of battle, you have been posthumously awarded",13,10," "
 
 ; 0. a citation for distinguished service
 ; 1. a citation for gallantry

@@ -441,6 +441,19 @@ temp7                               = $88
 rnd_1                               = $89   ;
 rnd_2                               = $8a   ;
 
+score_delta_low                     = $8b
+score_delta_high                    = $8c
+score_as_bcd                        = $8d
+score_as_bcd_mid                    = $8e
+score_as_bcd_high                   = $8f
+
+score_as_digits                     = $90
+score_as_digits1                    = $91
+score_as_digits2                    = $92
+score_as_digits3                    = $93
+score_as_digits4                    = $94
+score_as_digits5                    = $95
+
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
@@ -6295,21 +6308,6 @@ velocity_gauge_position
     !byte 0                                                           ;
 rotation_gauge_position
     !byte 0                                                           ;
-score_delta_low
-    !byte 0                                                           ;
-score_delta_high
-    !byte 0                                                           ;
-score_as_bcd
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-score_as_digits
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
-    !byte 0                                                           ;
 scores_for_destroying_enemy_ships
     ; BCD scores
     !byte $08   ; regular ship, starship torpedo                           ; how_enemy_ship_was_damaged = 0
@@ -8132,7 +8130,7 @@ plot_debriefing
     jsr plot_line_of_underscores                                      ;
 
     ldx #3                                                            ;
-    ldy #10                                                           ;
+    ldy #9                                                            ;
     jsr tab_to_x_y                                                    ;
 
     lda escape_capsule_launched                                       ;
@@ -8226,7 +8224,7 @@ judge_player
 
     ; print "and" / "but"
     ldx #and_string                                                   ;
-    lda y_pixels                                                      ;
+    lda y_pixels                                                      ; emotion
     cmp #4                                                            ;
     bne do_and
 do_but
@@ -8245,6 +8243,8 @@ player_retired
 
     ldx #and_they_retire_you_string                                   ;
     jsr print_compressed_string                                       ;
+
+    jsr show_any_retirement_award                                     ;
 
 leave_after_plotting_line_of_underscores
     lda #29                                                           ;
@@ -8309,13 +8309,23 @@ award_thresholds
 num_award_levels = * - award_thresholds
 
 ; ----------------------------------------------------------------------------------
+show_any_retirement_award
+    jsr calculate_award                                               ;
+    bmi no_award                                                      ;
+
+    ldx #award_survived_string                                        ;
+    jsr print_compressed_string                                       ;
+    jmp show_any_award                                                ;
+
+; ----------------------------------------------------------------------------------
 show_any_posthumous_award
     jsr calculate_award                                               ;
     bmi no_award                                                      ;
-    sty temp_y                                                        ;
-    ldx #award_string                                                 ;
+
+    ldx #award_posthumously_string                                    ;
     jsr print_compressed_string                                       ;
-    ldy temp_y                                                        ;
+
+show_any_award
     ldx award_type_string_index,y                                     ;
     jsr print_compressed_string                                       ;
     ldy temp_y                                                        ;
@@ -8343,6 +8353,7 @@ calculate_award
     bcc -
 done_award
     tya                                                               ; set the negative flag for testing if we have an award
+    sty temp_y                                                        ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
