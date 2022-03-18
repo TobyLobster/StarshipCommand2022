@@ -454,6 +454,8 @@ score_as_digits3                    = $93
 score_as_digits4                    = $94
 score_as_digits5                    = $95
 
+num_frontier_star_updates           = $96
+
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
@@ -1812,6 +1814,14 @@ update_frontier_stars_loop
 +
     dec stars_still_to_consider                                       ;
     bne update_frontier_stars_loop                                    ;
+
+    ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
+    inc num_frontier_star_updates                                     ;
+    lda num_frontier_star_updates                                     ;
+    cmp #161                                                          ;
+    bne +                                                             ;
+    jsr initialise_frontier_stars                                     ;
++
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1839,7 +1849,7 @@ plot_top_and_right_edge_of_long_range_scanner_with_blank_text
     lda #1                                                            ;
     sta starship_shields_active                                       ;
     jsr plot_blank_text                                               ;
-    ; fall through
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_without_text
@@ -4522,13 +4532,6 @@ game_key_table
     !byte $96                                                         ; 'Copy'
 
 ; ----------------------------------------------------------------------------------
-; Start of new command
-; TODO: Add sound here?
-; ----------------------------------------------------------------------------------
-sound_0
-    !byte 0,0,0,0,0,0,0,0                                             ;
-
-; ----------------------------------------------------------------------------------
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
 sound_1
@@ -5518,18 +5521,29 @@ mark_escape_capsule_as_off_screen
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule
     ldx escape_capsule_x_pixels                                       ;
-    ldy escape_capsule_y_pixels                                       ;
-    sty y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
+    ldy escape_capsule_y_pixels                                       ;    4
+    sty y_pixels                                                      ;    3
+    jsr eor_play_area_pixel                                           ;  65012
+    inx                                                               ;    7
+    jsr eor_play_area_pixel                                           ;    8
     inx                                                               ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     dex                                                               ;
+    dex
+    jsr eor_play_area_pixel                                           ;
+    inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     dec y_pixels                                                      ;
+    dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
+    dex
     jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    inx                                                               ;
+    dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     jmp eor_play_area_pixel                                           ;
 
@@ -6872,6 +6886,7 @@ starship_incurred_major_damage
     lda rnd_2                                                         ;
     and #$6c                                                          ;
     bne return25                                                      ;
+
 turn_scanner_to_static
     lda starship_shields_active                                       ;
     sta starship_shields_active_before_failure                        ;
@@ -6885,10 +6900,16 @@ skip_unplotting_scanners
     ora #$42                                                          ;
     sta scanner_failure_duration                                      ;
     lda #0                                                            ;
-    sta temp5                                                         ;
     sta temp0_low                                                     ;
-    lda #$d0                                                          ; use OS ROM as source of static, at $d000
+
+    ; Previously this used OS ROM as source of static (at $d000) but this doesn't work on the Master!
+    ; So we use part of the program that looks sufficiently random itself, 'play_sounds' at around
+    ; $3800 instead.
+    lda #<play_sounds                                                 ;
+    sta temp5                                                         ;
+    lda #>play_sounds                                                 ;
     sta temp6                                                         ;
+
     lda #$59                                                          ;
     sta temp0_high                                                    ;
     ldx #8                                                            ;
@@ -7401,10 +7422,7 @@ prepare_starship_for_next_command
     ; clear screen
     lda #$0c                                                          ;
     jsr oswrch                                                        ;
-    ldx #<(sound_0)                                                   ;
-    ldy #>(sound_0)                                                   ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
@@ -8925,8 +8943,7 @@ skip_change_of_stars
     jmp main_game_loop                                                ;
 
 ; ----------------------------------------------------------------------------------
-start
-    ; initialise stars for frontiers rotating globe
+initialise_frontier_stars
     lda #<star_table                                                  ;
     sta temp0_low                                                     ;
     lda #>star_table                                                  ;
@@ -8946,6 +8963,14 @@ initialise_stars_loop
 skip
     inx                                                               ;
     bne initialise_stars_loop                                         ;
+
+    stx num_frontier_star_updates                                                   ; zero
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+start
+    ; initialise stars for frontiers rotating globe
+    jsr initialise_frontier_stars                                     ;
 
     jsr initialise_joystick_and_cursor_keys                           ;
 
