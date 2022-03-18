@@ -145,9 +145,9 @@
 ;     $0401 enemy_ships_previous_x_fraction
 ;     $0402 enemy_ships_previous_x_pixels
 ;     $0403 enemy_ships_previous_x_screens
-;     $0404 enemy_ships_previous_x_fraction
-;     $0405 enemy_ships_previous_x_pixels
-;     $0406 enemy_ships_previous_x_screens
+;     $0404 enemy_ships_previous_y_fraction
+;     $0405 enemy_ships_previous_y_pixels
+;     $0406 enemy_ships_previous_y_screens
 ;     $0407 enemy_ships_previous_angle
 ;     $0408 enemy_ships_velocity
 ;     $0409 enemy_ships_flags_or_explosion_timer:
@@ -164,9 +164,9 @@
 ;     $0481 enemy_ships_x_fraction
 ;     $0482 enemy_ships_x_pixels
 ;     $0483 enemy_ships_x_screens
-;     $0484 enemy_ships_x_fraction
-;     $0485 enemy_ships_x_pixels
-;     $0486 enemy_ships_x_screens
+;     $0484 enemy_ships_y_fraction
+;     $0485 enemy_ships_y_pixels
+;     $0486 enemy_ships_y_screens
 ;     $0487 enemy_ships_angle
 ;     $0488 enemy_ships_temporary_behaviour_flags
 ;               ....8421 enemy_ship_hit_count
@@ -228,6 +228,69 @@
 ; ----------------------------------------------------------------------------------
 
 do_debug = 0
+
+; ----------------------------------------------------------------------------------
+; gameplay constants
+; ----------------------------------------------------------------------------------
+; Number of 50Hz frames between game updates = 2*game_speed/39 = 60/39 ~= 1.53
+game_speed                                                          = 30
+
+starship_explosion_size                                             = 64
+maximum_number_of_stars_in_game                                     = 17
+maximum_number_of_explosions                                        = 8
+maximum_number_of_enemy_ships                                       = 8
+maximum_number_of_starship_torpedoes                                = 12
+maximum_number_of_enemy_torpedoes                                   = 24
+maximum_starship_velocity                                           = 4
+size_of_enemy_ship_for_collisions_between_enemy_ships               = 8
+enemy_ship_explosion_duration                                       = 37
+frame_of_enemy_ship_explosion_after_which_no_collisions             = 27
+frame_of_enemy_ship_explosion_after_which_no_segments_are_plotted   = 35
+starship_torpedoes_time_to_live                                     = 15
+damage_enemy_ship_incurs_from_collision_with_other_enemy_ship       = 32
+additional_damage_from_collision_with_enemy_ship                    = 192
+damage_to_enemy_ship_from_starship_torpedo                          = 16
+size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
+maximum_starship_explosion_countdown                                = 80
+number_of_bytes_per_enemy_explosion                                 = $3f
+
+starship_maximum_x_for_collisions_with_enemy_torpedoes              = $86
+starship_minimum_x_for_collisions_with_enemy_torpedoes              = $78
+starship_maximum_y_for_collisions_with_enemy_torpedoes              = $86
+starship_minimum_y_for_collisions_with_enemy_torpedoes              = $7a
+starship_maximum_x_for_collisions_with_enemy_ships                  = $8c
+starship_minimum_x_for_collisions_with_enemy_ships                  = $73
+starship_maximum_y_for_collisions_with_enemy_ships                  = $8c
+starship_minimum_y_for_collisions_with_enemy_ships                  = $76
+frame_of_starship_explosion_after_which_no_collisions               = $4a
+
+damage_from_enemy_torpedo                                           = $10
+frame_of_starship_explosion_after_which_no_sound                    = $11
+
+probability_of_enemy_ship_cloaking                                  = $3f   ; bit mask
+minimum_energy_for_enemy_ship_to_cloak                              = $40
+
+partial_velocity_for_damaged_enemy_ships                            = 6
+desired_velocity_for_intact_enemy_ships                             = $18
+minimum_number_of_stars                                             = 1
+
+starship_torpedo_cooldown_after_firing                              = 1
+starship_energy_drain_from_non_zero_rotation                        = 4
+starship_torpedoes_per_round                                        = 4
+strength_of_player_rotation                                         = $f0
+strength_of_rotation_dampers                                        = $40
+minimum_energy_value_to_avoid_starship_destruction                  = 4
+starship_energy_drain_from_acceleration                             = 4
+starship_acceleration_from_player                                   = $40
+starship_acceleration_from_velocity_damper                          = $20
+starship_torpedo_cooldown_after_round                               = 2
+starship_energy_drain_from_firing_torpedo                           = 4
+
+regeneration_rate_for_enemy_ships                                   = 1
+maximum_timer_for_enemy_ships_regeneration                          = 4
+base_regeneration_rate_for_starship                                 = $0c
+base_damage_to_enemy_ship_from_other_collision                      = $14
+change_in_number_of_stars_per_command                               = $fe
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
@@ -333,9 +396,17 @@ object_x_pixels                     = $2b   ;
 object_y_fraction                   = $2c   ;
 object_y_pixels                     = $2d   ;
 
-rnd_1                               = $2e   ;
-rnd_2                               = $2f   ;
+enemy_ships_flags_or_explosion_timer    = $2e + 0 * maximum_number_of_enemy_ships
+enemy_ships_on_screen                   = $2e + 1 * maximum_number_of_enemy_ships
+enemy_ships_x_fraction                  = $2e + 2 * maximum_number_of_enemy_ships
+enemy_ships_x_pixels                    = $2e + 3 * maximum_number_of_enemy_ships
+enemy_ships_x_screens                   = $2e + 4 * maximum_number_of_enemy_ships
+enemy_ships_y_fraction                  = $2e + 5 * maximum_number_of_enemy_ships
+enemy_ships_y_pixels                    = $2e + 6 * maximum_number_of_enemy_ships
+enemy_ships_y_screens                   = $2e + 7 * maximum_number_of_enemy_ships
 
+unused6E                            = $6e   ;
+unused6F                            = $6f   ;
 
 screen_address_low                  = $70
 screen_address_high                 = $71
@@ -367,35 +438,29 @@ temp5                               = $86
 temp6                               = $87
 temp7                               = $88
 
+rnd_1                               = $89   ;
+rnd_2                               = $8a   ;
 
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
-; enemy data $0400-$0457
-enemy_ships_previous_on_screen          = $0400
-enemy_ships_previous_x_fraction         = $0401
-enemy_ships_previous_x_pixels           = $0402
-enemy_ships_previous_x_screens          = $0403
-enemy_ships_previous_y_fraction         = $0404
-enemy_ships_previous_y_pixels           = $0405
-enemy_ships_previous_y_screens          = $0406
-enemy_ships_previous_angle              = $0407
-enemy_ships_velocity                    = $0408
-enemy_ships_flags_or_explosion_timer    = $0409
-enemy_ships_type                        = $040a
+; enemy data $0400-$04ff
+enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships
+enemy_ships_previous_x_fraction         = $0400 +  1 * maximum_number_of_enemy_ships
+enemy_ships_previous_x_pixels           = $0400 +  2 * maximum_number_of_enemy_ships
+enemy_ships_previous_x_screens          = $0400 +  3 * maximum_number_of_enemy_ships
+enemy_ships_previous_y_fraction         = $0400 +  4 * maximum_number_of_enemy_ships
+enemy_ships_previous_y_pixels           = $0400 +  5 * maximum_number_of_enemy_ships
+enemy_ships_previous_y_screens          = $0400 +  6 * maximum_number_of_enemy_ships
+enemy_ships_previous_angle              = $0400 +  7 * maximum_number_of_enemy_ships
+enemy_ships_velocity                    = $0400 +  8 * maximum_number_of_enemy_ships
+enemy_ships_type                        = $0400 +  9 * maximum_number_of_enemy_ships
+enemy_ships_angle                       = $0400 + 10 * maximum_number_of_enemy_ships
+enemy_ships_temporary_behaviour_flags   = $0400 + 11 * maximum_number_of_enemy_ships
+enemy_ships_energy                      = $0400 + 12 * maximum_number_of_enemy_ships
+enemy_ships_firing_cooldown             = $0400 + 13 * maximum_number_of_enemy_ships
 
-; enemy data $0480-$04d8
-enemy_ships_on_screen                   = $0480
-enemy_ships_x_fraction                  = $0481
-enemy_ships_x_pixels                    = $0482
-enemy_ships_x_screens                   = $0483
-enemy_ships_y_fraction                  = $0484
-enemy_ships_y_pixels                    = $0485
-enemy_ships_y_screens                   = $0486
-enemy_ships_angle                       = $0487
-enemy_ships_temporary_behaviour_flags   = $0488
-enemy_ships_energy                      = $0489
-enemy_ships_firing_cooldown             = $048a
+stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
 
 xandf8                                  = $0500  ; }
 xbit_table                              = $0600  ; } tables of constants
@@ -407,64 +472,6 @@ squares_high                            = $0b00  ; }
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
 energy_screen_address                   = $6e48
-
-; ----------------------------------------------------------------------------------
-; game constants
-; ----------------------------------------------------------------------------------
-; Number of 50Hz frames between game updates = 2*game_speed/39 = 60/39 ~= 1.53
-game_speed                              = 30
-
-starship_explosion_size                                             = 64
-maximum_number_of_stars_in_game                                     = 17
-maximum_number_of_explosions                                        = 8
-maximum_number_of_enemy_ships                                       = 8
-maximum_number_of_starship_torpedoes                                = 12
-maximum_number_of_enemy_torpedoes                                   = 24
-maximum_starship_velocity                                           = 4
-size_of_enemy_ship_for_collisions_between_enemy_ships               = 8
-enemy_ship_explosion_duration                                       = 37
-frame_of_enemy_ship_explosion_after_which_no_collisions             = 27
-frame_of_enemy_ship_explosion_after_which_no_segments_are_plotted   = 35
-starship_torpedoes_time_to_live                                     = 15
-damage_enemy_ship_incurs_from_collision_with_other_enemy_ship       = 32
-additional_damage_from_collision_with_enemy_ship                    = 192
-damage_to_enemy_ship_from_starship_torpedo                          = 16
-size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
-maximum_starship_explosion_countdown                                = 80
-number_of_bytes_per_enemy_explosion                                 = $3f
-
-starship_maximum_x_for_collisions_with_enemy_torpedoes              = $86
-starship_minimum_x_for_collisions_with_enemy_torpedoes              = $78
-starship_maximum_y_for_collisions_with_enemy_torpedoes              = $86
-starship_minimum_y_for_collisions_with_enemy_torpedoes              = $7a
-starship_maximum_x_for_collisions_with_enemy_ships                  = $8c
-starship_minimum_x_for_collisions_with_enemy_ships                  = $73
-starship_maximum_y_for_collisions_with_enemy_ships                  = $8c
-starship_minimum_y_for_collisions_with_enemy_ships                  = $76
-frame_of_starship_explosion_after_which_no_collisions               = $4a
-
-damage_from_enemy_torpedo                                           = $10
-frame_of_starship_explosion_after_which_no_sound                    = $11
-
-probability_of_enemy_ship_cloaking                                  = $3f   ; bit mask
-minimum_energy_for_enemy_ship_to_cloak                              = $40
-
-partial_velocity_for_damaged_enemy_ships                            = 6
-desired_velocity_for_intact_enemy_ships                             = $18
-minimum_number_of_stars                                             = 1
-
-starship_torpedo_cooldown_after_firing                              = 1
-starship_energy_drain_from_non_zero_rotation                        = 4
-starship_torpedoes_per_round                                        = 4
-strength_of_player_rotation                                         = $f0
-strength_of_rotation_dampers                                        = $40
-minimum_energy_value_to_avoid_starship_destruction                  = 4
-starship_energy_drain_from_acceleration                             = 4
-starship_acceleration_from_player                                   = $40
-starship_acceleration_from_velocity_damper                          = $20
-starship_torpedo_cooldown_after_round                               = 2
-starship_energy_drain_from_firing_torpedo                           = 4
-
 
 ; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
 ; Each frame is 312 pixel rows. Interrupt every sixteen pixel rows.
@@ -806,8 +813,6 @@ maximum_number_of_stars
     !byte $11                                                         ;
 starship_shields_active
     !byte 1                                                           ;
-
-
 starship_torpedo_cooldown
     !byte 0                                                           ;
 fire_pressed
@@ -842,6 +847,7 @@ velocity_delta
     !byte 0                                                           ;
 velocity_damper
     !byte 0                                                           ;
+
 enemy_ship_x_plus_half_sine
     !byte 0                                                           ;
 enemy_ship_y_plus_half_cosine
@@ -852,6 +858,11 @@ starship_torpedo_counter
     !byte 0                                                           ;
 previous_starship_automatic_shields
     !byte 0                                                           ;
+
+enemy_ship_update_done
+    !byte 0,0,0,0,0,0,0,0
+
+
 
 !src "build/sc_text.a"
 
@@ -1369,20 +1380,27 @@ skip2
     lda enemy_ships_previous_x_fraction,x                             ;
     eor #$ff                                                          ;
     sta enemy_ships_x_fraction,x                                      ;
+
     lda enemy_ships_x_pixels,x                                        ;
     eor #$ff                                                          ;
     sta enemy_ships_x_pixels,x                                        ;
+
     lda enemy_ships_x_screens,x                                       ;
     eor #$ff                                                          ;
     sta enemy_ships_x_screens,x                                       ;
 skip_inversion1
-    inx                                                               ;
-    inx                                                               ;
-    inx                                                               ;
+    txa                                                               ;
+    clc                                                               ;
+    adc #stride_between_enemy_coordinates                             ; X += stride
+    tax                                                               ;
+
     jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
-    dex                                                               ;
-    dex                                                               ;
-    dex                                                               ;
+
+    txa                                                               ;
+    sec                                                               ;
+    sbc #stride_between_enemy_coordinates                             ; X -= stride
+    tax                                                               ;
+
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
     lda temp9                                                         ;
     clc                                                               ;
@@ -1395,13 +1413,19 @@ skip_inversion1
     adc segment_length                                                ;
     sta temp11                                                        ;
     jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
-    inx                                                               ;
-    inx                                                               ;
-    inx                                                               ;
+
+    txa                                                               ;
+    clc                                                               ;
+    adc #stride_between_enemy_coordinates                             ; X += stride
+    tax                                                               ;
+
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
-    dex                                                               ;
-    dex                                                               ;
-    dex                                                               ;
+
+    txa                                                               ;
+    sec                                                               ;
+    sbc #stride_between_enemy_coordinates                             ; X -= stride
+    tax                                                               ;
+
     lda temp9                                                         ;
     sec                                                               ;
     sbc output_pixels                                                 ;
@@ -2072,10 +2096,7 @@ skip_damage
     rts                                                               ;
 
 move_to_next_enemy
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     bne consider_enemy_slot                                           ;
     clc                                                               ; the torpedo didn't hit anything
@@ -2203,21 +2224,13 @@ enemy_ship_not_on_starship_screen
     lda #1                                                            ;
 set_enemy_ships_on_screen
     sta enemy_ships_on_screen,x                                       ;
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     beq return7                                                       ;
     jmp apply_velocity_to_enemy_ships_loop                            ;
 
 return7
     rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-enemy_ship_update_done
-    !byte 0,0,0,0,0,0,0,0
-
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_update_explosion
@@ -2330,10 +2343,7 @@ copy_position_without_plotting
 
 skip_enemy_altogether
     ; move X onto next enemy
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -2375,53 +2385,53 @@ return8
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-debug_make_background_black
-    pha
-    php
-    ; DEBUG
-    LDA #$07
-    STA videoULAPaletteRegister
-    LDA #$17
-    STA videoULAPaletteRegister
-    LDA #$27
-    STA videoULAPaletteRegister
-    LDA #$37
-    STA videoULAPaletteRegister
-    LDA #$47
-    STA videoULAPaletteRegister
-    LDA #$57
-    STA videoULAPaletteRegister
-    LDA #$67
-    STA videoULAPaletteRegister
-    LDA #$77
-    STA videoULAPaletteRegister
-    plp
-    pla
-    RTS
-
-debug_make_background_green
-    ; DEBUG
-    pha
-    php
-    LDA #$05
-    STA videoULAPaletteRegister
-    LDA #$15
-    STA videoULAPaletteRegister
-    LDA #$25
-    STA videoULAPaletteRegister
-    LDA #$35
-    STA videoULAPaletteRegister
-    LDA #$45
-    STA videoULAPaletteRegister
-    LDA #$55
-    STA videoULAPaletteRegister
-    LDA #$65
-    STA videoULAPaletteRegister
-    LDA #$75
-    STA videoULAPaletteRegister
-    plp
-    pla
-    rts
+;debug_make_background_black
+;    pha
+;    php
+;    ; DEBUG
+;    LDA #$07
+;    STA videoULAPaletteRegister
+;    LDA #$17
+;    STA videoULAPaletteRegister
+;    LDA #$27
+;    STA videoULAPaletteRegister
+;    LDA #$37
+;    STA videoULAPaletteRegister
+;    LDA #$47
+;    STA videoULAPaletteRegister
+;    LDA #$57
+;    STA videoULAPaletteRegister
+;    LDA #$67
+;    STA videoULAPaletteRegister
+;    LDA #$77
+;    STA videoULAPaletteRegister
+;    plp
+;    pla
+;    RTS
+;
+;debug_make_background_green
+;    ; DEBUG
+;    pha
+;    php
+;    LDA #$05
+;    STA videoULAPaletteRegister
+;    LDA #$15
+;    STA videoULAPaletteRegister
+;    LDA #$25
+;    STA videoULAPaletteRegister
+;    LDA #$35
+;    STA videoULAPaletteRegister
+;    LDA #$45
+;    STA videoULAPaletteRegister
+;    LDA #$55
+;    STA videoULAPaletteRegister
+;    LDA #$65
+;    STA videoULAPaletteRegister
+;    LDA #$75
+;    STA videoULAPaletteRegister
+;    plp
+;    pla
+;    rts
 
 
 ; ----------------------------------------------------------------------------------
@@ -2489,11 +2499,8 @@ no_collision
 
 ; ----------------------------------------------------------------------------------
 check_for_collisions_between_enemy_ships
-    lda temp1_low                                                     ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    sta temp1_low                                                     ;
-    tax                                                               ;
+    inc temp1_low                                                     ;
+    ldx temp1_low                                                     ;
     lda enemy_ships_on_screen,x                                       ;
     bne consider_next_second_enemy_ship                               ; not if not on screen
     ldy temp0_low                                                     ; enemy_ship_offset
@@ -2554,10 +2561,7 @@ consider_next_second_enemy_ship
     jmp check_for_collisions_between_enemy_ships                      ;
 
 consider_next_enemy_ship
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    sta temp0_low                                                     ;
+    inc temp0_low                                                     ;
     dec enemy_ships_still_to_consider                                 ;
     beq return9                                                       ;
     jmp check_for_starship_collision_with_enemy_ships_loop            ;
@@ -2994,10 +2998,7 @@ activate_shields_when_enemy_ship_enters_main_square
 activate_shields_when_enemy_ship_enters_main_square_loop
     lda enemy_ships_on_screen,x                                       ;
     beq enemy_ship_is_on_screen                                       ;
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     bne activate_shields_when_enemy_ship_enters_main_square_loop      ;
     lda starship_shields_active                                       ;
@@ -5033,8 +5034,6 @@ invert_energy_text_loop
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-enemy_ships_can_cloak
-    !byte 1                                                           ;
 enemy_ship_desired_angle_divided_by_eight
     !byte 0                                                           ;
 number_of_live_starship_torpedoes
@@ -5050,8 +5049,6 @@ starship_torpedo_type
 
 ; ----------------------------------------------------------------------------------
 handle_enemy_ships_cloaking
-    lda enemy_ships_can_cloak                                         ;
-    beq return21                                                      ; This branch can never happen?
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
@@ -5092,10 +5089,7 @@ enemy_ship_has_sufficient_energy_to_cloak
     ora #4                                                            ;
     sta enemy_ships_type,x                                            ;
 handle_enemy_ships_cloaking_next
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     bne handle_enemy_ships_cloaking_loop                              ;
 return21
@@ -5682,7 +5676,7 @@ already_retreating_because_of_angle                                   ; if retre
     clc                                                               ;
     adc #5                                                            ;
     and #$1f                                                          ;
-    cmp #$0b                                                          ; if not within 56.25 degrees of starship
+    cmp #11                                                           ; if not within 56.25 degrees of starship
     bcc skip_retreating_because_of_angle                              ;
     tya                                                               ;
     and #$bf                                                          ; unset retreating_because_of_angle
@@ -5807,10 +5801,10 @@ sine_bit_unset3
     cmp #8                                                            ;
     bcc finished_calculating_change_in_angle                          ;
     iny                                                               ;
-    cmp #$0b                                                          ;
+    cmp #11                                                           ;
     bcc finished_calculating_change_in_angle                          ;
     iny                                                               ;
-    cmp #$0e                                                          ;
+    cmp #14                                                           ;
     bcc finished_calculating_change_in_angle                          ;
     iny                                                               ;
 finished_calculating_change_in_angle
@@ -5986,212 +5980,8 @@ starship_sprite_2
     !byte %#...###.                                                   ;
     !byte %.....#..                                                   ;
 
-starship_sprite_3
-    !byte %.......#                                                   ; .......#........
-    !byte %.....###                                                   ; .....#####......
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#...###                                                   ; .#...#####...#..
-    !byte %.#.....#                                                   ; .#.....#.....#..
-    !byte %###...#.                                                   ; ###...#.#...###.
-    !byte %#.#....#                                                   ; #.#....#....#.#.
-    !byte %........                                                   ; #.#...#.#...#.#.
-    !byte %##......                                                   ; #.#....#....#.#.
-    !byte %.##..#..                                                   ; #..#..###..#..#.
-    !byte %.##..#..                                                   ; #..###...###..#.
-    !byte %##...#..                                                   ; #.#.#.....#.#.#.
-    !byte %.....#..                                                   ; .#...#...#...#..
-    !byte %#...###.                                                   ; ......#.#.......
-    !byte %....#.#.                                                   ; .......#........
-    !byte %#.#...#.                                                   ;
-    !byte %#.#....#                                                   ;
-    !byte %#..#..##                                                   ;
-    !byte %#..###..                                                   ;
-    !byte %#.#.#...                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %......#.                                                   ;
-    !byte %.......#                                                   ;
-    !byte %#...#.#.                                                   ;
-    !byte %....#.#.                                                   ;
-    !byte %#..#..#.                                                   ;
-    !byte %.###..#.                                                   ;
-    !byte %..#.#.#.                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %#.......                                                   ;
-    !byte %........                                                   ;
-
-starship_sprite_4
-    !byte %.......#                                                   ; .......#........
-    !byte %.......#                                                   ; .......#........
-    !byte %......##                                                   ; ......###.......
-    !byte %##....##                                                   ; ##....###....##.
-    !byte %##...##.                                                   ; ##...##.##...##.
-    !byte %##...##.                                                   ; ##...##.##...##.
-    !byte %##..##..                                                   ; ##..##...##..##.
-    !byte %##..##.#                                                   ; ##..##.#.##..##.
-    !byte %........                                                   ; #####..#..#####.
-    !byte %........                                                   ; ##....###....##.
-    !byte %#.......                                                   ; ######...######.
-    !byte %#....##.                                                   ; ##...##.##...##.
-    !byte %##...##.                                                   ; ####..###..####.
-    !byte %##...##.                                                   ; ##.##..#..##.##.
-    !byte %.##..##.                                                   ; ##..##.#.##..##.
-    !byte %.##..##.                                                   ; .....#####......
-    !byte %#####..#                                                   ;
-    !byte %##....##                                                   ;
-    !byte %######..                                                   ;
-    !byte %##...##.                                                   ;
-    !byte %####..##                                                   ;
-    !byte %##.##..#                                                   ;
-    !byte %##..##.#                                                   ;
-    !byte %.....###                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %.######.                                                   ;
-    !byte %##...##.                                                   ;
-    !byte %#..####.                                                   ;
-    !byte %..##.##.                                                   ;
-    !byte %.##..##.                                                   ;
-    !byte %##......                                                   ;
-
-starship_sprite_5
-    !byte %........                                                   ; ................
-    !byte %......##                                                   ; ......###.......
-    !byte %.....#..                                                   ; .....#...#......
-    !byte %....#...                                                   ; ....#.....#.....
-    !byte %...#...#                                                   ; ...#...#...#....
-    !byte %...#..#.                                                   ; ...#..#.#..#....
-    !byte %...#...#                                                   ; ...#...#...#....
-    !byte %.#..#...                                                   ; .#..#.....#..#..
-    !byte %........                                                   ; ###..#...#..###.
-    !byte %#.......                                                   ; ###...###...###.
-    !byte %.#......                                                   ; ##.#..#.#..#.##.
-    !byte %..#.....                                                   ; ##.##.#.#.##.##.
-    !byte %...#....                                                   ; ###.###.###.###.
-    !byte %#..#....                                                   ; ###..#...#..###.
-    !byte %...#....                                                   ; .#....#.#....#..
-    !byte %..#..#..                                                   ; .#.....#.....#..
-    !byte %###..#..                                                   ;
-    !byte %###...##                                                   ;
-    !byte %##.#..#.                                                   ;
-    !byte %##.##.#.                                                   ;
-    !byte %###.###.                                                   ;
-    !byte %###..#..                                                   ;
-    !byte %.#....#.                                                   ;
-    !byte %.#.....#                                                   ;
-    !byte %.#..###.                                                   ;
-    !byte %#...###.                                                   ;
-    !byte %#..#.##.                                                   ;
-    !byte %#.##.##.                                                   ;
-    !byte %###.###.                                                   ;
-    !byte %.#..###.                                                   ;
-    !byte %#....#..                                                   ;
-    !byte %.....#..                                                   ;
-
-starship_sprite_6
-    !byte %......##                                                   ; ......###.......
-    !byte %.....##.                                                   ; .....##.##......
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#...###                                                   ; .#...#####...#..
-    !byte %.#....#.                                                   ; .#....#.#....#..
-    !byte %###...#.                                                   ; ###...#.#...###.
-    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
-    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
-    !byte %#.......                                                   ; #..#..#.#..#..#.
-    !byte %##......                                                   ; #...#.#.#.#...#.
-    !byte %.##..#..                                                   ; #....#.#.#....#.
-    !byte %##...#..                                                   ; #..#...#...#..#.
-    !byte %#....#..                                                   ; #.#.#..#..#.#.#.
-    !byte %#...###.                                                   ; .#...#.#.#...#..
-    !byte %#...#.#.                                                   ; .#....###....#..
-    !byte %#...#.#.                                                   ; .......#........
-    !byte %#..#..#.                                                   ;
-    !byte %#...#.#.                                                   ;
-    !byte %#....#.#                                                   ;
-    !byte %#..#...#                                                   ;
-    !byte %#.#.#..#                                                   ;
-    !byte %.#...#.#                                                   ;
-    !byte %.#....##                                                   ;
-    !byte %.......#                                                   ;
-    !byte %#..#..#.                                                   ;
-    !byte %#.#...#.                                                   ;
-    !byte %.#....#.                                                   ;
-    !byte %...#..#.                                                   ;
-    !byte %..#.#.#.                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %#....#..                                                   ;
-    !byte %........                                                   ;
-
-starship_sprite_7
-    !byte %.......#                                                   ; .......#........
-    !byte %.......#                                                   ; .......#........
-    !byte %.#....##                                                   ; .#....###....#..
-    !byte %.#....##                                                   ; .#....###....#..
-    !byte %.#...##.                                                   ; .#...##.##...#..
-    !byte %###..##.                                                   ; ###..##.##..###.
-    !byte %###.##.#                                                   ; ###.##.#.##.###.
-    !byte %###.##.#                                                   ; ###.##.#.##.###.
-    !byte %........                                                   ; #####..#..#####.
-    !byte %........                                                   ; ##.....#.....##.
-    !byte %#....#..                                                   ; ######.#.######.
-    !byte %#....#..                                                   ; ##....###....##.
-    !byte %##...#..                                                   ; #####..#..#####.
-    !byte %##..###.                                                   ; ###.##.#.##.###.
-    !byte %.##.###.                                                   ; ###..##.##..###.
-    !byte %.##.###.                                                   ; .#....###....#..
-    !byte %#####..#                                                   ;
-    !byte %##.....#                                                   ;
-    !byte %######.#                                                   ;
-    !byte %##....##                                                   ;
-    !byte %#####..#                                                   ;
-    !byte %###.##.#                                                   ;
-    !byte %###..##.                                                   ;
-    !byte %.#....##                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %.....##.                                                   ;
-    !byte %.######.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %.##.###.                                                   ;
-    !byte %##..###.                                                   ;
-    !byte %#....#..                                                   ;
-
-starship_sprite_8
-    !byte %.....###                                                   ;.....#####......
-    !byte %....##..                                                   ;....##...##.....
-    !byte %...##..#                                                   ;...##..#..##....
-    !byte %...##.##                                                   ;...##.###.##....
-    !byte %...##.##                                                   ;...##.###.##....
-    !byte %...##..#                                                   ;...##..#..##....
-    !byte %....##..                                                   ;....##...##.....
-    !byte %##...###                                                   ;##...#####...##.
-    !byte %##......                                                   ;##.....#.....##.
-    !byte %.##.....                                                   ;###...###...###.
-    !byte %..##....                                                   ;####..###..####.
-    !byte %#.##....                                                   ;##.##.###.##.##.
-    !byte %#.##....                                                   ;##..#######..##.
-    !byte %..##....                                                   ;##....###....##.
-    !byte %.##.....                                                   ;##....###....##.
-    !byte %##...##.                                                   ;##.....#.....##.
-    !byte %##.....#                                                   ;
-    !byte %###...##                                                   ;
-    !byte %####..##                                                   ;
-    !byte %##.##.##                                                   ;
-    !byte %##..####                                                   ;
-    !byte %##....##                                                   ;
-    !byte %##....##                                                   ;
-    !byte %##.....#                                                   ;
-    !byte %.....##.                                                   ;
-    !byte %#...###.                                                   ;
-    !byte %#..####.                                                   ;
-    !byte %#.##.##.                                                   ;
-    !byte %###..##.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %.....##.                                                   ;
-
 ; TOBY:
-starship_sprite_9
+starship_sprite_3
     !byte %.......#                                                   ; .......#........
     !byte %......#.                                                   ; ......#.#.......
     !byte %......#.                                                   ; ......#.#.......
@@ -6225,8 +6015,42 @@ starship_sprite_9
     !byte %.....#..
     !byte %#####...
 
+starship_sprite_4
+    !byte %.......#                                                   ; .......#........
+    !byte %.....###                                                   ; .....#####......
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#...###                                                   ; .#...#####...#..
+    !byte %.#.....#                                                   ; .#.....#.....#..
+    !byte %###...#.                                                   ; ###...#.#...###.
+    !byte %#.#....#                                                   ; #.#....#....#.#.
+    !byte %........                                                   ; #.#...#.#...#.#.
+    !byte %##......                                                   ; #.#....#....#.#.
+    !byte %.##..#..                                                   ; #..#..###..#..#.
+    !byte %.##..#..                                                   ; #..###...###..#.
+    !byte %##...#..                                                   ; #.#.#.....#.#.#.
+    !byte %.....#..                                                   ; .#...#...#...#..
+    !byte %#...###.                                                   ; ......#.#.......
+    !byte %....#.#.                                                   ; .......#........
+    !byte %#.#...#.                                                   ;
+    !byte %#.#....#                                                   ;
+    !byte %#..#..##                                                   ;
+    !byte %#..###..                                                   ;
+    !byte %#.#.#...                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %......#.                                                   ;
+    !byte %.......#                                                   ;
+    !byte %#...#.#.                                                   ;
+    !byte %....#.#.                                                   ;
+    !byte %#..#..#.                                                   ;
+    !byte %.###..#.                                                   ;
+    !byte %..#.#.#.                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %#.......                                                   ;
+    !byte %........                                                   ;
+
 ; ADE:
-starship_sprite_10
+starship_sprite_5
     !byte %..#.....                                                   ; ..#.........#...
     !byte %.##....#                                                   ; .##....#....##..
     !byte %.#.#...#                                                   ; .#.#...#...#.#..
@@ -6260,8 +6084,42 @@ starship_sprite_10
     !byte %.##.....
     !byte %##......
 
+starship_sprite_6
+    !byte %.......#                                                   ; .......#........
+    !byte %.......#                                                   ; .......#........
+    !byte %......##                                                   ; ......###.......
+    !byte %##....##                                                   ; ##....###....##.
+    !byte %##...##.                                                   ; ##...##.##...##.
+    !byte %##...##.                                                   ; ##...##.##...##.
+    !byte %##..##..                                                   ; ##..##...##..##.
+    !byte %##..##.#                                                   ; ##..##.#.##..##.
+    !byte %........                                                   ; #####..#..#####.
+    !byte %........                                                   ; ##....###....##.
+    !byte %#.......                                                   ; ######...######.
+    !byte %#....##.                                                   ; ##...##.##...##.
+    !byte %##...##.                                                   ; ####..###..####.
+    !byte %##...##.                                                   ; ##.##..#..##.##.
+    !byte %.##..##.                                                   ; ##..##.#.##..##.
+    !byte %.##..##.                                                   ; .....#####......
+    !byte %#####..#                                                   ;
+    !byte %##....##                                                   ;
+    !byte %######..                                                   ;
+    !byte %##...##.                                                   ;
+    !byte %####..##                                                   ;
+    !byte %##.##..#                                                   ;
+    !byte %##..##.#                                                   ;
+    !byte %.....###                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %.######.                                                   ;
+    !byte %##...##.                                                   ;
+    !byte %#..####.                                                   ;
+    !byte %..##.##.                                                   ;
+    !byte %.##..##.                                                   ;
+    !byte %##......                                                   ;
+
 ; TOBY
-starship_sprite_11
+starship_sprite_7
     !byte %.......#                                                   ; .......#........
     !byte %......#.                                                   ; ......#.#.......
     !byte %......#.                                                   ; ......#.#.......
@@ -6294,6 +6152,142 @@ starship_sprite_11
     !byte %..##.#..
     !byte %##....#.
     !byte %......#.
+
+starship_sprite_8
+    !byte %........                                                   ; ................
+    !byte %......##                                                   ; ......###.......
+    !byte %.....#..                                                   ; .....#...#......
+    !byte %....#...                                                   ; ....#.....#.....
+    !byte %...#...#                                                   ; ...#...#...#....
+    !byte %...#..#.                                                   ; ...#..#.#..#....
+    !byte %...#...#                                                   ; ...#...#...#....
+    !byte %.#..#...                                                   ; .#..#.....#..#..
+    !byte %........                                                   ; ###..#...#..###.
+    !byte %#.......                                                   ; ###...###...###.
+    !byte %.#......                                                   ; ##.#..#.#..#.##.
+    !byte %..#.....                                                   ; ##.##.#.#.##.##.
+    !byte %...#....                                                   ; ###.###.###.###.
+    !byte %#..#....                                                   ; ###..#...#..###.
+    !byte %...#....                                                   ; .#....#.#....#..
+    !byte %..#..#..                                                   ; .#.....#.....#..
+    !byte %###..#..                                                   ;
+    !byte %###...##                                                   ;
+    !byte %##.#..#.                                                   ;
+    !byte %##.##.#.                                                   ;
+    !byte %###.###.                                                   ;
+    !byte %###..#..                                                   ;
+    !byte %.#....#.                                                   ;
+    !byte %.#.....#                                                   ;
+    !byte %.#..###.                                                   ;
+    !byte %#...###.                                                   ;
+    !byte %#..#.##.                                                   ;
+    !byte %#.##.##.                                                   ;
+    !byte %###.###.                                                   ;
+    !byte %.#..###.                                                   ;
+    !byte %#....#..                                                   ;
+    !byte %.....#..                                                   ;
+
+starship_sprite_9
+    !byte %......##                                                   ; ......###.......
+    !byte %.....##.                                                   ; .....##.##......
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#...###                                                   ; .#...#####...#..
+    !byte %.#....#.                                                   ; .#....#.#....#..
+    !byte %###...#.                                                   ; ###...#.#...###.
+    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
+    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
+    !byte %#.......                                                   ; #..#..#.#..#..#.
+    !byte %##......                                                   ; #...#.#.#.#...#.
+    !byte %.##..#..                                                   ; #....#.#.#....#.
+    !byte %##...#..                                                   ; #..#...#...#..#.
+    !byte %#....#..                                                   ; #.#.#..#..#.#.#.
+    !byte %#...###.                                                   ; .#...#.#.#...#..
+    !byte %#...#.#.                                                   ; .#....###....#..
+    !byte %#...#.#.                                                   ; .......#........
+    !byte %#..#..#.                                                   ;
+    !byte %#...#.#.                                                   ;
+    !byte %#....#.#                                                   ;
+    !byte %#..#...#                                                   ;
+    !byte %#.#.#..#                                                   ;
+    !byte %.#...#.#                                                   ;
+    !byte %.#....##                                                   ;
+    !byte %.......#                                                   ;
+    !byte %#..#..#.                                                   ;
+    !byte %#.#...#.                                                   ;
+    !byte %.#....#.                                                   ;
+    !byte %...#..#.                                                   ;
+    !byte %..#.#.#.                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %#....#..                                                   ;
+    !byte %........                                                   ;
+
+starship_sprite_10
+    !byte %.......#                                                   ; .......#........
+    !byte %.......#                                                   ; .......#........
+    !byte %.#....##                                                   ; .#....###....#..
+    !byte %.#....##                                                   ; .#....###....#..
+    !byte %.#...##.                                                   ; .#...##.##...#..
+    !byte %###..##.                                                   ; ###..##.##..###.
+    !byte %###.##.#                                                   ; ###.##.#.##.###.
+    !byte %###.##.#                                                   ; ###.##.#.##.###.
+    !byte %........                                                   ; #####..#..#####.
+    !byte %........                                                   ; ##.....#.....##.
+    !byte %#....#..                                                   ; ######.#.######.
+    !byte %#....#..                                                   ; ##....###....##.
+    !byte %##...#..                                                   ; #####..#..#####.
+    !byte %##..###.                                                   ; ###.##.#.##.###.
+    !byte %.##.###.                                                   ; ###..##.##..###.
+    !byte %.##.###.                                                   ; .#....###....#..
+    !byte %#####..#                                                   ;
+    !byte %##.....#                                                   ;
+    !byte %######.#                                                   ;
+    !byte %##....##                                                   ;
+    !byte %#####..#                                                   ;
+    !byte %###.##.#                                                   ;
+    !byte %###..##.                                                   ;
+    !byte %.#....##                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %.....##.                                                   ;
+    !byte %.######.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %.##.###.                                                   ;
+    !byte %##..###.                                                   ;
+    !byte %#....#..                                                   ;
+
+starship_sprite_11
+    !byte %.....###                                                   ;.....#####......
+    !byte %....##..                                                   ;....##...##.....
+    !byte %...##..#                                                   ;...##..#..##....
+    !byte %...##.##                                                   ;...##.###.##....
+    !byte %...##.##                                                   ;...##.###.##....
+    !byte %...##..#                                                   ;...##..#..##....
+    !byte %....##..                                                   ;....##...##.....
+    !byte %##...###                                                   ;##...#####...##.
+    !byte %##......                                                   ;##.....#.....##.
+    !byte %.##.....                                                   ;###...###...###.
+    !byte %..##....                                                   ;####..###..####.
+    !byte %#.##....                                                   ;##.##.###.##.##.
+    !byte %#.##....                                                   ;##..#######..##.
+    !byte %..##....                                                   ;##....###....##.
+    !byte %.##.....                                                   ;##....###....##.
+    !byte %##...##.                                                   ;##.....#.....##.
+    !byte %##.....#                                                   ;
+    !byte %###...##                                                   ;
+    !byte %####..##                                                   ;
+    !byte %##.##.##                                                   ;
+    !byte %##..####                                                   ;
+    !byte %##....##                                                   ;
+    !byte %##....##                                                   ;
+    !byte %##.....#                                                   ;
+    !byte %.....##.                                                   ;
+    !byte %#...###.                                                   ;
+    !byte %#..####.                                                   ;
+    !byte %#.##.##.                                                   ;
+    !byte %###..##.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %.....##.                                                   ;
 
 
 ; ----------------------------------------------------------------------------------
@@ -6336,8 +6330,6 @@ score_points_for_destroying_enemy_ship
     lda how_enemy_ship_was_damaged                                    ;
     asl                                                               ;
     tay                                                               ;
-    lda enemy_ships_can_cloak                                         ;
-    beq not_cloaked                                                   ; this branch can never happen.
     iny                                                               ;
     lda enemy_ships_type,x                                            ;
     cmp #4                                                            ;
@@ -6359,13 +6351,13 @@ convert_offset_to_score
     lda scores_for_destroying_enemy_ships,y                           ;
     clc                                                               ;
     sei                                                               ;
-    sed                                                               ;
+    sed                                                               ; BCD on
     adc score_delta_low                                               ;
     sta score_delta_low                                               ;
     lda score_delta_high                                              ;
     adc #0                                                            ;
     sta score_delta_high                                              ;
-    cld                                                               ;
+    cld                                                               ; BCD off
     cli                                                               ;
     rts                                                               ;
 
@@ -6376,7 +6368,7 @@ apply_delta_to_score
     lda score_delta_low                                               ;
     clc                                                               ;
     sei                                                               ;
-    sed                                                               ;
+    sed                                                               ; BCD on
     adc score_as_bcd                                                  ;
     sta score_as_bcd                                                  ;
     lda score_as_bcd + 1                                              ;
@@ -6385,7 +6377,7 @@ apply_delta_to_score
     lda score_as_bcd + 2                                              ;
     adc #0                                                            ;
     sta score_as_bcd + 2                                              ;
-    cld                                                               ;
+    cld                                                               ; BCD off
     cli                                                               ;
     lda #0                                                            ;
     cmp score_delta_low                                               ;
@@ -6853,10 +6845,8 @@ continue2
     dec x_pixels                                                      ;
     jsr set_pixel                                                     ;
 skip_plotting_enemy_ship_on_scanner
-    lda temp8                                                         ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    ldx temp8                                                         ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     beq continue3                                                     ;
     jmp plot_enemy_ships_on_scanners_loop                             ;
@@ -7200,7 +7190,7 @@ set_retreating_and_head_towards_desired_velocity_and_angle
 
 ; ----------------------------------------------------------------------------------
 maximum_enemy_torpedo_cooldown_per_command
-    !byte $0f, $0d, $0b, 9  , 7  , 5  , 3  , 2                        ;
+    !byte 15, 13, 11, 9  , 7  , 5  , 3  , 2                           ;
 command_number_used_for_maximum_enemy_torpedo_cooldown_lookup
     !byte 0                                                           ;
 probability_of_new_enemy_ship_being_defensive_about_damage
@@ -7326,22 +7316,12 @@ starship_type
     !byte 0                                                           ;
 command_number
     !byte 0                                                           ;
-regeneration_rate_for_enemy_ships
-    !byte 1                                                           ;
-maximum_timer_for_enemy_ships_regeneration
-    !byte 4                                                           ;
 timer_for_enemy_ships_regeneration
     !byte 0                                                           ;
-base_regeneration_rate_for_starship
-    !byte $0c                                                         ;
 maximum_timer_for_starship_energy_regeneration
     !byte 3                                                           ;
 timer_for_starship_energy_regeneration
     !byte 3                                                           ;
-base_damage_to_enemy_ship_from_other_collision
-    !byte $14                                                         ;
-change_in_number_of_stars_per_command
-    !byte $fe                                                         ;
 subtraction_from_starship_regeneration_when_shields_active
     !byte 4                                                           ;
 
@@ -7376,9 +7356,9 @@ prepare_starship_for_next_command
     lda command_number                                                ;
     clc                                                               ;
     sei                                                               ;
-    sed                                                               ;
+    sed                                                               ; BCD on
     adc #1                                                            ;
-    cld                                                               ;
+    cld                                                               ; BCD off
     cli                                                               ;
     sta command_number                                                ;
     lda #0                                                            ;
@@ -7499,10 +7479,7 @@ initialise_enemy_ships_loop
     jsr initialise_enemy_ship                                         ;
     lda #1                                                            ;
     sta enemy_ships_previous_on_screen,x                              ;
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     bne initialise_enemy_ships_loop                                   ;
     rts                                                               ;
@@ -7521,7 +7498,7 @@ initialise_joystick_and_cursor_keys
 update_enemy_ships
     dec timer_for_enemy_ships_regeneration                            ;
     bpl skip_timer_reset                                              ;
-    lda maximum_timer_for_enemy_ships_regeneration                    ;
+    lda #maximum_timer_for_enemy_ships_regeneration                   ;
     sta timer_for_enemy_ships_regeneration                            ;
 skip_timer_reset
     lda #maximum_number_of_enemy_torpedoes                            ;
@@ -7568,7 +7545,7 @@ cooldown_is_zero
     bcs skip_enemy_regeneration                                       ;
     lda enemy_ships_energy,x                                          ;
     clc                                                               ;
-    adc regeneration_rate_for_enemy_ships                             ;
+    adc #regeneration_rate_for_enemy_ships                            ;
     bcc skip_ceiling3                                                 ;
     lda #$ff                                                          ;
 skip_ceiling3
@@ -7626,10 +7603,7 @@ skip_changing_behaviour_type
     and #$f0                                                          ; reset enemy_ship_hit_count
 skip_resetting_hit_count
     sta enemy_ships_temporary_behaviour_flags,x                       ;
-    txa                                                               ;
-    clc                                                               ;
-    adc #$0b                                                          ;
-    tax                                                               ;
+    inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     beq return27                                                      ;
     jmp update_enemy_ships_loop                                       ;
@@ -7739,6 +7713,7 @@ return_after_changing_velocity5
 to_return_from_enemy_ship_behaviour_routine3
     jmp return_from_enemy_ship_behaviour_routine                      ;
 
+!if do_debug {
 counter
     !byte 0
 column
@@ -7746,7 +7721,6 @@ column
 row
     !byte 0
 
-!if do_debug {
 ; ----------------------------------------------------------------------------------
 debug_plot
     lda #50
@@ -7966,7 +7940,7 @@ post_wait_for_timer
     bne set_regeneration                                              ;
     lda maximum_timer_for_starship_energy_regeneration                ;
     sta timer_for_starship_energy_regeneration                        ;
-    lda base_regeneration_rate_for_starship                           ;
+    lda #base_regeneration_rate_for_starship                          ;
     sec                                                               ;
     sbc starship_velocity_high                                        ;
     ldy starship_shields_active                                       ;
@@ -7991,7 +7965,7 @@ skip_player_movement
     lda rnd_2                                                         ;
     and #$3f                                                          ;
     clc                                                               ;
-    adc base_damage_to_enemy_ship_from_other_collision                ;
+    adc #base_damage_to_enemy_ship_from_other_collision               ;
     sta damage_to_enemy_ship_from_other_collision                     ;
     lda starship_velocity_high                                        ;
     sta y_pixels                                                      ;
@@ -8193,7 +8167,7 @@ print_experience
     lda score_as_bcd                                                  ;
     sec                                                               ;
     sei                                                               ;
-    sed                                                               ;
+    sed                                                               ; BCD on
     sbc previous_score_as_bcd                                         ;
     sta previous_score_as_bcd                                         ;
     lda score_as_bcd + 1                                              ;
@@ -8202,7 +8176,7 @@ print_experience
     lda score_as_bcd + 2                                              ;
     sbc previous_score_as_bcd + 2                                     ;
     sta previous_score_as_bcd + 2                                     ;
-    cld                                                               ;
+    cld                                                               ; BCD off
     cli                                                               ;
 
     lda escape_capsule_destroyed                                      ;
@@ -8416,7 +8390,7 @@ plot_selected_options_loop
     asl                                                               ;
     adc game_options,x                                                ;
     asl                                                               ;
-    adc #$0b                                                          ;
+    adc #11                                                           ;
     jsr oswrch                                                        ;
     lda #$2d                                                          ;
     jsr oswrch                                                        ;
@@ -8848,7 +8822,7 @@ skip_change_of_probability
     cmp #minimum_number_of_stars                                      ;
     beq skip_change_of_stars                                          ;
     clc                                                               ;
-    adc change_in_number_of_stars_per_command                         ;
+    adc #change_in_number_of_stars_per_command                        ;
     sta maximum_number_of_stars                                       ;
 skip_change_of_stars
     lda #$16                                                          ;

@@ -81,6 +81,48 @@ and_they_retire_you_string
     !text " and they", 13,10," retire you from active service."        ;
 
 ; ----------------------------------------------------------------------------------
+award_string
+    !text "In recognition of your accomplishments on the field of battle, you have been posthumously awarded "
+
+; 1. a citation for distinguished service
+; 2. a citation for gallantry
+; 3. the Badge of Excellence
+; 4. the Badge of Honour
+; 5. the Badge of Valour
+; 6. the Medal of Excellence
+; 7. the Medal of Honour
+; 8. the Medal of Valour
+; 9. the Cross of Meritorious Honour
+; 10. the Cross of Conspicuous Gallantry
+; 11. the Cross of Outstanding Heroism
+
+award_type_1
+    !text "a citation for "
+award_type_2
+    !text "the Badge of "
+award_type_3
+    !text "the Medal of "
+award_type_4
+    !text "the Cross of "
+
+award_level_1
+    !text "distinguished service"
+award_level_2
+    !text "gallantry"
+award_level_3
+    !text "Excellence"
+award_level_4
+    !text "Honour"
+award_level_5
+    !text "Valour"
+award_level_6
+    !text "Meritorious Honour"
+award_level_7
+    !text "Conspicuous Gallantry"
+award_level_8
+    !text "Outstanding Heroism"
+
+; ----------------------------------------------------------------------------------
 instructions_string1
     !byte $1f, 6  , 2                                                 ;
     !text "**** STARSHIP CONTROLS ****"                               ;
