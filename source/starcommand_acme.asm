@@ -455,6 +455,7 @@ score_as_digits4                    = $94
 score_as_digits5                    = $95
 
 num_frontier_star_updates           = $96
+rotation_damper                     = $97
 
 ; ----------------------------------------------------------------------------------
 ; memory locations
@@ -855,8 +856,6 @@ shields_state_delta
 rotation_delta
     !byte 0                                                           ;
 starship_rotation_fraction
-    !byte 0                                                           ;
-rotation_damper
     !byte 0                                                           ;
 velocity_delta
     !byte 0                                                           ;
@@ -7389,7 +7388,6 @@ prepare_starship_for_next_command
     sta damage_high                                                   ;
     sta damage_low                                                    ;
     sta starship_energy_divided_by_sixteen                            ;
-    sta rotation_damper                                               ;
     sta velocity_damper                                               ;
     sta velocity_gauge_position                                       ;
     sta rotation_gauge_position                                       ;
@@ -9509,6 +9507,9 @@ done
 
     lda #$ca                                                          ;
     sta rnd_1                                                         ; seed random numbers
+    lda #0                                                            ;
+    sta rotation_damper                                               ;
+
 
     ; set up timer
     lda #0                                                            ;
