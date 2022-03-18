@@ -2,3 +2,4 @@ tools/CCTraceAnalysis/**
 *.SSD
 build/**
 *.bbprojectd
+workspace/**
