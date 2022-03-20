@@ -232,8 +232,8 @@ do_debug = 0
 ; ----------------------------------------------------------------------------------
 ; gameplay constants
 ; ----------------------------------------------------------------------------------
-; Number of 50Hz frames between game updates = 2*game_speed/39 = 60/39 ~= 1.53
-game_speed                                                          = 30
+; Number of 50Hz frames between game updates = 2*game_speed/39 = 66/39 ~= 1.69
+game_speed                                                          = 33
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
@@ -1017,24 +1017,24 @@ eor_frontier_pixel
 ; unsigned.
 ; Preserves Y
 ; ----------------------------------------------------------------------------------
-mul8x8
-    sta sm1                                                           ;
-    sta sm3                                                           ;
-    eor #$ff                                                          ;
-    sta sm2                                                           ;
-    sta sm4                                                           ;
-
-    sec                                                               ;
-sm1 = * + 1
-    lda squares1_low,x                                                ;
-sm2 = * + 1
-    sbc squares2_low,x                                                ;
-    sta prod_low                                                      ;
-sm3 = * + 1
-    lda squares1_high,x                                               ;
-sm4 = * + 1
-    sbc squares2_high,x                                               ;
-    rts                                                               ;
+;mul8x8
+;    sta sm1                                                           ;
+;    sta sm3                                                           ;
+;    eor #$ff                                                          ;
+;    sta sm2                                                           ;
+;    sta sm4                                                           ;
+;
+;    sec                                                               ;
+;sm1 = * + 1
+;    lda squares1_low,x                                                ;
+;sm2 = * + 1
+;    sbc squares2_low,x                                                ;
+;    sta prod_low                                                      ;
+;sm3 = * + 1
+;    lda squares1_high,x                                               ;
+;sm4 = * + 1
+;    sbc squares2_high,x                                               ;
+;    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 init_self_modifying_bytes_for_starship_rotation
@@ -1050,10 +1050,18 @@ init_self_modifying_bytes_for_starship_rotation
     sta sm_sine_b4                                                    ;
     lda starship_rotation_cosine                                      ;
     sta sm_cosine_a1                                                  ;
+    sta sm_cosine_b1                                                  ;
+    sta sm_cosine_c1                                                  ;
     sta sm_cosine_a3                                                  ;
+    sta sm_cosine_b3                                                  ;
+    sta sm_cosine_c3                                                  ;
     eor #$ff                                                          ;
     sta sm_cosine_a2                                                  ;
+    sta sm_cosine_b2                                                  ;
+    sta sm_cosine_c2                                                  ;
     sta sm_cosine_a4                                                  ;
+    sta sm_cosine_b4                                                  ;
+    sta sm_cosine_c4                                                  ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1134,7 +1142,7 @@ sm_cosine_a1 = * + 1
     sec                                                               ;
 sm_cosine_a2 = * + 1
     sbc squares2_low,x                                                ;
-    sta prod_low                                                      ;
+;    sta prod_low                                                      ;
 sm_cosine_a3 = * + 1
     lda squares1_high,x                                               ;
 sm_cosine_a4 = * + 1
@@ -1348,13 +1356,33 @@ multiply_enemy_position_by_starship_rotation_cosine
     ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
     ; result in A (low) and temp8 (high)
 mul16x8a
-    lda starship_rotation_cosine                                      ;
+
+    ; multiply b * starship_rotation_cosine, result in A (high byte) and prod_low
     ldx b                                                             ;
-    jsr mul8x8                                                        ;
-    tay                                                               ; Y=high byte only ('t')
-    lda starship_rotation_cosine                                      ;
+sm_cosine_b1 = * + 1
+    lda squares1_low,x                                                ;
+    sec                                                               ;
+sm_cosine_b2 = * + 1
+    sbc squares2_low,x                                                ;
+sm_cosine_b3 = * + 1
+    lda squares1_high,x                                               ;
+sm_cosine_b4 = * + 1
+    sbc squares2_high,x                                               ;
+
+    tay                                                               ; remember high byte ('t')
     ldx c                                                             ;
-    jsr mul8x8                                                        ;
+    ; multiply c * starship_rotation_cosine, result in A (high byte) and prod_low
+sm_cosine_c1 = * + 1
+    lda squares1_low,x                                                ;
+    sec                                                               ;
+sm_cosine_c2 = * + 1
+    sbc squares2_low,x                                                ;
+    sta prod_low                                                      ;
+sm_cosine_c3 = * + 1
+    lda squares1_high,x                                               ;
+sm_cosine_c4 = * + 1
+    sbc squares2_high,x                                               ;
+
     sta temp8                                                         ;
     tya                                                               ; recall 't'
     clc                                                               ;
@@ -1855,8 +1883,8 @@ unplot_long_range_scanner_if_shields_inactive
     inc screen_start_high                                             ; draw to scanner
     jsr unset_pixel                                                   ;
     dec screen_start_high                                             ; draw to play area
-    jsr plot_shields_text                                             ;
-    rts                                                               ;
+    ldx #regular_string_index_shields_on                              ;
+    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_with_blank_text
@@ -1864,7 +1892,8 @@ plot_top_and_right_edge_of_long_range_scanner_with_blank_text
     bne return5                                                       ;
     lda #1                                                            ;
     sta starship_shields_active                                       ;
-    jsr plot_blank_text                                               ;
+    ldx #regular_string_index_shields_off                             ;
+    jsr print_regular_string                                          ;
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
@@ -4486,24 +4515,6 @@ random_number_generator
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-game_key_table
-    !byte $9e                                                         ; 'Z'
-    !byte $bd                                                         ; 'X'
-    !byte $9a                                                         ; 'M'
-    !byte $99                                                         ; ','
-    !byte $aa                                                         ; 'N'
-    !byte $ac                                                         ; 'G'
-    !byte $bc                                                         ; 'F'
-    !byte $df                                                         ; 'f0'
-    !byte $8e                                                         ; 'f1'
-    !byte $ce                                                         ; '2'
-    !byte $ee                                                         ; '3'
-    !byte $9c                                                         ; 'V'
-    !byte $9b                                                         ; 'B'
-    !byte $ad                                                         ; 'C'
-    !byte $96                                                         ; 'Copy'
-
-; ----------------------------------------------------------------------------------
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
 sound_1
@@ -4610,32 +4621,8 @@ plot_energy_bar_edges_loop
     lda #$21                                                          ;
     jsr plot_vertical_line_xy                                         ;
     dec screen_start_high                                             ;
+return16a
     rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-plot_energy_text
-    ldx #regular_string_index_energy_string                           ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-plot_one_two_three_four_text
-    ldx #regular_string_index_one_two_three_four                      ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-plot_shields_text
-    ldx #regular_string_index_shields_on                              ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-plot_blank_text
-    ldx #regular_string_index_shields_off                             ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-plot_screen_border
-    ldx #regular_string_index_screen_border                           ;
-    jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
 set_foreground_colour_to_white
@@ -4645,11 +4632,6 @@ set_foreground_colour_to_white
 ; ----------------------------------------------------------------------------------
 set_foreground_colour_to_black
     ldx #regular_string_index_set_foreground_colour_to_black          ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-set_background_colour_to_black
-    ldx #regular_string_index_set_background_colour_to_black          ;
     jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------
@@ -4665,120 +4647,156 @@ disable_cursor
 ; ----------------------------------------------------------------------------------
 check_for_keypresses
     ldy escape_capsule_launched                                       ;
-    bne return17                                                      ;
+    bne return16a                                                     ;
     ldy keyboard_or_joystick                                          ;
     beq use_keyboard_input                                            ;
     jsr get_joystick_input                                            ;
-    lda #4                                                            ;
-    sta temp8                                                         ;
-    bne check_for_additional_keys                                     ;
-use_keyboard_input
-    lda #$ff                                                          ;
-    sta temp8                                                         ;
-    jsr check_key                                                     ; 'Z'
-    beq not_rotate_anticlockwise                                      ;
-    dec rotation_delta                                                ;
-not_rotate_anticlockwise
-    jsr check_key                                                     ; 'X'
-    beq not_rotate_clockwise                                          ;
-    inc rotation_delta                                                ;
-not_rotate_clockwise
-    jsr check_key                                                     ; 'M'
-    beq not_accelerate                                                ;
-    inc velocity_delta                                                ;
-not_accelerate
-    jsr check_key                                                     ; ','
-    beq not_decelerate                                                ;
-    dec velocity_delta                                                ;
-not_decelerate
-    jsr check_key                                                     ; 'N'
-    beq check_for_additional_keys                                     ;
-    inc fire_pressed                                                  ;
-check_for_additional_keys
-    jsr check_key                                                     ; 'G'
-    beq not_launch_starboard_escape_capsule                           ;
-    jmp launch_escape_capsule_starboard                               ;
+    jmp check_for_additional_keys                                     ;
 
-not_launch_starboard_escape_capsule
-    jsr check_key                                                     ; 'F'
-    beq not_launch_port_escape_capsule                                ;
+; ----------------------------------------------------------------------------------
+inkey_z      = $9e                                                    ; 'Z'
+inkey_x      = $bd                                                    ; 'X'
+inkey_m      = $9a                                                    ; 'M'
+inkey_comma  = $99                                                    ; ','
+inkey_n      = $aa                                                    ; 'N'
+inkey_g      = $ac                                                    ; 'G'
+inkey_f      = $bc                                                    ; 'F'
+inkey_f0     = $df                                                    ; 'f0'
+inkey_f1     = $8e                                                    ; 'f1'
+inkey_2      = $ce                                                    ; '2'
+inkey_3      = $ee                                                    ; '3'
+inkey_v      = $9c                                                    ; 'V'
+inkey_b      = $9b                                                    ; 'B'
+inkey_c      = $ad                                                    ; 'C'
+inkey_copy   = $96                                                    ; 'Copy'
+inkey_colon  = $b7                                                    ; ':'
+inkey_slash  = $97                                                    ; '/'
+inkey_return = $b6                                                    ; 'Return'
+
+; ----------------------------------------------------------------------------------
+use_keyboard_input
+    ldx #inkey_z                                                      ;
+    jsr check_key_x                                                   ; 'Z'
+    bne +                                                             ;
+    dec rotation_delta                                                ;
++
+    ldx #inkey_x                                                      ;
+    jsr check_key_x                                                   ; 'X'
+    bne +                                                             ;
+    inc rotation_delta                                                ;
++
+    ldx #inkey_m                                                      ;
+    jsr check_key_x                                                   ; 'M'
+    beq speed_up                                                      ;
+    ldx #inkey_colon                                                  ;
+    jsr check_key_x                                                   ; ':'
+    bne +                                                             ;
+speed_up
+    inc velocity_delta                                                ;
+
++
+    ldx #inkey_comma                                                  ;
+    jsr check_key_x                                                   ; ','
+    beq slow_down                                                     ;
+
+    ldx #inkey_slash                                                  ;
+    jsr check_key_x                                                   ; '/'
+    bne +                                                             ;
+slow_down
+    dec velocity_delta                                                ;
++
+    ldx #inkey_n                                                      ;
+    jsr check_key_x                                                   ; 'N'
+    beq fire                                                          ;
+    ldx #inkey_return                                                 ;
+    jsr check_key_x                                                   ; 'RETURN'
+    bne check_for_additional_keys                                     ;
+fire
+    inc fire_pressed                                                  ;
+
+check_for_additional_keys
+    ldx #inkey_g                                                      ;
+    jsr check_key_x                                                   ; 'G'
+    bne +                                                             ;
+    jmp launch_escape_capsule_starboard                               ;
++
+    ldx #inkey_f                                                      ;
+    jsr check_key_x                                                   ; 'F'
+    bne +                                                             ;
     jmp launch_escape_capsule_port                                    ;
 
-not_launch_port_escape_capsule
++
     lda keyboard_or_joystick                                          ;
     beq is_keyboard                                                   ;
-    lda #$0a                                                          ;
-    sta temp8                                                         ;
     bne skip_damper_keys                                              ;
 is_keyboard
     lda rotation_delta                                                ;
     ora velocity_delta                                                ;
     bne return17                                                      ; dampers only work when not accelerating / turning
-    jsr check_key                                                     ; 'f0'
-    beq not_enable_rotation_damper                                    ;
+    ldx #inkey_f0                                                     ;
+    jsr check_key_x                                                   ; 'f0'
+    bne +                                                             ;
     lda #1                                                            ;
-    sta rotation_damper                                               ;
+    sta rotation_damper                                               ; rotation dampers on
 return17
     rts                                                               ;
 
-not_enable_rotation_damper
-    jsr check_key                                                     ; 'f1'
-    beq not_enable_velocity_damper                                    ;
++
+    ldx #inkey_f1                                                     ;
+    jsr check_key_x                                                   ; 'f1'
+    bne +                                                             ;
     lda #1                                                            ;
-    sta velocity_damper                                               ;
+    sta velocity_damper                                               ; velocity dampers on
     rts                                                               ;
 
-not_enable_velocity_damper
-    jsr check_key                                                     ; '2'
-    beq not_disable_rotation_damper                                   ;
++
+    ldx #inkey_2                                                      ;
+    jsr check_key_x                                                   ; '2'
+    bne +                                                             ;
     lda #0                                                            ;
-    sta rotation_damper                                               ;
+    sta rotation_damper                                               ; rotation dampers off
     rts                                                               ;
 
-not_disable_rotation_damper
-    jsr check_key                                                     ; '3'
-    beq skip_damper_keys                                              ;
++
+    ldx #inkey_3                                                      ;
+    jsr check_key_x                                                   ; '3'
+    bne skip_damper_keys                                              ;
     lda #0                                                            ;
-    sta velocity_damper                                               ;
+    sta velocity_damper                                               ; velocity dampers off
     rts                                                               ;
 
 skip_damper_keys
-    jsr check_key                                                     ; 'V'
-    beq not_enable_shields                                            ;
-    inc shields_state_delta                                           ;
+    ldx #inkey_v                                                      ;
+    jsr check_key_x                                                   ; 'V'
+    bne +                                                             ;
+    inc shields_state_delta                                           ; enable shields
     rts                                                               ;
 
-not_enable_shields
-    jsr check_key                                                     ; 'B'
-    beq not_disable_shields                                           ;
-    dec shields_state_delta                                           ;
++
+    ldx #inkey_b                                                      ;
+    jsr check_key_x                                                   ; 'B'
+    bne +                                                             ;
+    dec shields_state_delta                                           ; disable shields
     rts                                                               ;
 
-not_disable_shields
-    jsr check_key                                                     ; 'C'
-    beq check_for_copy                                                ;
++
+    ldx #inkey_c                                                      ;
+    jsr check_key_x                                                   ; 'C'
+    bne +                                                             ;
     lda #1                                                            ;
-    sta starship_automatic_shields                                    ;
+    sta starship_automatic_shields                                    ; automatic shields
     rts                                                               ;
 
-check_for_copy
-    jsr check_key                                                     ;
-    beq return18                                                      ;
-    jmp pause_game                                                    ;
++
+    ldx #inkey_copy                                                   ;
+    jsr check_key_x                                                   ;
+    bne return18                                                      ;
 
+pause_game
+    ldx #inkey_key_delete                                             ;
+    jsr check_key_x                                                   ;
+    bne pause_game                                                    ;
 return18
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-check_key
-    inc temp8                                                         ;
-    ldx temp8                                                         ;
-    lda game_key_table,x                                              ;
-    tay                                                               ;
-    tax                                                               ;
-    lda #osbyte_inkey                                                 ;
-    jsr osbyte                                                        ;
-    tya                                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -4787,13 +4805,6 @@ check_key_x
     ldy #$ff                                                          ;
     jsr osbyte                                                        ;
     cpy #$ff                                                          ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-pause_game
-    ldx #inkey_key_delete                                             ;
-    jsr check_key_x                                                   ;
-    bne pause_game                                                    ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -5373,23 +5384,20 @@ escape_capsule_launch_direction
 initialise_game_screen
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
-    jsr set_background_colour_to_black                                ;
     jsr initialise_starship_explosion_pieces                          ;
     jsr plot_starship                                                 ;
-    jsr plot_energy_text                                              ;
-    jsr plot_one_two_three_four_text                                  ;
+    ldx #regular_string_index_energy_string                           ;
+    jsr print_regular_string                                          ;
     jsr plot_energy_bar_edges                                         ;
     jsr plot_gauge_edges                                              ;
     jsr plot_scanner_grid                                             ;
     jsr plot_command_number                                           ;
-    jsr plot_screen_border                                            ;
 !if do_debug = 0 {
     jsr plot_stars                                                    ;
 }
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     jsr initialise_joystick_and_cursor_keys                           ;
-    jsr set_foreground_colour_to_white                                ;
-    rts                                                               ;
+    jmp set_foreground_colour_to_white                                ;
 
 ; ----------------------------------------------------------------------------------
 launch_escape_capsule_port
@@ -7381,8 +7389,7 @@ prepare_starship_for_next_command
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
-    jsr plot_enemy_ships                                              ;
-    rts                                                               ;
+    jmp plot_enemy_ships                                              ;
 
 ; ----------------------------------------------------------------------------------
 plot_command_number
@@ -7429,6 +7436,7 @@ single_digit_command_number
 plot_escape_capsule_launched
     ldx #regular_string_index_escape_capsule_launched                 ;
     jsr print_regular_string                                          ;
+
     ldy #$c8                                                          ;
     ldx #$3f                                                          ;
 
@@ -9055,24 +9063,6 @@ call_old_irq
     jmp (old_irq1_low)                                      ;
 
 ; ----------------------------------------------------------------------------------
-regular_string_index_shield_state_on                = 0
-regular_string_index_shield_state_off               = 1
-regular_string_index_shield_state_auto              = 2
-regular_string_index_screen_border                  = 3
-regular_string_index_set_foreground_colour_to_white = 4
-regular_string_index_set_foreground_colour_to_black = 5
-regular_string_index_set_background_colour_to_black = 6
-regular_string_index_energy_string                  = 7
-regular_string_index_one_two_three_four             = 8
-regular_string_index_shields_on                     = 9
-regular_string_index_shields_off                    = 10
-regular_string_index_enable_cursor                  = 11
-regular_string_index_disable_cursor                 = 12
-regular_string_index_escape_capsule_launched        = 13
-regular_string_index_command                        = 14
-regular_string_index_command_move                   = 15
-
-; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
 print_regular_string
@@ -9461,6 +9451,21 @@ create_other_tables
     rts
 
 ; ----------------------------------------------------------------------------------
+regular_string_index_shield_state_on                = 0
+regular_string_index_shield_state_off               = 1
+regular_string_index_shield_state_auto              = 2
+regular_string_index_set_foreground_colour_to_white = 3
+regular_string_index_set_foreground_colour_to_black = 4
+regular_string_index_energy_string                  = 5
+regular_string_index_shields_on                     = 6
+regular_string_index_shields_off                    = 7
+regular_string_index_enable_cursor                  = 8
+regular_string_index_disable_cursor                 = 9
+regular_string_index_escape_capsule_launched        = 10
+regular_string_index_command                        = 11
+regular_string_index_command_move                   = 12
+
+; ----------------------------------------------------------------------------------
 regular_strings_start
 
 !pseudopc $0d00 {
@@ -9487,18 +9492,6 @@ shield_state_string3
 shield_state_string3_end
 
 ; ----------------------------------------------------------------------------------
-screen_border_string
-    !byte screen_border_string_end - screen_border_string
-    !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
-    !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
-    !byte $19,  5  ,  $ff,  4  ,  0  , 0                              ; DRAW 1279, 0
-    !byte $19,  5  ,  0  ,  0  ,  0  , 0                              ; DRAW    0, 0
-    !byte $19,  5  ,  0  ,  0  ,  $ff, 3                              ; DRAW    0, 1023
-    !byte $19,  5  ,  $ff,  3  ,  $ff, 3                              ; DRAW 1023, 1023
-    !byte $19,  5  ,  $ff,  3  ,  0  , 0                              ; DRAW 1023, 0
-screen_border_string_end
-
-; ----------------------------------------------------------------------------------
 set_foreground_colour_to_white_string
     !byte set_foreground_colour_to_white_string_end - set_foreground_colour_to_white_string
     !byte 19, 1, 7, 0, 0, 0                                           ; VDU 19,1,7,0,0,0
@@ -9511,21 +9504,10 @@ set_foreground_colour_to_black_string
 set_foreground_colour_to_black_string_end
 
 ; ----------------------------------------------------------------------------------
-set_background_colour_to_black_string
-    !byte set_background_colour_to_black_string_end - set_background_colour_to_black_string
-    !byte 19, 0, 0, 0, 0, 0                                           ; VDU 19,0,0,0,0,0
-set_background_colour_to_black_string_end
-
-; ----------------------------------------------------------------------------------
 energy_string
     !byte energy_string_end - energy_string
     !byte $1f, 33, 17                                                 ; TAB(33, 17)
     !text "ENERGY"                                                    ;
-energy_string_end
-
-; ----------------------------------------------------------------------------------
-one_two_three_four_string
-    !byte one_two_three_four_string_end - one_two_three_four_string
     !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
     !byte 5                                                           ; VDU 5
     !byte $31, 8, $0a                                                 ; "1"
@@ -9533,7 +9515,14 @@ one_two_three_four_string
     !byte $33, 8, $0a                                                 ; "3"
     !byte $34                                                         ; "4"
     !byte 4                                                           ; VDU 4
-one_two_three_four_string_end
+    !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
+    !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
+    !byte $19,  5  ,  $ff,  4  ,  0  , 0                              ; DRAW 1279, 0
+    !byte $19,  5  ,  0  ,  0  ,  0  , 0                              ; DRAW    0, 0
+    !byte $19,  5  ,  0  ,  0  ,  $ff, 3                              ; DRAW    0, 1023
+    !byte $19,  5  ,  $ff,  3  ,  $ff, 3                              ; DRAW 1023, 1023
+    !byte $19,  5  ,  $ff,  3  ,  0  , 0                              ; DRAW 1023, 0
+energy_string_end
 
 ; ----------------------------------------------------------------------------------
 shields_string
@@ -9545,6 +9534,7 @@ shields_string
 shields_string_end
 
 ; ----------------------------------------------------------------------------------
+; aka shields_off
 blank_string
     !byte blank_string_end - blank_string
     !byte $1f, 33, 2                                                  ; TAB(33, 2)

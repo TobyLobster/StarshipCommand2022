@@ -129,16 +129,16 @@ award_level_8
 instructions_string1
     !byte $1f, 6  , 2                                                 ;
     !text "**** STARSHIP CONTROLS ****"                               ;
-    !byte $1f, 3  , 5                                                 ;
+    !byte 31, 13  , 5                                                 ;
     !text "Z  -  Rotate left"                                         ;
-    !byte $1f, 3  , 6                                                 ;
+    !byte 31, 13  , 6                                                 ;
     !text "X  -  Rotate right"                                        ;
-    !byte $1f, 3  , 7                                                 ;
-    !text "N  -  Fire torpedoes"                                      ;
-    !byte $1f, 3  , 8                                                 ;
-    !text "M  -  Thrust"                                              ;
-    !byte $1f, 3  , 9                                                 ;
-    !text ",  -  Brake"                                               ;
+    !byte 31, 3, 7                                                    ;
+    !text "Return or N  -  Fire torpedoes"                            ;
+    !byte 31, 7  , 8                                                  ;
+    !text " : or M  -  Thrust"                                        ;
+    !byte 31, 7  , 9                                                  ;
+    !text " / or ,  -  Brake"                                         ;
     !byte $1f, 3  , 11                                                ;
     !text "F  -  Launch port escape capsule"                          ;
     !byte $1f, 3  , 12                                                ;
