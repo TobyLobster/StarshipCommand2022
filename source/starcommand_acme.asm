@@ -1037,18 +1037,28 @@ sm4 = * + 1
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
-; On Entry:
-;   X = low byte of position (one coordinate)
-;   Y = high byte of position (one coordinate)
-; ----------------------------------------------------------------------------------
-multiply_object_position_by_starship_rotation_sine_magnitude
-
+init_self_modifying_bytes_for_starship_rotation
     lda starship_rotation_sine_magnitude                              ;
-    sty c                                                             ;
-    ; fall through to multiply routine...
+    sta sm_sine_a1                                                    ;
+    sta sm_sine_b1                                                    ;
+    sta sm_sine_a3                                                    ;
+    sta sm_sine_b3                                                    ;
+    eor #$ff                                                          ;
+    sta sm_sine_a2                                                    ;
+    sta sm_sine_b2                                                    ;
+    sta sm_sine_a4                                                    ;
+    sta sm_sine_b4                                                    ;
+    lda starship_rotation_cosine                                      ;
+    sta sm_cosine_a1                                                  ;
+    sta sm_cosine_a3                                                  ;
+    eor #$ff                                                          ;
+    sta sm_cosine_a2                                                  ;
+    sta sm_cosine_a4                                                  ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
+;
 ; Given a signed 8.8 fixed point number 'b.a', and an 8 bit number 'c'
 ; calculate the product 'b.a * c' with the result in 8.8 fixed point 'output_fraction . output_pixels'
 ;
@@ -1062,19 +1072,39 @@ multiply_object_position_by_starship_rotation_sine_magnitude
 ; here b = starship_rotation_sine_magnitude
 ;      a = x register
 ;
+; On Entry:
+;   X = low byte of position  (one coordinate)
+;   Y = high byte of position (one coordinate)
 ; On Exit:
 ;   output_pixels (low) and output_fraction (high)
 ; ----------------------------------------------------------------------------------
-;mul16x8
-;    lda a                                                             ;
-;    ldx starship_rotation_sine_magnitude                              ; b
-    jsr mul8x8                                                        ;
-    tay                                                               ; high byte ('t')
-    lda c                                                             ;
-    ldx starship_rotation_sine_magnitude                              ; b
-    jsr mul8x8                                                        ;
+multiply_object_position_by_starship_rotation_sine_magnitude
+    ; 8 bit multiply starship_rotation_sine_magnitude * x into A register (the high byte)
+sm_sine_a1 = * + 1
+    lda squares1_low,x                                                ;
+    sec                                                               ;
+sm_sine_a2 = * + 1
+    sbc squares2_low,x                                                ;
+sm_sine_a3 = * + 1
+    lda squares1_high,x                                               ;
+sm_sine_a4 = * + 1
+    sbc squares2_high,x                                               ;
+
+    tax                                                               ; X = store the high byte 't'
+
+    ; 8 bit multiply starship_rotation_sine_magnitude * y into A register (high byte) and prod_low
+sm_sine_b1 = * + 1
+    lda squares1_low,y                                                ;
+    sec                                                               ;
+sm_sine_b2 = * + 1
+    sbc squares2_low,y                                                ;
+    sta prod_low                                                      ;
+sm_sine_b3 = * + 1
+    lda squares1_high,y                                               ;
+sm_sine_b4 = * + 1
+    sbc squares2_high,y                                               ;
     sta output_fraction                                               ;
-    tya                                                               ; recall 't'
+    txa                                                               ; recall 't'
     clc
     adc prod_low                                                      ;
     sta output_pixels                                                 ;
@@ -1098,9 +1128,17 @@ multiply_object_position_by_starship_rotation_cosine
 
     ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
     sty position                                                      ;
-    tya                                                               ;
-    ldx starship_rotation_cosine                                      ;
-    jsr mul8x8                                                        ; high byte only
+    ldx position                                                      ;
+sm_cosine_a1 = * + 1
+    lda squares1_low,x                                                ;
+    sec                                                               ;
+sm_cosine_a2 = * + 1
+    sbc squares2_low,x                                                ;
+    sta prod_low                                                      ;
+sm_cosine_a3 = * + 1
+    lda squares1_high,x                                               ;
+sm_cosine_a4 = * + 1
+    sbc squares2_high,x                                               ;
 
     sec                                                               ;
     sbc position                                                      ;
@@ -2791,6 +2829,7 @@ skip_inversion3
     sta starship_rotation_sine_magnitude                              ;
     lda starship_rotation_cosine_table,y                              ;
     sta starship_rotation_cosine                                      ;
+    jsr init_self_modifying_bytes_for_starship_rotation               ;
 incur_energy_drain_from_rotation
     lda #starship_energy_drain_from_non_zero_rotation                 ;
     jsr incur_low_damage                                              ;
@@ -7330,6 +7369,8 @@ prepare_starship_for_next_command
     lda #$7f                                                          ;
     sta starship_energy_low                                           ;
 
+    jsr init_self_modifying_bytes_for_starship_rotation               ;
+
     ; fill enemy ship cache
     jsr fill_enemy_cache                                              ;
 
@@ -8879,6 +8920,7 @@ start
     sta starship_rotation_cosine                                      ;
     lda #$0a                                                          ;
     sta starship_rotation_sine_magnitude                              ;
+    jsr init_self_modifying_bytes_for_starship_rotation               ;
     lda #$0a                                                          ; number of pages to offset drawing from start of screen memory
     sta screen_start_high                                             ;
     jsr plot_frontier_stars                                           ;
