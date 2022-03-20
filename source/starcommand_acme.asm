@@ -253,6 +253,7 @@ damage_to_enemy_ship_from_starship_torpedo                          = 16
 size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
 maximum_starship_explosion_countdown                                = 80
 number_of_bytes_per_enemy_explosion                                 = $3f
+enemy_full_speed                                                    = 24
 
 starship_maximum_x_for_collisions_with_enemy_torpedoes              = $86
 starship_minimum_x_for_collisions_with_enemy_torpedoes              = $78
@@ -271,7 +272,6 @@ probability_of_enemy_ship_cloaking                                  = $3f   ; bi
 minimum_energy_for_enemy_ship_to_cloak                              = $40
 
 partial_velocity_for_damaged_enemy_ships                            = 6
-desired_velocity_for_intact_enemy_ships                             = $18
 minimum_number_of_stars                                             = 1
 
 starship_torpedo_cooldown_after_firing                              = 1
@@ -472,6 +472,7 @@ enemy_ship_update_done7                 = $bb
 
 starship_energy_low                     = $bc
 starship_energy_high                    = $bd
+desired_velocity_for_intact_enemy_ships = $be
 
 
 ; reuse zero page variables when filling in enemy cache
@@ -2315,6 +2316,12 @@ not_previously_on_screen
     dec enemy_ships_flags_or_explosion_timer,x                        ;
     bne return7                                                       ;
 
+    ; increment enemy velocity
+    lda desired_velocity_for_intact_enemy_ships                       ;
+    cmp #enemy_full_speed                                             ; full speed
+    bcs +                                                             ;
+    inc desired_velocity_for_intact_enemy_ships                       ;
++
     ; create new ship
     jmp initialise_enemy_ship                                         ;
 
@@ -7307,6 +7314,10 @@ subtraction_from_starship_regeneration_when_shields_active
     !byte 4                                                           ;
 
 ; ----------------------------------------------------------------------------------
+initial_enemy_speed_per_command
+    !byte enemy_full_speed/2, 3*enemy_full_speed/4, enemy_full_speed
+
+; ----------------------------------------------------------------------------------
 prepare_starship_for_next_command
     ldx starship_type                                                 ;
     inx                                                               ;
@@ -7334,6 +7345,8 @@ prepare_starship_for_next_command
     stx enemy_number                                                  ;
 
     inc command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
+
+    ; increment command number (in BCD)
     lda command_number                                                ;
     clc                                                               ;
     sei                                                               ;
@@ -7342,6 +7355,16 @@ prepare_starship_for_next_command
     cld                                                               ; BCD off
     cli                                                               ;
     sta command_number                                                ;
+
+    ; set velocity of enemy ships, based on command number
+    lda #enemy_full_speed                                             ; full speed
+    ldx command_number                                                ;
+    cpx #3                                                            ;
+    bcs +                                                             ;
+    lda initial_enemy_speed_per_command - 1,x                         ; lower speeds for lower commands
++
+    sta desired_velocity_for_intact_enemy_ships                       ;
+
     lda #0                                                            ;
     sta starship_has_exploded                                         ;
     sta escape_capsule_launched                                       ;
@@ -7498,7 +7521,7 @@ to_skip_changing_behaviour_type
 starship_still_viable
     cmp #$ff                                                          ;
     bne enemy_ship_is_damaged                                         ;
-    lda #desired_velocity_for_intact_enemy_ships                      ;
+    lda desired_velocity_for_intact_enemy_ships                       ;
     bne set_velocity                                                  ;
 enemy_ship_is_damaged
     lsr                                                               ;
@@ -9367,7 +9390,7 @@ sq
     !byte 0,0,0
 
 ; ----------------------------------------------------------------------------------
-; routine to create a table of squares / 4
+; routine to create tables of squares
 ; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
 ; ----------------------------------------------------------------------------------
 create_square_tables
@@ -9413,6 +9436,7 @@ ml0
 bne -
     rts
 
+; ----------------------------------------------------------------------------------
 create_other_tables
     ; create xandf8 table
     ;    !for i, 0, 255 {
