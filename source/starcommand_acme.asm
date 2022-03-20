@@ -473,6 +473,7 @@ enemy_ship_update_done7                 = $bb
 starship_energy_low                     = $bc
 starship_energy_high                    = $bd
 
+
 ; reuse zero page variables when filling in enemy cache
 enemy_x                                 = enemy_ships_flags_or_explosion_timer
 enemy_y                                 = enemy_ships_flags_or_explosion_timer + 1
@@ -481,10 +482,17 @@ enemy_end_angle                         = enemy_ships_flags_or_explosion_timer +
 enemy_arc_length                        = enemy_ships_flags_or_explosion_timer + 4
 enemy_temp_index                        = enemy_ships_flags_or_explosion_timer + 5
 
+award_y                                 = enemy_ships_flags_or_explosion_timer
+
 
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
+
+; High score table.
+; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
+high_score_table                        = $0100
+
 ; enemy data $0400-$04ff
 enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships
 enemy_ships_previous_x_fraction         = $0400 +  1 * maximum_number_of_enemy_ships
@@ -1807,6 +1815,13 @@ skip5
 
 ; ----------------------------------------------------------------------------------
 update_frontier_stars
+    ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
+    inc num_frontier_star_updates                                     ;
+    lda num_frontier_star_updates                                     ;
+    cmp #162                                                          ;
+    bne +                                                             ;
+    jmp initialise_frontier_stars                                     ;
++
     lda #<star_table                                                  ;
     sta temp0_low                                                     ;
     lda #>star_table                                                  ;
@@ -1816,14 +1831,14 @@ update_frontier_stars
 update_frontier_stars_loop
     ldy #0                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
-    jsr eor_frontier_pixel                                            ;
+    jsr eor_frontier_pixel                                            ; unplot
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     sta x_pixels                                                      ;
     ldy #3                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_frontier_pixel                                            ;
+    jsr eor_frontier_pixel                                            ; plot
     lda temp0_low                                                     ;
     clc                                                               ;
     adc #4                                                            ;
@@ -1833,14 +1848,6 @@ update_frontier_stars_loop
 +
     dec stars_still_to_consider                                       ;
     bne update_frontier_stars_loop                                    ;
-
-    ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
-    inc num_frontier_star_updates                                     ;
-    lda num_frontier_star_updates                                     ;
-    cmp #161                                                          ;
-    bne +                                                             ;
-    jsr initialise_frontier_stars                                     ;
-+
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -6370,12 +6377,13 @@ apply_delta_to_score
     sta score_as_bcd + 2                                              ;
     cld                                                               ; BCD off
     cli                                                               ;
+
     lda #0                                                            ;
     cmp score_delta_low                                               ;
-    bne zero_score_delta                                              ;
+    bne set_score_delta_to_zero                                       ;
     cmp score_delta_high                                              ;
     beq return32                                                      ; no need to update score if delta is zero
-zero_score_delta
+set_score_delta_to_zero
     sta score_delta_low                                               ;
     sta score_delta_high                                              ;
 
@@ -6390,6 +6398,7 @@ convert_score_as_bcd_to_score_as_digits
     lda score_as_bcd + 2                                              ;
     and #$0f                                                          ;
     sta score_as_digits + 4                                           ;
+
     lda score_as_bcd + 1                                              ;
     lsr                                                               ;
     lsr                                                               ;
@@ -6399,6 +6408,7 @@ convert_score_as_bcd_to_score_as_digits
     lda score_as_bcd + 1                                              ;
     and #$0f                                                          ;
     sta score_as_digits + 2                                           ;
+
     lda score_as_bcd                                                  ;
     lsr                                                               ;
     lsr                                                               ;
@@ -6409,17 +6419,14 @@ convert_score_as_bcd_to_score_as_digits
     and #$0f                                                          ;
     sta score_as_digits                                               ;
 
-    ; tab into position, TAB(33,30):
-    lda #$1f                                                          ;
-    jsr oswrch                                                        ;
-    lda #$21                                                          ;
-    jsr oswrch                                                        ;
-    lda #$1e                                                          ;
-    jsr oswrch                                                        ;
+    ; TAB(33,30):
+    ldx #33                                                           ;
+    ldy #30                                                           ;
+    jsr tab_to_x_y                                                    ;
 
     ; display the characters for the score
     ldy #5                                                            ;
-    ldx #$20                                                          ; plot score with leading " "s
+    ldx #' '                                                          ; plot score with leading " "s
 print_score_loop
     lda score_as_digits,y                                             ;
     bne non_zero_digit                                                ;
@@ -7397,7 +7404,7 @@ plot_command_number
     jsr print_regular_string                                          ;
 
     ldy #$73                                                          ; normal position for command number (single digit)
-    lda command_number                                                ;
+    lda command_number                                                ; print digits
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -7978,7 +7985,7 @@ print_command_number
     ldy #5                                                            ;
     ldx #28                                                           ;
     jsr tab_to_x_y                                                    ;
-    lda command_number                                                ;
+    lda command_number                                                ; print digits
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -8295,9 +8302,10 @@ show_any_posthumous_award
     jsr print_compressed_string                                       ;
 
 show_any_award
+    ldy award_y                                                       ;
     ldx award_type_string_index,y                                     ;
     jsr print_compressed_string                                       ;
-    ldy temp_y                                                        ;
+    ldy award_y                                                       ;
     ldx award_level_string_index,y                                    ;
     jsr print_compressed_string                                       ;
     lda #'.'                                                          ;
@@ -8322,7 +8330,7 @@ calculate_award
     bcc -
 done_award
     tya                                                               ; set the negative flag for testing if we have an award
-    sty temp_y                                                        ;
+    sty award_y                                                       ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -8335,8 +8343,10 @@ tab_to_x_y
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   X non-zero means skip any leading zeros
 plot_bcd_number_as_two_digits
-    tay                                                               ;
+    tay                                                               ; print digits
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -8347,7 +8357,7 @@ plot_bcd_number_as_two_digits
 has_non_zero_tens
     ldx #0                                                            ;
     clc                                                               ;
-    adc #$30                                                          ;
+    adc #'0'                                                          ;
     jsr oswrch                                                        ;
 skip_leading_zeroes
     tya                                                               ;
@@ -8358,7 +8368,7 @@ skip_leading_zeroes
 has_non_zero_ones
     ldx #0                                                            ;
     clc                                                               ;
-    adc #$30                                                          ;
+    adc #'0'                                                          ;
     jsr oswrch                                                        ;
 skip_leading_zeroes_again
     rts                                                               ;
@@ -8553,19 +8563,6 @@ return28
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
-; ----------------------------------------------------------------------------------
-high_score_table
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-    !byte 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0              ;
-
-; ----------------------------------------------------------------------------------
 mode4
     lda #$16                                                          ;
     jsr oswrch                                                        ;
@@ -8625,19 +8622,19 @@ plot_name_loop
     bne plot_name_loop                                                ;
 
     ; three spaces
-    lda #$20                                                          ;
+    lda #' '                                                          ;
     jsr oswrch                                                        ;
     jsr oswrch                                                        ;
     jsr oswrch                                                        ;
 
     ; print score
-    ldy #$20                                                          ;
-    lda high_score_table - 16,x                                       ;
-    jsr plot_two_digit_high_score                                     ;
-    lda high_score_table - 15,x                                       ;
-    jsr plot_two_digit_high_score                                     ;
-    lda high_score_table - 14,x                                       ;
-    jsr plot_two_digit_high_score                                     ;
+    ldy #' '                                                          ; leading spaces
+    lda $0000 + high_score_table - 16,x                               ; }
+    jsr plot_two_digit_high_score                                     ; }
+    lda $0000 + high_score_table - 15,x                               ; } using $0000 to ensure full 16 bit addressing
+    jsr plot_two_digit_high_score                                     ; }
+    lda $0000 + high_score_table - 14,x                               ; }
+    jsr plot_two_digit_high_score                                     ; }
 
     ; loop over all entries
     dec temp8                                                         ;
@@ -8650,8 +8647,9 @@ leave_after_plotting_underscores
     jsr plot_line_of_underscores_at_y                                 ;
     jmp wait_for_return                                               ;
 
+; ----------------------------------------------------------------------------------
 plot_two_digit_high_score
-    sta temp7                                                         ;
+    sta temp7                                                         ; print digits
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -8664,19 +8662,20 @@ plot_one_digit_high_score
     tya                                                               ;
     bne leading_zero2                                                 ;
 not_zero
-    ldy #$30                                                          ;
+    ldy #'0'                                                          ;
     clc                                                               ;
-    adc #$30                                                          ;
+    adc #'0'                                                          ;
 leading_zero2
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 input_buffer
-    !text "PPPPPPPPPPPP"                                              ;
-    !byte $88, $0d                                                    ;
+    !text "             "                                             ; 13 characters
+    !byte $0d                                                         ; terminator ($0d)
 input_osword_block
     !word input_buffer                                                ;
-    !byte $0d, $20, $ff                                               ;
+    !byte 13                                                          ; buffer length
+    !byte $20, $ff                                                    ; range of characters accepted
 
 ; ----------------------------------------------------------------------------------
 check_for_high_score
@@ -8887,7 +8886,7 @@ skip
     inx                                                               ;
     bne initialise_stars_loop                                         ;
 
-    stx num_frontier_star_updates                                                   ; zero
+    stx num_frontier_star_updates                                     ; zero
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -8947,8 +8946,6 @@ return_pressed
     eor #$cd                                                          ;
     sta rnd_2                                                         ;
 
-    lda #$0d                                                          ;
-    jsr oswrch                                                        ;
     jsr combat_preparation_screen                                     ;
     jmp start_game                                                    ;
 
@@ -9082,144 +9079,12 @@ regular_string_index_command                        = 14
 regular_string_index_command_move                   = 15
 
 ; ----------------------------------------------------------------------------------
-regular_strings_start
-
-shield_state_string1
-    !byte shield_state_string1_end - shield_state_string1             ;
-    !byte $1f, $22, $18                                               ;
-    !text " ON "                                                      ;
-shield_state_string1_end
-
-; ----------------------------------------------------------------------------------
-shield_state_string2
-    !byte shield_state_string2_end - shield_state_string2
-    !byte $1f, $22, $18                                               ;
-    !text " OFF"                                                      ;
-shield_state_string2_end
-
-; ----------------------------------------------------------------------------------
-shield_state_string3
-    !byte shield_state_string3_end - shield_state_string3
-    !byte $1f, $22, $18                                               ;
-    !text "AUTO"                                                      ;
-shield_state_string3_end
-
-; ----------------------------------------------------------------------------------
-screen_border_string
-    !byte screen_border_string_end - screen_border_string
-    !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
-    !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
-    !byte $19,  5  ,  $ff,  4  ,  0  , 0                              ; DRAW 1279, 0
-    !byte $19,  5  ,  0  ,  0  ,  0  , 0                              ; DRAW    0, 0
-    !byte $19,  5  ,  0  ,  0  ,  $ff, 3                              ; DRAW    0, 1023
-    !byte $19,  5  ,  $ff,  3  ,  $ff, 3                              ; DRAW 1023, 1023
-    !byte $19,  5  ,  $ff,  3  ,  0  , 0                              ; DRAW 1023, 0
-screen_border_string_end
-
-; ----------------------------------------------------------------------------------
-set_foreground_colour_to_white_string
-    !byte set_foreground_colour_to_white_string_end - set_foreground_colour_to_white_string
-    !byte 19, 1, 7, 0, 0, 0                                           ; VDU 19,1,7,0,0,0
-set_foreground_colour_to_white_string_end
-
-; ----------------------------------------------------------------------------------
-set_foreground_colour_to_black_string
-    !byte set_foreground_colour_to_black_string_end - set_foreground_colour_to_black_string
-    !byte 19, 1, 0, 0, 0, 0                                           ; VDU 19,1,0,0,0,0
-set_foreground_colour_to_black_string_end
-
-; ----------------------------------------------------------------------------------
-set_background_colour_to_black_string
-    !byte set_background_colour_to_black_string_end - set_background_colour_to_black_string
-    !byte 19, 0, 0, 0, 0, 0                                           ; VDU 19,0,0,0,0,0
-set_background_colour_to_black_string_end
-
-; ----------------------------------------------------------------------------------
-energy_string
-    !byte energy_string_end - energy_string
-    !byte $1f, 33, 17                                                 ; TAB(33, 17)
-    !text "ENERGY"                                                    ;
-energy_string_end
-
-; ----------------------------------------------------------------------------------
-one_two_three_four_string
-    !byte one_two_three_four_string_end - one_two_three_four_string
-    !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
-    !byte 5                                                           ; VDU 5
-    !byte $31, 8, $0a                                                 ; "1"
-    !byte $32, 8, $0a                                                 ; "2"
-    !byte $33, 8, $0a                                                 ; "3"
-    !byte $34                                                         ; "4"
-    !byte 4                                                           ; VDU 4
-one_two_three_four_string_end
-
-; ----------------------------------------------------------------------------------
-shields_string
-    !byte shields_string_end - shields_string
-    !byte $1f, 33, 2                                                  ; TAB(33, 2)
-    !text "SHIELDS"                                                   ;
-    !byte $1f, 35, 5                                                  ; TAB(35, 5)
-    !text "ON"                                                        ;
-shields_string_end
-
-; ----------------------------------------------------------------------------------
-blank_string
-    !byte blank_string_end - blank_string
-    !byte $1f, 33, 2                                                  ; TAB(33, 2)
-    !text "       "                                                   ;
-    !byte $1f, 35, 5                                                  ; TAB(35, 5)
-    !text "  "                                                        ;
-blank_string_end
-
-; ----------------------------------------------------------------------------------
-enable_cursor_string
-    !byte enable_cursor_string_end - enable_cursor_string
-    !byte $17, 0, 10, $60, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &60
-enable_cursor_string_end
-
-; ----------------------------------------------------------------------------------
-disable_cursor_string
-    !byte disable_cursor_string_end - disable_cursor_string
-    !byte $17, 0, 10, $3c, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &3c
-disable_cursor_string_end
-
-; ----------------------------------------------------------------------------------
-escape_capsule_launched_string
-    !byte escape_capsule_launched_string_end - escape_capsule_launched_string
-    !byte $1f, 32, 23                                                 ; TAB(32, 23); "ESCAPE"
-    !text "ESCAPE"                                                    ; TAB(32, 24); "CAPSULE"
-    !byte $1f, 32, 24                                                 ; TAB(32, 25); "LAUNCHED"
-    !text "CAPSULE"                                                   ;
-    !byte $1f, 32, 25                                                 ;
-    !text "LAUNCHED"                                                  ;
-escape_capsule_launched_string_end
-
-; ----------------------------------------------------------------------------------
-command_string
-    !byte command_string_end - command_string
-    !byte $19, 4, $0f, 4, $a2, 0                                      ; MOVE &040f, &00a2
-    !byte 5                                                           ; VDU 5
-    !text "COMMAND"                                                   ;
-command_string_end
-
-; ----------------------------------------------------------------------------------
-command_move_string
-    !byte command_move_string_end - command_move_string
-    !byte $19, 4                                                      ; MOVE &046f, &0081
-command_move_string_horizontal_pos
-    !byte $6f                                                         ;
-    !byte 4, $81, 0                                                   ;
-command_move_string_end
-
-regular_strings_end
-
-; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
 print_regular_string
-    lda #<regular_strings_start                                       ;
+    lda #<shield_state_string1                                        ;
     sta lookup_low                                                    ;
-    lda #>regular_strings_start                                       ;
+    lda #>shield_state_string1                                        ;
     sta lookup_high                                                   ;
     ldy #0                                                            ;
 -
@@ -9427,6 +9292,21 @@ done
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
 
+    ; copy strings to $0d01, with RTI at $d00
+    ldx #regular_strings_end - regular_strings_start
+-
+    lda regular_strings_start-1,x                                     ;
+    sta $0d00-1,x                                                     ;
+    dex                                                               ;
+    bne -                                                             ;
+
+    ; zero highscore table
+    lda #0                                                            ;
+    ldx #127                                                          ;
+-
+    sta high_score_table,x                                            ;
+    dex                                                               ;
+    bpl -                                                             ;
 
     ; set up timer
     lda #0                                                            ;
@@ -9597,3 +9477,138 @@ create_other_tables
     inx
     bne -
     rts
+
+; ----------------------------------------------------------------------------------
+regular_strings_start
+
+!pseudopc $0d00 {
+    rti                                                               ; put RTI at $0d00
+
+shield_state_string1
+    !byte shield_state_string1_end - shield_state_string1             ;
+    !byte $1f, $22, $18                                               ;
+    !text " ON "                                                      ;
+shield_state_string1_end
+
+; ----------------------------------------------------------------------------------
+shield_state_string2
+    !byte shield_state_string2_end - shield_state_string2
+    !byte $1f, $22, $18                                               ;
+    !text " OFF"                                                      ;
+shield_state_string2_end
+
+; ----------------------------------------------------------------------------------
+shield_state_string3
+    !byte shield_state_string3_end - shield_state_string3
+    !byte $1f, $22, $18                                               ;
+    !text "AUTO"                                                      ;
+shield_state_string3_end
+
+; ----------------------------------------------------------------------------------
+screen_border_string
+    !byte screen_border_string_end - screen_border_string
+    !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
+    !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
+    !byte $19,  5  ,  $ff,  4  ,  0  , 0                              ; DRAW 1279, 0
+    !byte $19,  5  ,  0  ,  0  ,  0  , 0                              ; DRAW    0, 0
+    !byte $19,  5  ,  0  ,  0  ,  $ff, 3                              ; DRAW    0, 1023
+    !byte $19,  5  ,  $ff,  3  ,  $ff, 3                              ; DRAW 1023, 1023
+    !byte $19,  5  ,  $ff,  3  ,  0  , 0                              ; DRAW 1023, 0
+screen_border_string_end
+
+; ----------------------------------------------------------------------------------
+set_foreground_colour_to_white_string
+    !byte set_foreground_colour_to_white_string_end - set_foreground_colour_to_white_string
+    !byte 19, 1, 7, 0, 0, 0                                           ; VDU 19,1,7,0,0,0
+set_foreground_colour_to_white_string_end
+
+; ----------------------------------------------------------------------------------
+set_foreground_colour_to_black_string
+    !byte set_foreground_colour_to_black_string_end - set_foreground_colour_to_black_string
+    !byte 19, 1, 0, 0, 0, 0                                           ; VDU 19,1,0,0,0,0
+set_foreground_colour_to_black_string_end
+
+; ----------------------------------------------------------------------------------
+set_background_colour_to_black_string
+    !byte set_background_colour_to_black_string_end - set_background_colour_to_black_string
+    !byte 19, 0, 0, 0, 0, 0                                           ; VDU 19,0,0,0,0,0
+set_background_colour_to_black_string_end
+
+; ----------------------------------------------------------------------------------
+energy_string
+    !byte energy_string_end - energy_string
+    !byte $1f, 33, 17                                                 ; TAB(33, 17)
+    !text "ENERGY"                                                    ;
+energy_string_end
+
+; ----------------------------------------------------------------------------------
+one_two_three_four_string
+    !byte one_two_three_four_string_end - one_two_three_four_string
+    !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
+    !byte 5                                                           ; VDU 5
+    !byte $31, 8, $0a                                                 ; "1"
+    !byte $32, 8, $0a                                                 ; "2"
+    !byte $33, 8, $0a                                                 ; "3"
+    !byte $34                                                         ; "4"
+    !byte 4                                                           ; VDU 4
+one_two_three_four_string_end
+
+; ----------------------------------------------------------------------------------
+shields_string
+    !byte shields_string_end - shields_string
+    !byte $1f, 33, 2                                                  ; TAB(33, 2)
+    !text "SHIELDS"                                                   ;
+    !byte $1f, 35, 5                                                  ; TAB(35, 5)
+    !text "ON"                                                        ;
+shields_string_end
+
+; ----------------------------------------------------------------------------------
+blank_string
+    !byte blank_string_end - blank_string
+    !byte $1f, 33, 2                                                  ; TAB(33, 2)
+    !text "       "                                                   ;
+    !byte $1f, 35, 5                                                  ; TAB(35, 5)
+    !text "  "                                                        ;
+blank_string_end
+
+; ----------------------------------------------------------------------------------
+enable_cursor_string
+    !byte enable_cursor_string_end - enable_cursor_string
+    !byte $17, 0, 10, $60, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &60
+enable_cursor_string_end
+
+; ----------------------------------------------------------------------------------
+disable_cursor_string
+    !byte disable_cursor_string_end - disable_cursor_string
+    !byte $17, 0, 10, $3c, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &3c
+disable_cursor_string_end
+
+; ----------------------------------------------------------------------------------
+escape_capsule_launched_string
+    !byte escape_capsule_launched_string_end - escape_capsule_launched_string
+    !byte $1f, 32, 23                                                 ; TAB(32, 23); "ESCAPE"
+    !text "ESCAPE"                                                    ; TAB(32, 24); "CAPSULE"
+    !byte $1f, 32, 24                                                 ; TAB(32, 25); "LAUNCHED"
+    !text "CAPSULE"                                                   ;
+    !byte $1f, 32, 25                                                 ;
+    !text "LAUNCHED"                                                  ;
+escape_capsule_launched_string_end
+
+; ----------------------------------------------------------------------------------
+command_string
+    !byte command_string_end - command_string
+    !byte $19, 4, $0f, 4, $a2, 0                                      ; MOVE &040f, &00a2
+    !byte 5                                                           ; VDU 5
+    !text "COMMAND"                                                   ;
+command_string_end
+
+; ----------------------------------------------------------------------------------
+command_move_string
+    !byte command_move_string_end - command_move_string
+    !byte $19, 4                                                      ; MOVE &046f, &0081
+command_move_string_horizontal_pos
+    !byte $6f                                                         ;
+    !byte 4, $81, 0                                                   ;
+command_move_string_end
+}
+regular_strings_end
