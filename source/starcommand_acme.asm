@@ -4266,8 +4266,8 @@ skip_add_explosion_index
     ldy #number_of_bytes_per_enemy_explosion                          ;
 loop_initialise_explosion
     jsr random_number_generator                                       ;
-enemy_explosion_initialisation_loop
-    lda rnd_2                                                         ;
+
+    ;enemy_explosion_initialisation
     and #$3f                                                          ;
     sta (temp5),y                                                     ; random between 0 and 63
     dey                                                               ;
@@ -4308,7 +4308,6 @@ update_enemy_explosion_pieces_loop
     sta (temp5),y                                                     ; store flag to say if we will create a new piece
     beq move_to_next_piece                                            ;
     jsr random_number_generator                                       ;
-    lda rnd_2                                                         ;
     lsr                                                               ;
     and #$3f                                                          ;
     iny                                                               ;
@@ -4491,34 +4490,21 @@ plot_enemy_explosion_segments
     jmp plot_segment                                                  ;
 
 ; ----------------------------------------------------------------------------------
-; weird random number generator
+; random number generator
+; From https://codebase64.org/doku.php?id=base:16bit_xorshift_random_generator
 ; ----------------------------------------------------------------------------------
 random_number_generator
-    stx temp_x                                                        ;
-
+    lda rnd_2                                                         ;
+    lsr                                                               ;
     lda rnd_1                                                         ;
-    sta y_pixels                                                      ;
-
-    ldx #8                                                            ;
-    lda #$d5                                                          ;
--
-    ror y_pixels                                                      ;
-    bcc +                                                             ;
-    clc                                                               ;
-    adc #$25                                                          ;
-+
     ror                                                               ;
-    ror temp8                                                         ;
-    dex                                                               ;
-    bne -                                                             ;
-
-    clc                                                               ;
-    adc rnd_1                                                         ;
-    sta rnd_2                                                         ;
-    lda temp8                                                         ;
-    sta rnd_1                                                         ;
-
-    ldx temp_x                                                        ;
+    eor rnd_2                                                         ;
+    sta rnd_2                                                         ; high part of x ^= x << 7 done
+    ror                                                               ; A has now x >> 9 and high bit comes from low byte
+    eor rnd_1                                                         ;
+    sta rnd_1                                                         ; x ^= x >> 9 and the low part of x ^= x << 7 done
+    eor rnd_2                                                         ;
+    sta rnd_2                                                         ; x ^= x << 8 done
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -5090,7 +5076,6 @@ enemy_ship_has_sufficient_energy_to_cloak
     asl temp8                                                         ;
     bcs handle_enemy_ships_cloaking_next                              ; leave it cloaked if so
     jsr random_number_generator                                       ;
-    lda rnd_2                                                         ;
     and #probability_of_enemy_ship_cloaking                           ;
     bne handle_enemy_ships_cloaking_next                              ;
     jsr plot_enemy_ship                                               ; otherwise, mark as cloaked and unplot
@@ -6841,7 +6826,6 @@ starship_incurred_major_damage
     lda scanner_failure_duration                                      ;
     bne handle_failed_scanner                                         ;
     jsr random_number_generator                                       ;
-    lda rnd_2                                                         ;
     and #$6c                                                          ;
     bne return25                                                      ;
 
@@ -7205,7 +7189,6 @@ initialise_enemy_ship
     sta enemy_ships_explosion_number - 1,y                            ;
     sta enemy_ships_temporary_behaviour_flags,x                       ;
     jsr random_number_generator                                       ;
-    lda rnd_2                                                         ;
     and #$0f                                                          ; pick random behaviour type for enemy ship
     sta enemy_ships_flags_or_explosion_timer,x                        ;
     ldy #$5f                                                          ;
@@ -7961,7 +7944,6 @@ skip_player_movement
     jsr play_sounds                                                   ;
     jsr apply_delta_to_score                                          ;
     jsr random_number_generator                                       ;
-    lda rnd_2                                                         ;
     and #$3f                                                          ;
     clc                                                               ;
     adc #base_damage_to_enemy_ship_from_other_collision               ;
@@ -8845,6 +8827,13 @@ end_of_command
     sta rnd_2                                                         ; re-seed the RNG with two essentially random numbers
     lda enemy_ships_previous_y_fraction                               ;
     sta rnd_1                                                         ;
+
+    ; check the random number generator isn't zero
+    ora rnd_2                                                         ;
+    bne +                                                             ; if (non zero) then branch
+    inc rnd_1                                                         ;
++
+
     jsr mode4                                                         ;
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
