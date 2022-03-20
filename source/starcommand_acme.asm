@@ -523,8 +523,11 @@ xandf8                                  = $0500  ; }
 xbit_table                              = $0600  ; } tables of constants (768 bytes)
 xinverse_bit_table                      = $0700  ; }
 
-squares_low                             = $0900  ; } 512 entries of 16 bit value (i*i)/4
-squares_high                            = $0b00  ; } (1k total)
+squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
+squares1_high                           = $0b00  ; } (1k total)
+
+squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
+squares2_high                           = $1000  ; } (1k total)
 
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
@@ -540,7 +543,7 @@ ShortTimerValue  = 16*64 - 2
 
 * = $1f00
 
-!pseudopc $0e00 {
+!pseudopc $1200 {
 
 ; for speed these arrays of data should be page aligned
 row_table_low
@@ -1009,47 +1012,39 @@ eor_frontier_pixel
     jmp eor_pixel_with_screen_address                                 ;
 
 ; ----------------------------------------------------------------------------------
-; From Apple Assembly Line March 1986, http://www.txbobsc.com/aal/1986/aal8603.html#a5
-; Calculate A*X (aka m1 * m2) with the product returned in prod_low(low) and A (high)
+; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
+; Calculate A*X with the product returned in prod_low(low) and A (high)
 ; unsigned.
+; Preserves Y
 ; ----------------------------------------------------------------------------------
 mul8x8
-    tay                                                               ; save m1 in y
-    stx temp_m2                                                       ; save m2
-    sec                                                               ; set carry for subtract
-    sbc temp_m2                                                       ; find difference
-    bcs +                                                             ; was m1 > m2 ?
-    eor #$ff                                                          ; invert it
-    adc #1                                                            ; and add 1
-+
-    tax                                                               ; use abs(m1-m2) as index
-    clc                                                               ;
-    tya                                                               ; get m1 back
-    adc temp_m2                                                       ; find m1 + m2
-    tay                                                               ; use m1+m2 as index
-    bcc +                                                             ; m1+m2 < 255 ?
-    lda squares_low+256,y                                             ; find sum squared low if > 255
-    sbc squares_low,x                                                 ; subtract diff squared
-    sta prod_low                                                      ; save in product
-    lda squares_high+256,y                                            ; hi byte
-    sbc squares_high,x                                                ;
-    rts                                                               ; done
-+
-    sec                                                               ; set carry for subtract
-    lda squares_low,y                                                 ; find sum of squares low if < 255
-    sbc squares_low,x                                                 ; subtract diff squared
-    sta prod_low                                                      ; save in product
-    lda squares_high,y                                                ; hi byte
-    sbc squares_high,x                                                ;
+    sta sm1                                                           ;
+    sta sm3                                                           ;
+    eor #$ff                                                          ;
+    sta sm2                                                           ;
+    sta sm4                                                           ;
+
+    sec                                                               ;
+sm1 = * + 1
+    lda squares1_low,x                                                ;
+sm2 = * + 1
+    sbc squares2_low,x                                                ;
+    sta prod_low                                                      ;
+sm3 = * + 1
+    lda squares1_high,x                                               ;
+sm4 = * + 1
+    sbc squares2_high,x                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 ; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
+; On Entry:
+;   X = low byte of position (one coordinate)
+;   Y = high byte of position (one coordinate)
+; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_sine_magnitude
 
     lda starship_rotation_sine_magnitude                              ;
-    sta b                                                             ;
-    stx a                                                             ;
     sty c                                                             ;
     ; fall through to multiply routine...
 
@@ -1063,72 +1058,30 @@ multiply_object_position_by_starship_rotation_sine_magnitude
 ;
 ; We calculate a*b as a 16 bit number and just take the top byte, call this t
 ; then we calculate c*b as a 16 bit number and add t
-; Average cycles: 168.7
+;
+; here b = starship_rotation_sine_magnitude
+;      a = x register
 ;
 ; On Exit:
 ;   output_pixels (low) and output_fraction (high)
 ; ----------------------------------------------------------------------------------
-mul16x8
-    lda a                                                             ;
-    ldx b                                                             ;
+;mul16x8
+;    lda a                                                             ;
+;    ldx starship_rotation_sine_magnitude                              ; b
     jsr mul8x8                                                        ;
-    sta t                                                             ; high byte only
+    tay                                                               ; high byte ('t')
     lda c                                                             ;
-    ldx b                                                             ;
+    ldx starship_rotation_sine_magnitude                              ; b
     jsr mul8x8                                                        ;
     sta output_fraction                                               ;
-    lda prod_low                                                      ;
-    clc                                                               ;
-    adc t                                                             ;
+    tya                                                               ; recall 't'
+    clc
+    adc prod_low                                                      ;
     sta output_pixels                                                 ;
     bcc +                                                             ;
     inc output_fraction                                               ;
 +
     rts                                                               ;
-
-; Alternative: multiply without tables (but not as fast as the tables version above):
-; ----------------------------------------------------------------------------------
-; Adapted from White Flame's code (https://codebase64.org/doku.php?id=base:8bit_multiplication_16bit_product)
-;
-; Calculates ((a+256*c)*b)/256
-;
-; result is 16 bit, returned in output_pixels(low) and output_fraction(high)
-; Average cycles: 303.1
-;
-; Y is preserved
-; ----------------------------------------------------------------------------------
-;mul16x8
-;    sty temp_y                                                        ; remember Y
-;    lda #0                                                            ;
-;    tay                                                               ;
-;    sta new                                                           ;
-;    sta z                                                             ;
-;    beq enter_loop                                                    ;
-;
-;do_add
-;    clc                                                               ;
-;    adc a                                                             ;
-;    tax                                                               ;
-;    tya                                                               ;
-;    adc c                                                             ;
-;    tay                                                               ;
-;    lda z                                                             ;
-;    adc new                                                           ;
-;    sta z                                                             ;
-;    txa                                                               ;
-;mul_loop
-;    asl a                                                             ;
-;    rol c                                                             ;
-;    rol new                                                           ;
-;enter_loop                                                            ; accumulating multiply entry point (enter with .A=lo, .Y=hi)
-;    lsr b                                                             ;
-;    bcs do_add                                                        ;
-;    bne mul_loop                                                      ;
-;    sty output_pixels                                                 ;
-;    lda z                                                             ;
-;    sta output_fraction                                               ;
-;    ldy temp_y                                                        ; restore Y
-;    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
@@ -1356,19 +1309,18 @@ multiply_enemy_position_by_starship_rotation_cosine
 
     ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
     ; result in A (low) and temp8 (high)
-    ; average cycles: 164.96 cycles
 mul16x8a
     lda starship_rotation_cosine                                      ;
     ldx b                                                             ;
     jsr mul8x8                                                        ;
-    sta t                                                             ; high byte only
+    tay                                                               ; Y=high byte only ('t')
     lda starship_rotation_cosine                                      ;
     ldx c                                                             ;
     jsr mul8x8                                                        ;
     sta temp8                                                         ;
-    lda prod_low                                                      ;
+    tya                                                               ; recall 't'
     clc                                                               ;
-    adc t                                                             ;
+    adc prod_low                                                      ;
     bcc +                                                             ;
     inc temp8                                                         ;
 +
@@ -7840,14 +7792,14 @@ debug
     jmp --                                                            ;
 }
 
-; ***************************************************************************************
+; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   A = Y coordinate to plot at
 ;   danger_height = height in character rows of the danger zone
 ; On Exit:
 ;   Carry clear if in danger area
 ;   Preserves X,Y
-; ***************************************************************************************
+; ----------------------------------------------------------------------------------
 is_in_danger_area
     lsr                                                               ;
     lsr                                                               ;
@@ -9040,7 +8992,7 @@ irq_routine
     lda irq_accumulator                                     ;
     rti                                                     ;
 
-; ***************************************************************************************
+; ----------------------------------------------------------------------------------
 check_vsync
     lda systemVIAInterruptFlagRegister                      ; get interrupt flag register
     and #$82                                                ;
@@ -9256,7 +9208,7 @@ entry_point
     lda #0                                                            ;
     tay                                                               ;
     sta $80                                                           ;
-    lda #$0e                                                          ; dest = $0e00
+    lda #$12                                                          ; dest = $1200
     sta $81                                                           ;
     lda #0                                                            ;
     sta $82                                                           ;
@@ -9384,61 +9336,49 @@ sq
 
 ; ----------------------------------------------------------------------------------
 ; routine to create a table of squares / 4
+; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
 ; ----------------------------------------------------------------------------------
 create_square_tables
-    lda #>squares_low
-    sta lookup_high
-    lda #>squares_high
-    sta end_high
-    ldy #0
-    sty lookup_low
-    sty end_low
-    sty sq
-    sty sq+1
-    sty sq+2
-    sty delta+1
-    sty delta+2
-    sty squares_low
-    sty squares_high
-
-    ; first entry is zero
+    ldx #0
+    txa
+    !byte $c9           ; CMP #immediate - skip TYA and clear carry flag
+lb1
     tya
-    sta (lookup_low),Y
-    sta (end_low),Y
-
-    iny
-    lda #$40
-    sta delta
-    ldx #1
-
-square_loop1
+    adc #0
+ml1
+    sta squares1_high,x
+    tay
+    cmp #$40
+    txa
+    ror
+ml9
+    adc #0
+    sta ml9+1
+    inx
+ml0
+    sta squares1_low,x
+    bne lb1
+    inc ml0+2
+    inc ml1+2
     clc
-    lda delta
-    adc sq
-    sta sq
-    lda delta+1
-    adc sq+1
-    sta sq+1
-    sta (lookup_low),Y
-    lda delta+2
-    adc sq+2
-    sta sq+2
-    sta (end_low),Y
-
-    lda delta
-    adc #$80
-    sta delta
-    bcc +
-    inc delta+1
-    bne +
-    inc delta+2
-+
     iny
-    bne square_loop1
-    inc lookup_high
-    inc end_high
-    dex
-    bpl square_loop1
+    bne lb1
+
+    ; create second table of squares
+    ldx #$00
+    ldy #$ff
+-
+    lda squares1_high + 1,x
+    sta squares2_high + $100,x
+    lda squares1_high,x
+    sta squares2_high,y
+    lda squares1_low + 1,x
+    sta squares2_low + $100,x
+    lda squares1_low,x
+    sta squares2_low,y
+    dey
+    inx
+bne -
     rts
 
 create_other_tables
