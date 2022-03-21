@@ -4511,9 +4511,11 @@ random_number_generator
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
 sound_1
-    !byte $11, 0  , 0  , 0                                            ;
+    !byte $11, 0                                                      ;
+    !byte 0, 0                                                        ;
 sound_1_pitch
-    !byte 0, 0, 8, 0                                                  ;
+    !byte 0, 0                                                        ;
+    !byte 8, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Exploding starship 2
@@ -4524,37 +4526,53 @@ sound_1_volume_low
     !byte 0                                                           ;
 sound_1_volume_high
     !byte 0
-    !byte 7, 0, 8, 0                                                  ;
+    !byte 7, 0                                                        ;
+    !byte 8, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Starship fired torpedo
 ; ----------------------------------------------------------------------------------
 sound_3
-    !byte $13, 0  , 1  , 0  , $80, 0  , 4  , 0                        ;
+    !byte $13, 0                                                      ;
+    !byte 1, 0                                                        ;
+    !byte $80, 0                                                      ;
+    !byte 4, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ship fired torpedo
 ; ----------------------------------------------------------------------------------
 sound_4
-    !byte $12, 0  , 2  , 0  , $c0, 0  , $1f, 0                        ;
+    !byte $12, 0                                                      ;
+    !byte 2, 0                                                        ;
+    !byte $c0, 0                                                      ;
+    !byte $1f, 0                                                      ;
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ship hit by torpedo
 ; ----------------------------------------------------------------------------------
 sound_5
-    !byte $12, 0  , 4  , 0  , $40, 0  , 8  , 0                        ;
+    !byte $12, 0                                                      ;
+    !byte 4, 0                                                        ;
+    !byte $40, 0                                                      ;
+    !byte 8, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Starship hit by torpedo
 ; ----------------------------------------------------------------------------------
 sound_6
-    !byte $12, 0  , 4  , 0  , $be, 0  , 8  , 0                        ;
+    !byte $12, 0                                                      ;
+    !byte 4, 0                                                        ;
+    !byte $be, 0                                                      ;
+    !byte 8, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ships collided with each other
 ; ----------------------------------------------------------------------------------
 sound_7
-    !byte $13, 0  , 2  , 0  , $6c, 0  , 8  , 0                        ;
+    !byte $13, 0                                                      ;
+    !byte 2, 0                                                        ;
+    !byte $6c, 0                                                      ;
+    !byte 8, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Escape capsule launched
@@ -4564,13 +4582,18 @@ sound_8
 sound_8_volume_low
     !byte 0                                                           ;
 sound_8_volume_high
-    !byte 0  , $64, 0  , 4  , 0                                       ;
+    !byte 0                                                           ;
+    !byte $64, 0                                                      ;
+    !byte 4  , 0                                                      ;
 
 ; ----------------------------------------------------------------------------------
 ; Low energy warning
 ; ----------------------------------------------------------------------------------
 sound_9
-    !byte $11, 0  , $f1, $ff, $c8, 0  , 4  , 0                        ;
+    !byte $11, 0                                                      ;
+    !byte $f1, $ff                                                    ;
+    !byte $c8, 0                                                      ;
+    !byte 4, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Starship engine
@@ -4582,14 +4605,17 @@ sound_10_volume_low
 sound_10_volume_high
     !byte 0                                                           ;
 sound_10_pitch
-    !byte 0
-    !byte 0, 4, 0                                                     ;
+    !byte 0, 0                                                        ;
+    !byte 4, 0                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; Exploding enemy ship
 ; ----------------------------------------------------------------------------------
 sound_11
-    !byte $10, 0, 3, 0, 7, 0, $1e, 0                                  ;
+    !byte $10, 0                                                      ;
+    !byte 3, 0                                                        ;
+    !byte 7, 0                                                        ;
+    !byte $1e, 0                                                      ;
 
 ; ----------------------------------------------------------------------------------
 plot_energy_bar_edges
@@ -4931,6 +4957,7 @@ skip_starship_explosion_sound
     beq consider_torpedo_sound                                        ;
     lda #3                                                            ;
     sta escape_capsule_sound_channel                                  ; 3 if starship exploding
+
 play_escape_capsule_sound
     ora #$10                                                          ; flush channel; play sound immediately
     sta sound_8                                                       ;
@@ -5171,6 +5198,11 @@ skip27
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   (temp10, temp9) are the (x,y) coordinates of the enemy ship
+; On Exit:
+;   Preserves X
+; ----------------------------------------------------------------------------------
 calculate_enemy_ship_angle_to_starship
     lda temp9                                                         ;
     sec                                                               ;
@@ -5181,8 +5213,9 @@ calculate_enemy_ship_angle_to_starship
 skip_inversion_y3
     ror temp8                                                         ; note whether inversion occurred
     sec                                                               ;
-    sbc #$7f                                                          ;
+    sbc #$7f                                                          ; difference from centre point (starship)
     sta y_pixels                                                      ;
+
     lda temp10                                                        ;
     sec                                                               ;
     bmi skip_inversion_x3                                             ;
@@ -5192,46 +5225,62 @@ skip_inversion_y3
 skip_inversion_x3
     ror temp8                                                         ; note whether inversion occurred
     sec                                                               ;
-    sbc #$7f                                                          ;
+    sbc #$7f                                                          ; difference from centre point (starship)
     sta x_pixels                                                      ;
+
     cmp y_pixels                                                      ;
     bcs skip_swap                                                     ; swap if y is bigger than x
     ldy y_pixels                                                      ;
     sty x_pixels                                                      ;
     sta y_pixels                                                      ;
 skip_swap
-    ror temp8                                                         ;
-    lda #0                                                            ;
-    sta temp11                                                        ;
+    ror temp8                                                         ; note whether swap occurred
 
-    ldy #12                                                           ; 12-bit division: difference_x/difference_y
-division_loop
-    asl x_pixels                                                      ;
-    rol                                                               ;
+    ; At this point x_pixels >= y_pixels, and both values are distances from centre point
+
+    ; use fast 8 bit multiply with fixed constants
+    stx temp_x                                                        ; remember X
+    ldy #8                                                            ;
+    ldx x_pixels                                                      ;
+    lda squares1_low + 25,x                                           ;
+    sec                                                               ;
+    sbc squares2_low + 255-25,x                                       ;
+    lda squares1_high + 25,x                                          ;
+    sbc squares2_high + 255-25,x                                      ;
     cmp y_pixels                                                      ;
-    bcc still_less_than                                               ;
-    sbc y_pixels                                                      ;
-still_less_than
-    rol temp11                                                        ;
-    bcs ninety_degrees                                                ; (x*8/y) > &ff (arctan(x/y) > 82.8) = 90 degrees
-    dey                                                               ;
-    bne division_loop                                                 ;
+    bcs finished_calculating_partial_angle                            ; if (x*25/256 >= y) then angle=8
 
-    ldy #$0c                                                          ; (x*8/y) < &14 (arctan(x/y) < 32.0) = 0 degrees
-    lda temp11                                                        ;
-    cmp #$14                                                          ;
-    bcc finished_calculating_partial_angle                            ;
-    dey                                                               ; (x*8/y) < &1e (arctan(x/y) < 43.1) = 22.5 degrees
-    cmp #$1e                                                          ;
-    bcc finished_calculating_partial_angle                            ;
-    dey                                                               ; (x*8/y) < &35 (arctan(x/y) < 58.8) = 45 degrees
-    cmp #$35                                                          ;
-    bcc finished_calculating_partial_angle                            ;
-    dey                                                               ; (x*8/y) < &a3 (arctan(x/y) < 78.9) = 67.5 degrees
-    cmp #$a3                                                          ;
-    bcc finished_calculating_partial_angle                            ;
-    dey                                                               ; otherwise                          = 90 degrees
+    iny                                                               ; Y=9
+    lda squares1_low + 78,x                                           ;
+    sec                                                               ;
+    sbc squares2_low + 255-78,x                                       ;
+    lda squares1_high + 78,x                                          ;
+    sbc squares2_high + 255-78,x                                      ;
+    cmp y_pixels                                                      ;
+    bcs finished_calculating_partial_angle                            ; if (x*78/256 >= y) then angle=9
+
+    iny                                                               ; Y=10
+    lda squares1_low + 137,x                                          ;
+    sec                                                               ;
+    sbc squares2_low + 255-137,x                                      ;
+    lda squares1_high + 137,x                                         ;
+    sbc squares2_high + 255-137,x                                     ;
+    cmp y_pixels                                                      ;
+    bcs finished_calculating_partial_angle                            ; if (x*137/256 >= y) then angle=10
+
+    iny                                                               ; Y=11
+    lda squares1_low + 210,x                                          ;
+    sec                                                               ;
+    sbc squares2_low + 255-210,x                                      ;
+    lda squares1_high + 210,x                                         ;
+    sbc squares2_high + 255-210,x                                     ;
+    cmp y_pixels                                                      ;
+    bcs finished_calculating_partial_angle                            ; if (x*210/256 >= y) then angle=11
+
+    iny                                                               ; angle=12
+
 finished_calculating_partial_angle
+    ldx temp_x                                                        ; recall X
     tya                                                               ;
 
 adjust_angle_for_inversions_and_swap
@@ -5285,14 +5334,19 @@ first_ship_is_already_exploding
     sta x_pixels                                                      ;
     lda enemy_ships_velocity,y                                        ;
     sta y_pixels                                                      ;
+
     lda enemy_ships_angle,x                                           ; swap the angles of the two ships
     sta temp7                                                         ;
     lda enemy_ships_angle,y                                           ;
     sta enemy_ships_angle,x                                           ;
     lda temp7                                                         ;
     sta enemy_ships_angle,y                                           ;
+
+    ; get difference in angles
     sec                                                               ;
     sbc enemy_ships_angle,x                                           ;
+
+    ; get the magnitude of the angle difference
     bpl skip_inversion4                                               ;
     eor #$ff                                                          ;
 skip_inversion4
@@ -5302,21 +5356,25 @@ skip_inversion4
     lsr                                                               ;
     lsr                                                               ;
     beq skip_velocity_absorption                                      ;
+
 angle_loop
     lsr x_pixels                                                      ; For every 11.25 degrees difference in angle,
     lsr y_pixels                                                      ; halve both ships' velocities
     sec                                                               ;
     sbc #1                                                            ;
     bne angle_loop                                                    ;
+
 skip_velocity_absorption
     lda x_pixels                                                      ; swap the velocities of the two ships
     sta enemy_ships_velocity,y                                        ;
     lda y_pixels                                                      ;
     sta enemy_ships_velocity,x                                        ;
+
+    ;
     lda enemy_ships_collision_x_difference                            ;
     cmp enemy_ships_collision_y_difference                            ;
-    bcs use_x_pixels_and_difference                                   ;
-    inx                                                               ; use y_pixels rather than x_pixels
+    bcs use_x_pixels_and_difference                                   ; if (x position difference > y position difference) then branch
+    inx                                                               ; use y coordinates rather than x coordinates
     inx                                                               ;
     inx                                                               ;
     iny                                                               ;
@@ -5324,28 +5382,35 @@ skip_velocity_absorption
     iny                                                               ;
     lda enemy_ships_collision_y_difference                            ;
 use_x_pixels_and_difference
-    sta y_pixels                                                      ;
+
+    sta y_pixels                                                      ; store largest coordinate difference
     lda #size_of_enemy_ship_for_collisions_between_enemy_ships        ;
     sec                                                               ;
     sbc y_pixels                                                      ;
     clc                                                               ;
     adc #1                                                            ;
     lsr                                                               ;
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; y_pixels =  (8 - largest coordinate difference + 1)/2
+
+    ; sort so the first ship has the larger coordinate
     lda enemy_ships_x_pixels,x                                        ;
     cmp enemy_ships_x_pixels,y                                        ;
     bcs dont_swap_two_ships_for_collision                             ;
-    sty x_pixels                                                      ; first and second swap
+    sty x_pixels                                                      ; swap the two enemy ships
     txa                                                               ;
     tay                                                               ;
     ldx x_pixels                                                      ;
 dont_swap_two_ships_for_collision
+
+    ; add positive? offset to first ship
     lda enemy_ships_x_pixels,x                                        ;
     clc                                                               ;
-    adc y_pixels                                                      ; add difference to one
+    adc y_pixels                                                      ; add offset to the first ship
     bcs dont_alter_first_ships_position                               ;
     sta enemy_ships_x_pixels,x                                        ;
 dont_alter_first_ships_position
+
+    ; subtract negative offset from second ship
     lda enemy_ships_x_pixels,y                                        ;
     sec                                                               ;
     sbc y_pixels                                                      ; subtract it from the other
