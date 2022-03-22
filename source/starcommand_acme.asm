@@ -139,46 +139,46 @@
 ;
 ; Notes
 ; =====
-; Enemy ships are stored in two arrays at $0400 and $0480:
+; Enemy ships are stored in multiple arrays:
 ;
-;     $0400 enemy_ships_previous_on_screen
-;     $0401 enemy_ships_previous_x_fraction
-;     $0402 enemy_ships_previous_x_pixels
-;     $0403 enemy_ships_previous_x_screens
-;     $0404 enemy_ships_previous_y_fraction
-;     $0405 enemy_ships_previous_y_pixels
-;     $0406 enemy_ships_previous_y_screens
-;     $0407 enemy_ships_previous_angle
-;     $0408 enemy_ships_velocity
-;     $0409 enemy_ships_flags_or_explosion_timer:
-;               ....8421 enemy ship behaviour type
-;               ...1.... fires cluster torpedoes
-;               ..2..... defensive about angle
-;               .4...... defensive about damage
-;     $040a enemy_ships_type
-;               0 = regular
-;               1 = large
-;               4 = cloaked
+;  enemy_ships_previous_on_screen
+;  enemy_ships_previous_x_fraction
+;  enemy_ships_previous_x_pixels
+;  enemy_ships_previous_x_screens
+;  enemy_ships_previous_y_fraction
+;  enemy_ships_previous_y_pixels
+;  enemy_ships_previous_y_screens
+;  enemy_ships_previous_angle
+;  enemy_ships_velocity
+;  enemy_ships_flags_or_explosion_timer:
+;      ....8421 enemy ship behaviour type
+;      ...1.... fires cluster torpedoes
+;      ..2..... defensive about angle
+;      .4...... defensive about damage
+;  enemy_ships_type
+;      0 = regular
+;      1 = large
+;      4 = cloaked
 ;
-;     $0480 enemy_ships_on_screen
-;     $0481 enemy_ships_x_fraction
-;     $0482 enemy_ships_x_pixels
-;     $0483 enemy_ships_x_screens
-;     $0484 enemy_ships_y_fraction
-;     $0485 enemy_ships_y_pixels
-;     $0486 enemy_ships_y_screens
-;     $0487 enemy_ships_angle
-;     $0488 enemy_ships_temporary_behaviour_flags
-;               ....8421 enemy_ship_hit_count
-;               ...1.... behaviour 0: enemy_ship_was_on_screen_above
-;                        behaviour 7: kamikaze_one
-;               ..2..... behaviour 7: kamikaze_two
-;               .4...... retreating because of angle
-;               8....... retreating
-;     $0489 enemy_ships_energy
-;     $048a enemy_ships_firing_cooldown
-;               ....8421 current torpedo cooldown
-;               8421.... maximum torpedo cooldown
+;  enemy_ships_on_screen
+;  enemy_ships_x_fraction
+;  enemy_ships_x_pixels
+;  enemy_ships_x_screens
+;  enemy_ships_y_fraction
+;  enemy_ships_y_pixels
+;  enemy_ships_y_screens
+;  enemy_ships_angle
+;  enemy_ships_temporary_behaviour_flags
+;      ....8421 enemy_ship_hit_count
+;      ...1.... behaviour 0: enemy_ship_was_on_screen_above
+;               behaviour 7: kamikaze_one
+;      ..2..... behaviour 7: kamikaze_two
+;      .4...... retreating because of angle
+;      8....... retreating
+;  enemy_ships_energy
+;  enemy_ships_firing_cooldown
+;      ....8421 current torpedo cooldown
+;      8421.... maximum torpedo cooldown
 ;
 ; Enemy torpedoes are stored in array 'enemy_torpedoes_table', 6 bytes per torpedo:
 ;
@@ -232,8 +232,8 @@ do_debug = 0
 ; ----------------------------------------------------------------------------------
 ; gameplay constants
 ; ----------------------------------------------------------------------------------
-; Number of 50Hz frames between game updates = 2*game_speed/39 = 66/39 ~= 1.69
-game_speed                                                          = 33
+; Number of 50Hz frames between game updates = 2*game_speed/39 = 64/39 ~= 1.64
+game_speed                                                          = 32
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
@@ -252,21 +252,22 @@ additional_damage_from_collision_with_enemy_ship                    = 192
 damage_to_enemy_ship_from_starship_torpedo                          = 16
 size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
 maximum_starship_explosion_countdown                                = 80
-number_of_bytes_per_enemy_explosion                                 = $3f
 enemy_full_speed                                                    = 24
 
-starship_maximum_x_for_collisions_with_enemy_torpedoes              = $86
-starship_minimum_x_for_collisions_with_enemy_torpedoes              = $78
-starship_maximum_y_for_collisions_with_enemy_torpedoes              = $86
-starship_minimum_y_for_collisions_with_enemy_torpedoes              = $7a
-starship_maximum_x_for_collisions_with_enemy_ships                  = $8c
-starship_minimum_x_for_collisions_with_enemy_ships                  = $73
-starship_maximum_y_for_collisions_with_enemy_ships                  = $8c
-starship_minimum_y_for_collisions_with_enemy_ships                  = $76
-frame_of_starship_explosion_after_which_no_collisions               = $4a
+number_of_bytes_per_enemy_explosion                                 = $3f
 
-damage_from_enemy_torpedo                                           = $10
-frame_of_starship_explosion_after_which_no_sound                    = $11
+starship_maximum_x_for_collisions_with_enemy_torpedoes              = $7f + 7
+starship_minimum_x_for_collisions_with_enemy_torpedoes              = $7f - 7
+starship_maximum_y_for_collisions_with_enemy_torpedoes              = $7f + 7
+starship_minimum_y_for_collisions_with_enemy_torpedoes              = $7f - 5
+starship_maximum_x_for_collisions_with_enemy_ships                  = $7f + 13
+starship_minimum_x_for_collisions_with_enemy_ships                  = $7f - 12
+starship_maximum_y_for_collisions_with_enemy_ships                  = $7f + 13
+starship_minimum_y_for_collisions_with_enemy_ships                  = $7f - 9
+
+frame_of_starship_explosion_after_which_no_collisions               = 74
+frame_of_starship_explosion_after_which_no_sound                    = 17
+damage_from_enemy_torpedo                                           = 16
 
 probability_of_enemy_ship_cloaking                                  = $3f   ; bit mask
 minimum_energy_for_enemy_ship_to_cloak                              = $40
@@ -277,75 +278,96 @@ minimum_number_of_stars                                             = 1
 starship_torpedo_cooldown_after_firing                              = 1
 starship_energy_drain_from_non_zero_rotation                        = 4
 starship_torpedoes_per_round                                        = 4
-strength_of_player_rotation                                         = $f0
-strength_of_rotation_dampers                                        = $40
-minimum_energy_value_to_avoid_starship_destruction                  = 4
 starship_energy_drain_from_acceleration                             = 4
 starship_acceleration_from_player                                   = $40
 starship_acceleration_from_velocity_damper                          = $20
 starship_torpedo_cooldown_after_round                               = 2
 starship_energy_drain_from_firing_torpedo                           = 4
 
+strength_of_player_rotation                                         = $f0
+strength_of_rotation_dampers                                        = $40
+minimum_energy_value_to_avoid_starship_destruction                  = 4
+
 regeneration_rate_for_enemy_ships                                   = 1
 maximum_timer_for_enemy_ships_regeneration                          = 4
-base_regeneration_rate_for_starship                                 = $0c
-base_damage_to_enemy_ship_from_other_collision                      = $14
-change_in_number_of_stars_per_command                               = $fe
+base_regeneration_rate_for_starship                                 = 12
+base_damage_to_enemy_ship_from_other_collision                      = 20
+change_in_number_of_stars_per_command                               = -2
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
 ; ----------------------------------------------------------------------------------
-osbyte_set_cursor_editing            = $04
-osbyte_flush_buffer_class            = $0f
-osbyte_select_adc_channels           = $10
-osbyte_acknowledge_escape            = $7e
-osbyte_read_adc_or_get_buffer_status = $80
-osbyte_inkey                         = $81
+osbyte_set_cursor_editing               = $04
+osbyte_flush_buffer_class               = $0f
+osbyte_select_adc_channels              = $10
+osbyte_acknowledge_escape               = $7e
+osbyte_read_adc_or_get_buffer_status    = $80
+osbyte_inkey                            = $81
 
-osword_read_line                     = $00
-osword_sound                         = $07
-osword_envelope                      = $08
+osword_read_line                        = $00
+osword_sound                            = $07
+osword_envelope                         = $08
 
-inkey_key_delete                     = $a6
-inkey_key_return                     = $b6
+; negative INKEY numbers
+inkey_return                            = $b6
+inkey_delete                            = $a6
+inkey_z                                 = $9e
+inkey_x                                 = $bd
+inkey_m                                 = $9a
+inkey_comma                             = $99
+inkey_n                                 = $aa
+inkey_g                                 = $ac
+inkey_f                                 = $bc
+inkey_f0                                = $df
+inkey_f1                                = $8e
+inkey_2                                 = $ce
+inkey_3                                 = $ee
+inkey_v                                 = $9c
+inkey_b                                 = $9b
+inkey_c                                 = $ad
+inkey_p                                 = $c8
+inkey_space                             = $9d
+inkey_colon                             = $b7
+inkey_slash                             = $97
 
 ; OS memory locations
-irq_accumulator                     = $fc
-irq1_vector_low                     = $0204
-irq1_vector_high                    = $0205
+irq_accumulator                         = $fc
+irq1_vector_low                         = $0204
+irq1_vector_high                        = $0205
 
-videoULAPaletteRegister             = $fe21         ; Video ULA palette register
+videoULAPaletteRegister                 = $fe21         ; Video ULA palette register
 
-userVIATimer1CounterLow             = $fe64         ; Timer 1 counter (low)
-userVIATimer1CounterHigh            = $fe65         ; Timer 1 counter (high)
-userVIATimer1LatchLow               = $fe66         ; Timer 1 latch (low)
-userVIATimer1LatchHigh              = $fe67         ; Timer 1 latch (high)
-userVIAAuxiliaryControlRegister     = $fe6b         ; auxiliary control register
-userVIAInterruptFlagRegister        = $fe6d         ; Interrupt flag register
-userVIAInterruptEnableRegister      = $fe6e         ; Interrupt enable register
+userVIATimer1CounterLow                 = $fe64         ; Timer 1 counter (low)
+userVIATimer1CounterHigh                = $fe65         ; Timer 1 counter (high)
+userVIATimer1LatchLow                   = $fe66         ; Timer 1 latch (low)
+userVIATimer1LatchHigh                  = $fe67         ; Timer 1 latch (high)
+userVIAAuxiliaryControlRegister         = $fe6b         ; auxiliary control register
+userVIAInterruptFlagRegister            = $fe6d         ; Interrupt flag register
+userVIAInterruptEnableRegister          = $fe6e         ; Interrupt enable register
 
-systemVIATimer1LatchLow             = $fe46         ;
-systemVIATimer1LatchHigh            = $fe47         ;
-systemVIAAuxiliaryControlRegister   = $fe4b         ;
-systemVIAInterruptFlagRegister      = $fe4d         ;
+systemVIATimer1LatchLow                 = $fe46         ;
+systemVIATimer1LatchHigh                = $fe47         ;
+systemVIAAuxiliaryControlRegister       = $fe4b         ;
+systemVIAInterruptFlagRegister          = $fe4d         ;
 
-oswrch                              = $ffee
-osword                              = $fff1
-osbyte                              = $fff4
+oswrch                                  = $ffee
+osword                                  = $fff1
+osbyte                                  = $fff4
 
 ; ----------------------------------------------------------------------------------
 ; zero page
 ; ----------------------------------------------------------------------------------
 
 ; for multiply routines
-a                                       = $00
-b                                       = $01
-c                                       = $02
-z                                       = $03
-position                                = $04
-temp_m2                                 = $05
-prod_low                                = $06
-t                                       = $07
+b                                       = $00
+c                                       = $01
+prod_low                                = $02
+t                                       = $03
+
+unused04                                = $04
+unused05                                = $05
+unused06                                = $06
+unused07                                = $07
 
 how_enemy_ship_was_damaged              = $08
 
@@ -893,14 +915,17 @@ rotated_x_correction_lsb
     !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
 rotated_x_correction_screens
     !byte 0, 0, 1, 2, 3, 4                                            ;
+
 rotated_y_correction_lsb
     !byte 0  , 1  , 4  , 9  , $10, $19                                ;
 rotated_y_correction_screens
     !byte 0, 1, 2, 3, 4, 5                                            ;
+
 rotated_x_correction_fraction
     !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
 rotated_x_correction_pixels
     !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
 rotated_y_correction_fraction
     !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
 rotated_y_correction_pixels
@@ -946,17 +971,27 @@ unset_pixel
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; check that the point we about to plot is within 32 pixels of the centre of the object.
-; if it isn't, it's because the point wrapped around from one side of the play area and back on the other side
+; Plot a point, with boundary check
+;
+; Checks that the point we about to plot is close to the centre of the object.
+; If it isn't, it's because the point wrapped around from one side of the
+; play area and back on the other side.
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;
+; On Exit:
+;   X is preserved
 ; ----------------------------------------------------------------------------------
 eor_pixel_with_boundary_check
     ; boundary check X
     txa                                                               ;
     sec                                                               ;
     sbc temp10                                                        ;
-    bcs skip_inversion_x                                              ;
+    bcs +                                                             ;
     eor #$ff                                                          ;
-skip_inversion_x
++
     cmp #$20                                                          ;
     bcs return                                                        ;
 
@@ -964,12 +999,23 @@ skip_inversion_x
     lda y_pixels                                                      ;
     sec                                                               ;
     sbc temp9                                                         ;
-    bcs skip_inversion_y                                              ;
+    bcs +                                                             ;
     eor #$ff                                                          ;
-skip_inversion_y
++
     cmp #$20                                                          ;
     bcs return                                                        ;
+    ; fall through...
 
+; ----------------------------------------------------------------------------------
+; Plot a point (using 'exclusive or')
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;
+; On Exit:
+;   X is preserved
+; ----------------------------------------------------------------------------------
 eor_play_area_pixel
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
@@ -1105,7 +1151,7 @@ sm_sine_a4 = * + 1
 
     tax                                                               ; X = store the high byte 't'
 
-    ; 8 bit multiply starship_rotation_sine_magnitude * y into A register (high byte) and prod_low
+    ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
 sm_sine_b1 = * + 1
     lda squares1_low,y                                                ;
     sec                                                               ;
@@ -1128,38 +1174,35 @@ sm_sine_b4 = * + 1
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
-;   X = low byte of position (one coordinate)
-;   Y = high byte of position (one coordinate)
+;   X = low byte of position 'fraction' (one coordinate)
+;   Y = high byte of position 'pixels'  (one coordinate)
 ; On Exit:
 ;   Result in A (low byte) and temp8 (high byte)
+;   Preserves X,Y
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_cosine
     cpy #0                                                            ;
     beq shortcut                                                      ;
 
-    stx temp_x                                                        ; remember x
+    stx temp_x                                                        ;
+    sty temp8                                                         ;
 
-    ; 8x8 multiply 'A * starship_rotation_cosine', result in A (high byte only needed)
-    sty position                                                      ;
-    ldx position                                                      ;
+    ; 8x8 multiply 'Y * starship_rotation_cosine', result in A (high byte only needed)
 sm_cosine_a1 = * + 1
-    lda squares1_low,x                                                ;
+    lda squares1_low,y                                                ;
     sec                                                               ;
 sm_cosine_a2 = * + 1
-    sbc squares2_low,x                                                ;
-;    sta prod_low                                                      ;
+    sbc squares2_low,y                                                ;
 sm_cosine_a3 = * + 1
-    lda squares1_high,x                                               ;
+    lda squares1_high,y                                               ;
 sm_cosine_a4 = * + 1
-    sbc squares2_high,x                                               ;
+    sbc squares2_high,y                                               ;
 
     sec                                                               ;
-    sbc position                                                      ;
-    tax                                                               ;
-    lda position                                                      ;
-    sbc #0                                                            ;
-    sta temp8                                                         ;
-    txa                                                               ;
+    sbc temp8                                                         ;
+    bcs +                                                             ;
+    dec temp8                                                         ;
++
     clc                                                               ;
     adc temp_x                                                        ;
     bcc return1                                                       ;
@@ -1214,10 +1257,10 @@ skip_inversion
 update_position_for_rotation
     sty temp_y                                                        ; remember Y
 
+    ; X' = Y*sine + X*cosine
     ldx object_y_fraction                                             ;
     ldy object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-
     ldx object_x_fraction                                             ;
     ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
@@ -1228,8 +1271,10 @@ update_position_for_rotation
     adc output_fraction                                               ; sine_y_pixels
     sta temp10                                                        ; cosine_x_plus_sine_y_pixels
 
-    ldx object_x_fraction                                             ;
-    ldy object_x_pixels                                               ;
+    ; Y' = X*cosine - Y*sine
+
+;    ldx object_x_fraction                                             ;
+;    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     ldx object_y_fraction                                             ;
     ldy object_y_pixels                                               ;
@@ -1278,7 +1323,7 @@ skip_uninversion
 
 ; ----------------------------------------------------------------------------------
 add_starship_velocity_to_position
-    dey
+    dey                                                               ;
     lda object_y_fraction                                             ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
@@ -1350,32 +1395,28 @@ skipZ
 
 ; ----------------------------------------------------------------------------------
 multiply_enemy_position_by_starship_rotation_cosine
-    ; set up inputs
-    lda enemy_ships_x_pixels,x                                        ;
-    sta b                                                             ;
-    lda enemy_ships_x_screens,x                                       ;
-    sta c                                                             ;
-
     stx temp_x                                                        ; remember x
+
+    ; set up inputs
+    lda enemy_ships_x_screens,x                                       ;
+    ldy enemy_ships_x_pixels,x                                        ;
+    tax                                                               ;
 
     ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
     ; result in A (low) and temp8 (high)
-mul16x8a
 
-    ; multiply b * starship_rotation_cosine, result in A (high byte) and prod_low
-    ldx b                                                             ;
+    ; multiply X * starship_rotation_cosine, result in A (high byte) and prod_low
 sm_cosine_b1 = * + 1
-    lda squares1_low,x                                                ;
+    lda squares1_low,y                                                ;
     sec                                                               ;
 sm_cosine_b2 = * + 1
-    sbc squares2_low,x                                                ;
+    sbc squares2_low,y                                                ;
 sm_cosine_b3 = * + 1
-    lda squares1_high,x                                               ;
+    lda squares1_high,y                                               ;
 sm_cosine_b4 = * + 1
-    sbc squares2_high,x                                               ;
-
+    sbc squares2_high,y                                               ;
     tay                                                               ; remember high byte ('t')
-    ldx c                                                             ;
+
     ; multiply c * starship_rotation_cosine, result in A (high byte) and prod_low
 sm_cosine_c1 = * + 1
     lda squares1_low,x                                                ;
@@ -1395,9 +1436,9 @@ sm_cosine_c4 = * + 1
     bcc +                                                             ;
     inc temp8                                                         ;
 +
-    ldx temp_x                                                        ; restore x
 
     ; update enemy position
+    ldx temp_x                                                        ; restore x
     clc                                                               ;
     adc enemy_ships_x_fraction,x                                      ;
     sta temp9                                                         ;
@@ -1920,44 +1961,50 @@ return5
 
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
-    ldy #2                                                            ; Plot pixel for head of torpedo
+    ; Head of torpedo
+    ldy #2                                                            ;
     lda (temp0_low),y                                                 ;
     tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
+
     lda starship_torpedo_type                                         ;
     beq small_starship_torpedoes                                      ;
-    jmp plot_big_torpedo                                              ;
+    jmp plot_big_torpedo                                              ; Plot pixel for head of torpedo
 
 small_starship_torpedoes
-    ldy #2                                                            ; Plot pixel for tail of torpedo
+    ; Tail of torpedo
+    ldy #2                                                            ;
     lda (temp1_low),y                                                 ;
+    sta x_pixels
     tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp1_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    ldy #1                                                            ; Plot pixel for middle of torpedo
+    jsr eor_play_area_pixel                                           ; Plot pixel for tail of torpedo
+
+    ; Middle of torpedo
+    ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc (temp1_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; two
     lda (temp0_low),y                                                 ;
-    adc (temp1_low),y                                                 ;
+    adc x_pixels                                                      ;
     ror                                                               ;
     tax                                                               ; x coordinate
-    iny                                                               ;
+    iny                                                               ; three
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc (temp1_low),y                                                 ;
-    iny                                                               ;
+    iny                                                               ; four
     lda (temp0_low),y                                                 ;
-    adc (temp1_low),y                                                 ;
+    adc y_pixels                                                      ;
     ror                                                               ;
     sta y_pixels                                                      ;
-    jmp eor_play_area_pixel                                           ;
+    jmp eor_play_area_pixel                                           ; Plot pixel for middle of torpedo
 
 ; ----------------------------------------------------------------------------------
 apply_rotation_to_starship_angle
@@ -2247,7 +2294,7 @@ skip9
     dec enemy_ships_x_screens,x                                       ;
 skip_subtraction_sine
 
-    ; 5-bit multiplication of cosine by velocity
+    ; 5-bit multiplication of cosine by enemy ship velocity
     ldy #5                                                            ;
     lda #0                                                            ;
     sta temp8                                                         ;
@@ -4715,26 +4762,6 @@ check_for_keypresses
     jmp check_for_additional_keys                                     ;
 
 ; ----------------------------------------------------------------------------------
-inkey_z      = $9e                                                    ; 'Z'
-inkey_x      = $bd                                                    ; 'X'
-inkey_m      = $9a                                                    ; 'M'
-inkey_comma  = $99                                                    ; ','
-inkey_n      = $aa                                                    ; 'N'
-inkey_g      = $ac                                                    ; 'G'
-inkey_f      = $bc                                                    ; 'F'
-inkey_f0     = $df                                                    ; 'f0'
-inkey_f1     = $8e                                                    ; 'f1'
-inkey_2      = $ce                                                    ; '2'
-inkey_3      = $ee                                                    ; '3'
-inkey_v      = $9c                                                    ; 'V'
-inkey_b      = $9b                                                    ; 'B'
-inkey_c      = $ad                                                    ; 'C'
-inkey_copy   = $96                                                    ; 'Copy'
-inkey_colon  = $b7                                                    ; ':'
-inkey_slash  = $97                                                    ; '/'
-inkey_return = $b6                                                    ; 'Return'
-
-; ----------------------------------------------------------------------------------
 use_keyboard_input
     ldx #inkey_z                                                      ;
     jsr check_key_x                                                   ; 'Z'
@@ -4849,12 +4876,12 @@ skip_damper_keys
     rts                                                               ;
 
 +
-    ldx #inkey_copy                                                   ;
+    ldx #inkey_p                                                      ;
     jsr check_key_x                                                   ;
     bne return18                                                      ;
 
 pause_game
-    ldx #inkey_key_delete                                             ;
+    ldx #inkey_space                                                  ;
     jsr check_key_x                                                   ;
     bne pause_game                                                    ;
 return18
@@ -9064,7 +9091,7 @@ wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
     jsr update_frontier_stars                                         ;
 
-    ldx #inkey_key_return                                             ; check for RETURN
+    ldx #inkey_return                                                 ; check for RETURN
     jsr check_key_x                                                   ;
     bne wait_for_return_in_frontiers_loop                             ;
 
@@ -9146,6 +9173,7 @@ return31
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Only uses A, preserves X,Y
 irq_routine
     lda userVIAInterruptFlagRegister                        ; get interrupt flag register
     bpl check_vsync                                         ; if (not a user via interrupt) then branch
@@ -9158,7 +9186,7 @@ irq_routine
     ; increment timing counter
     inc timing_counter                                      ;
 
-    ; increment irq_counter by two
+    ; increment irq_counter by two (to count the number of character rows)
     lda irq_counter                                         ;
     clc                                                     ;
     adc #2                                                  ;
@@ -9183,8 +9211,8 @@ check_vsync
     lda #>ShortTimerValue                                   ;
     sta userVIATimer1LatchHigh                              ;
 
-    lda #34                                                 ;
-    sta irq_counter                                         ;
+    lda #34                                                 ; reset count of character rows
+    sta irq_counter                                         ; every vsync
 
 call_old_irq
     lda irq_accumulator                                     ;
@@ -9200,9 +9228,9 @@ print_regular_string
     sta lookup_high                                                   ;
     ldy #0                                                            ;
 -
-    lda (lookup_low),y                                                ;
     dex                                                               ;
     bmi ++                                                            ;
+    lda (lookup_low),y                                                ;
     clc                                                               ;
     adc lookup_low                                                    ;
     sta lookup_low                                                    ;

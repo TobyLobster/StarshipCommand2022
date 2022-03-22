@@ -162,10 +162,10 @@ instructions_string2
     !text "f1 -  \"Velocity Dampers\" ON"                             ;
     !byte $1f, 3  , 25                                                ;
     !text "3  -  \"Velocity Dampers\" OFF"                            ;
-    !byte $1f, 3  , 27                                                ;
-    !text "<COPY>   - FREEZE"                                         ;
-    !byte $1f, 3  , 28                                                ;
-    !text "<DELETE> - UNFREEZE"                                       ;
+    !byte $1f, 13 , 27                                                ;
+    !text       "P  -  Pause"                                         ;
+    !byte $1f, 9  , 28                                                ;
+    !text   "Space  -  Resume"                                        ;
     !byte $1f, $0d, 31                                                ;
     !text "Press <RETURN>"                                            ;
 
