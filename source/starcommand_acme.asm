@@ -761,7 +761,7 @@ previous_starship_automatic_shields
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
 starship_rotation_sine_table
-    !byte 0  , 2  , 4  , 6  , 8  , $0a                                ;
+    !byte 0  , 2  , 4  , 6  , 8  , 10                                 ;
 
 ; ----------------------------------------------------------------------------------
 ; Align to page boundary for speed
@@ -947,9 +947,10 @@ unset_pixel
 
 ; ----------------------------------------------------------------------------------
 ; check that the point we about to plot is within 32 pixels of the centre of the object.
-; if it isn't, it's because the point left one side of the play area and back on the other side
+; if it isn't, it's because the point wrapped around from one side of the play area and back on the other side
 ; ----------------------------------------------------------------------------------
 eor_pixel_with_boundary_check
+    ; boundary check X
     txa                                                               ;
     sec                                                               ;
     sbc temp10                                                        ;
@@ -958,6 +959,8 @@ eor_pixel_with_boundary_check
 skip_inversion_x
     cmp #$20                                                          ;
     bcs return                                                        ;
+
+    ; boundary check Y
     lda y_pixels                                                      ;
     sec                                                               ;
     sbc temp9                                                         ;
@@ -966,6 +969,7 @@ skip_inversion_x
 skip_inversion_y
     cmp #$20                                                          ;
     bcs return                                                        ;
+
 eor_play_area_pixel
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
@@ -2209,7 +2213,7 @@ apply_velocity_to_enemy_ships_loop
     lda cosine_table,y                                                ;
     sta temp4                                                         ;
 
-    ; # 3-bit multiplication of sine by enemy ship velocity
+    ; 5-bit multiplication of sine by enemy ship velocity
     ldy #5                                                            ;
     lda #0                                                            ;
     sta temp8                                                         ;
@@ -2656,15 +2660,15 @@ plot_segment
     cmp #1                                                            ;
     beq plot_segment_unrolled                                         ;
 
-plot_segment_regular_loop
     ldx x_pixels                                                      ;
+plot_segment_regular_loop
     jsr eor_play_area_pixel                                           ;
 
     ldy segment_angle                                                 ;
-    lda segment_angle_to_x_deltas_table,y                             ;
+    txa                                                               ;
     clc                                                               ;
-    adc x_pixels                                                      ; update x
-    sta x_pixels                                                      ;
+    adc segment_angle_to_x_deltas_table,y                             ; update x
+    tax                                                               ;
 
     lda segment_angle_to_y_deltas_table,y                             ;
     clc                                                               ;
@@ -4090,18 +4094,26 @@ skip_inversion_sine
 skip_inversion_cosine
     sta y_pixels                                                      ;
 
-    ; 3-bit multiplication of sine by radius
-    ldx #3                                                            ;
+    ; 3-bit multiplication of sine by radius, A = (x_pixels * temp11)/8
     lda #0                                                            ;
-loop_over_bits_of_sine1
-    lsr x_pixels                                                      ;
-    bcc sine_bit_unset1                                               ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
     clc                                                               ;
-    adc temp11                                                        ;
-sine_bit_unset1
+    adc temp11                                                        ; radius
++
     ror                                                               ;
-    dex                                                               ;
-    bne loop_over_bits_of_sine1                                       ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
 
     ldx x_pixels                                                      ;
     beq skip_uninversion_sine                                         ;
@@ -4110,18 +4122,26 @@ skip_uninversion_sine
     eor #$80                                                          ;
     sta x_pixels                                                      ;
 
-    ; 3-bit multiplication of cosine by radius
-    ldx #3                                                            ;
+    ; 3-bit multiplication of cosine by radius, A = (y_pixels * temp11)/8
     lda #0                                                            ;
-loop_over_bits_of_cosine1
-    lsr y_pixels                                                      ;
-    bcc skip22                                                        ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
     clc                                                               ;
-    adc temp11                                                        ;
-skip22
+    adc temp11                                                        ; radius
++
     ror                                                               ;
-    dex                                                               ;
-    bne loop_over_bits_of_cosine1                                     ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
 
     ldx y_pixels                                                      ;
     beq skip_uninversion_cosine                                       ;
@@ -4359,6 +4379,8 @@ plot_enemy_explosion_fragment
     lsr                                                               ;
     lsr                                                               ;
     sta temp11                                                        ;
+
+    ; calculate sine
     tya                                                               ;
     lsr                                                               ;
     tax                                                               ;
@@ -4368,27 +4390,37 @@ plot_enemy_explosion_fragment
     clc                                                               ;
     adc #1                                                            ;
 skip_inversion_sine1
-    sta x_pixels                                                      ;
+    sta x_pixels                                                      ; sine
+
+    ; calculate cosine
     lda cosine_table,x                                                ;
     bpl skip_inversion_cosine1                                        ;
     eor #$1f                                                          ;
     clc                                                               ;
     adc #1                                                            ;
 skip_inversion_cosine1
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; cosine
 
-    ; 3-bit multiplication of sine by radius
-    ldx #3                                                            ;
+    ; 3-bit multiplication of sine by radius, A = (x_pixels * temp11)/8
     lda #0                                                            ;
-loop_over_bits_of_sine2
-    lsr x_pixels                                                      ;
-    bcc sine_bit_unset2                                               ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
     clc                                                               ;
-    adc temp11                                                        ;
-sine_bit_unset2
+    adc temp11                                                        ; radius
++
     ror                                                               ;
-    dex                                                               ;
-    bne loop_over_bits_of_sine2                                       ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
+    lsr x_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
 
     ldx x_pixels                                                      ;
     beq skip_uninversion_sine1                                        ;
@@ -4396,20 +4428,28 @@ sine_bit_unset2
 skip_uninversion_sine1
     clc                                                               ;
     adc temp10                                                        ;
-    sta x_pixels                                                      ; x = origin_x + radius * sin(piece / 2)
+    sta x_pixels                                                      ; x = origin_x + radius * sin(piece)
 
-    ; 3-bit multiplication of cosine by radius
-    ldx #3                                                            ;
+    ; 3-bit multiplication of cosine by radius, A = (y_pixels * temp11)/8
     lda #0                                                            ;
-loop_over_bits_of_cosine2
-    lsr y_pixels                                                      ;
-    bcc cosine_bit_unset1                                             ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
     clc                                                               ;
-    adc temp11                                                        ;
-cosine_bit_unset1
+    adc temp11                                                        ; radius
++
     ror                                                               ;
-    dex                                                               ;
-    bne loop_over_bits_of_cosine2                                     ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
+    lsr y_pixels                                                      ; sine
+    bcc +                                                             ;
+    clc                                                               ;
+    adc temp11                                                        ; radius
++
+    ror                                                               ;
 
     ldx y_pixels                                                      ;
     beq skip_uninversion_cosine1                                      ;
@@ -4417,8 +4457,10 @@ cosine_bit_unset1
 skip_uninversion_cosine1
     clc                                                               ;
     adc temp9                                                         ;
-    sta y_pixels                                                      ; y = origin_y + radius * cos(piece / 2)
+    sta y_pixels                                                      ; y = origin_y + radius * cos(piece)
     sty temp11                                                        ;
+
+    ; draw a dot or two, or four
     ldx x_pixels                                                      ;
     jsr eor_pixel_with_boundary_check                                 ;
     lda segment_angle                                                 ;
@@ -5847,18 +5889,27 @@ skip_inversion9
     rol                                                               ;
     sta x_pixels                                                      ;
 
-    ; 3-bit multiplication of sine by starship_velocity * 8
+    ; 3-bit multiplication of sine by starship_velocity
     lda #0                                                            ;
-    ldy #3                                                            ;
-loop_over_bits_of_sine3
+    tay                                                               ; Y=0
     lsr y_pixels                                                      ;
-    bcc sine_bit_unset3                                               ;
+    bcc +                                                             ;
     clc                                                               ;
     adc x_pixels                                                      ;
-sine_bit_unset3
++
     ror                                                               ;
-    dey                                                               ;
-    bne loop_over_bits_of_sine3                                       ; A = starship_velocity * 8 * sin(angle)
+    lsr y_pixels                                                      ;
+    bcc +                                                             ;
+    clc                                                               ;
+    adc x_pixels                                                      ;
++
+    ror                                                               ;
+    lsr y_pixels                                                      ;
+    bcc +                                                             ;
+    clc                                                               ;
+    adc x_pixels                                                      ;
++
+    ror                                                               ; A = starship_velocity * sin(angle)
 
     lsr                                                               ;
     cmp #2                                                            ;
