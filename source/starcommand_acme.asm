@@ -8456,6 +8456,19 @@ award_thresholds_high
 num_award_levels = award_thresholds_high - award_thresholds_low
 
 ; ----------------------------------------------------------------------------------
+adjective_table
+    !byte award_adjective_1         ; 1 command:    "all-too-brief"
+    !byte award_adjective_2         ; 2 commands:   "short"
+    !byte award_adjective_3         ; 3 commands:   "fairly short"
+    !byte award_adjective_3         ; 4 commands:   "fairly short"
+    !byte award_adjective_4         ; 5 commands:   "fairly long"
+    !byte award_adjective_4         ; 6 commands:   "fairly long"
+    !byte award_adjective_5         ; 7 commands:   "long"
+    !byte award_adjective_5         ; 8 commands:   "long"
+    !byte award_adjective_5         ; 9 commands:   "long"
+                                    ; 10+ commands: "distinguished"
+
+; ----------------------------------------------------------------------------------
 show_any_retirement_award
     jsr calculate_award                                               ;
     bmi no_award                                                      ;
@@ -8486,17 +8499,7 @@ print_award
 no_award
     jmp leave_after_plotting_line_of_underscores                      ;
 
-adjective_table
-    !byte award_adjective_1
-    !byte award_adjective_2
-    !byte award_adjective_3
-    !byte award_adjective_3
-    !byte award_adjective_4
-    !byte award_adjective_4
-    !byte award_adjective_5
-    !byte award_adjective_5
-    !byte award_adjective_5
-
+; ----------------------------------------------------------------------------------
 award_adjective
     ldx #award_review_string                                          ;
     jsr print_compressed_string                                       ;
@@ -9390,7 +9393,7 @@ extended
     jmp output_character                                              ;
 
 special_case
-    sec
+    sec                                                               ;
     sbc #$80 - award_you_the_order_of_the                             ;
     tax                                                               ;
     lda lookup_low                                                    ;

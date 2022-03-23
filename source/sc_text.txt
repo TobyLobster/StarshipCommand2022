@@ -32,18 +32,18 @@ but_collided_string
 
 ; ----------------------------------------------------------------------------------
 combat_experience_rating_string
-    !text 13,10,13,10,13,10, "   Your official combat experience",13,10 ;
-    !text " rating is now recorded as "                                      ;
+    !text 140,140,140, "   Your official combat experience",140       ;
+    !text " rating is now recorded as "                               ;
 
 ; ----------------------------------------------------------------------------------
 having_just_gained_string
-    !text ", having",13,10," just gained "                            ;
+    !text ", having",140," just gained "                              ;
 
 ; ----------------------------------------------------------------------------------
 after_your_performance_string
-    !text 13,10,13,10,13,10
-    !text "   After your performance on this ",13,10,
-    !text " command the",134,"authorities",13,10,
+    !text 140,140,140
+    !text "   After your performance on this ",140,
+    !text " command the",134,"authorities",140,
     !text " are said to be \"" ;
 
 ; ----------------------------------------------------------------------------------
@@ -74,33 +74,33 @@ but_string
 
 ; ----------------------------------------------------------------------------------
 they_allow_string
-    !text " they",13,10," allow you the command of another",13,10," starship."         ;
+    !text " they",140," allow you the command of another",140," starship."         ;
 
 ; ----------------------------------------------------------------------------------
 and_they_retire_you_string
-    !text " and they", 13,10," retire you from active service."        ;
+    !text " and they", 140," retire you from active service."         ;
 
 ; ----------------------------------------------------------------------------------
 award_review_string
-    !text 13,10,13,10,13,10,"   After reviewing your "
+    !text 140,140,140,"   After reviewing your "
 
 award_adjective_1
-    !text "all-too-brief",13,10,133
+    !text "all-too-brief",140,133
 award_adjective_2
-    !text "short",13,10,133
+    !text "short",140,133
 award_adjective_3
-    !text "fairly short",13,10,133
+    !text "fairly short",140,133
 award_adjective_4
-    !text "fairly long",13,10,133
+    !text "fairly long",140,133
 award_adjective_5
-    !text "long",13,10,133
+    !text "long",140,133
 award_adjective_6
-    !text "distinguished",13,10,133
+    !text "distinguished",140,133
 
 award_outcome_die_1
-    !text "list your name on",13,10," the Pluto monument"
+    !text "list your name on",140," the Pluto monument"
 award_outcome_die_2
-    !text "mention you in a",13,10," tri-vi broadcast"
+    !text "mention you in a",140," tri-vi broadcast"
 award_outcome_die_3
     !text 128, "Badger"
 award_outcome_die_4
@@ -112,22 +112,22 @@ award_outcome_die_6
 award_outcome_die_7
     !text 128, 129, 130, 132, " and Crossed Blasters"
 award_outcome_die_8
-    !text "put your face on recruiting posters"
+    !text "put your face on",140," recruiting posters"
 award_outcome_die_9
     !text "build a statue of you on Mars"
 award_outcome_die_10
-    !text "rename the Academy after you"
+    !text "rename the Academy",140," after you"
 
 award_outcome_escape_1
-    !text "court-martial you",13,10," for cowardice"
+    !text "court-martial you",140," for cowardice"
 award_outcome_escape_2
     !text "demote you to worker grade"
 award_outcome_escape_3
-    !text "retrain you as a",13,10," gardener"
+    !text "retrain you as a",140," gardener"
 award_outcome_escape_4
-    !text "assign you to",13,10," planning staff"
+    !text "assign you to",140," planning staff"
 award_outcome_escape_5
-    !text "grant you a full",13,10," pension"
+    !text "grant you a full",140," pension"
 award_outcome_escape_6
     !text 131,"Commodore"
 award_outcome_escape_7
@@ -137,7 +137,7 @@ award_outcome_escape_8
 award_outcome_escape_9
     !text 131,"Grand ",136
 award_outcome_escape_10
-    !text "elect you President",13,10," of the Solar Federation"
+    !text "elect you President",140," of the Solar Federation"
 
 
 
@@ -223,7 +223,7 @@ starfleet_records_string
     !byte $1f, 6  , 3                                                 ;
     !text "**** STAR-FLEET RECORDS ****"                              ;
     !byte $1f, 3  , 6                                                 ;
-    !text    "Below is a list of the most highly",13,10               ;
+    !text    "Below is a list of the most highly",140                 ;
     !text " rated of Star-Fleet's past commanders."                   ;
     !byte $1f, 13, 30                                                 ;
     !text "Press <RETURN>"                                            ;
@@ -241,7 +241,7 @@ the_frontiers_string1
     !byte $1f, 3, 5                                                   ; TAB
     !text    "The frontiers of space are frequently"                  ;
     !text "penetrated by hostile alien ships. These"                  ;
-    !text "are tackled by battle starships, the",13,10                ;
+    !text "are tackled by battle starships, the",140                  ;
     !text "command of which is given to deserving  "                  ;
     !text "captains from the Star-Fleet."                             ;
 
@@ -262,7 +262,7 @@ the_frontiers_string2
 ; ----------------------------------------------------------------------------------
 ; 128
 award_you_the_order_of_the
-    !text "award you the Order",13,10," of the "
+    !text "award you the Order",140," of the "
 
 ; 129
 award_lion
@@ -274,7 +274,7 @@ first_class
 
 ; 131
 promote_you_to
-    !text "promote you to ",13,10," "
+    !text "promote you to ",140," "
 
 ; 132
 award_oak_leaves
@@ -307,3 +307,7 @@ dampers
 ; 139
 torpedoes
     !text "torpedoes"
+
+; 140
+newline
+    !text 13,10
