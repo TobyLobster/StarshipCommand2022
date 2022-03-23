@@ -11,7 +11,7 @@ python3 tools/text_compression.py --input source/sc_text.txt --output build/sc_t
 tools/acme --symbollist build/symbols.txt -r build/report.txt -o build/disk/STAR source/starcommand_acme.asm
 sort -o build/symbols.txt build/symbols.txt
 
-# Find entry point
+# Find entry point in symbols
 entry_point=$(grep build/symbols.txt -e '.*entry_point\t' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
 
 # Create !BOOT file

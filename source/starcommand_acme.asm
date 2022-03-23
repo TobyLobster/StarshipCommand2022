@@ -505,7 +505,7 @@ enemy_end_angle                         = enemy_ships_flags_or_explosion_timer +
 enemy_arc_length                        = enemy_ships_flags_or_explosion_timer + 4
 enemy_temp_index                        = enemy_ships_flags_or_explosion_timer + 5
 
-award_y                                 = enemy_ships_flags_or_explosion_timer
+award                                   = enemy_ships_flags_or_explosion_timer
 
 
 ; ----------------------------------------------------------------------------------
@@ -8391,95 +8391,146 @@ plot_line_of_underscores_loop
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-award_type_string_index
-    !byte award_type_citation                                         ; 0. a citation for distinguished service
-    !byte award_type_citation                                         ; 1. a citation for gallantry
-    !byte award_type_badge                                            ; 2. the Badge of Excellence
-    !byte award_type_badge                                            ; 3. the Badge of Honour
-    !byte award_type_badge                                            ; 4. the Badge of Valour
-    !byte award_type_medal                                            ; 5. the Medal of Excellence
-    !byte award_type_medal                                            ; 6. the Medal of Honour
-    !byte award_type_medal                                            ; 7. the Medal of Valour
-    !byte award_type_cross                                            ; 8. the Cross of Meritorious Honour
-    !byte award_type_cross                                            ; 9. the Cross of Conspicuous Gallantry
-    !byte award_type_cross                                            ; 10. the Cross of Outstanding Heroism
-
-award_level_string_index
-    !byte award_level_1                                               ; 0. a citation for distinguished service
-    !byte award_level_2                                               ; 1. a citation for gallantry
-    !byte award_level_3                                               ; 2. the Badge of Excellence
-    !byte award_level_4                                               ; 3. the Badge of Honour
-    !byte award_level_5                                               ; 4. the Badge of Valour
-    !byte award_level_3                                               ; 5. the Medal of Excellence
-    !byte award_level_4                                               ; 6. the Medal of Honour
-    !byte award_level_5                                               ; 7. the Medal of Valour
-    !byte award_level_6                                               ; 8. the Cross of Meritorious Honour
-    !byte award_level_7                                               ; 9. the Cross of Conspicuous Gallantry
-    !byte award_level_8                                               ; 10. the Cross of Outstanding Heroism
-
+; "After reviewing your ADJECTIVE career, Star-Fleet OUTCOME."
+;
+; ADJECTIVE:
+; 	if only one command: "all-too brief"
+; 	if only two commands: "short"
+; 	if three to four: "fairly short"
+; 	if five to six: "fairly long"
+; 	seven to nine: "long"
+; 	else "distinguished"
+;
+; OUTCOME IF YOU DIE:
+;
+; 	1. list your name on the Pluto monument
+; 	2. mention you in a tri-vi broadcast
+; 	3. award you the Order of the Badger
+; 	4. award you the Order of the Lion, Second Class
+; 	5. award you the Order of the Lion, First Class
+; 	6. award you the Order of the Lion, First Class, with Oak Leaves
+; 	7. award you the Order of the Lion, First Class, with Oak Leaves and Crossed Blasters
+; 	8. put your face on recruiting posters
+; 	9. build a statue of you on Mars
+; 	10. rename the Academy after you
+;
+; OUTCOME IF YOU ESCAPE IN POD:
+;
+; 	1. court-martial you for cowardice
+; 	2. demote you to worker grade
+; 	3. retrain you as a gardener
+; 	4. assign you to planning staff
+; 	5. grant you a full pension
+; 	6. promote you to Commodore
+; 	7. promote you to Rear-Admiral
+; 	8. promote you to Admiral
+; 	9. promote you to Grand Admiral
+; 	10. elect you President of the Solar Federation
 ; ----------------------------------------------------------------------------------
-award_thresholds
-    !byte $02                                                         ; 0.   200 <= score < 300
-    !byte $03                                                         ; 1.   300 <= score < 400
-    !byte $04                                                         ; 2.   400 <= score < 400
-    !byte $05                                                         ; 3.   500 <= score < 500
-    !byte $06                                                         ; 4.   600 <= score < 600
-    !byte $07                                                         ; 5.   700 <= score < 700
-    !byte $08                                                         ; 6.   800 <= score < 800
-    !byte $09                                                         ; 7.   900 <= score < 900
-    !byte $10                                                         ; 8.  1000 <= score < 1000
-    !byte $11                                                         ; 9.  1100 <= score < 1100
-    !byte $12                                                         ; 10. 1200 <= score
+; In BCD
+award_thresholds_low
+    !byte <$0000                                                      ; 1.    score >=   0
+    !byte <$0020                                                      ; 2.    score >=  20
+    !byte <$0050                                                      ; 3.    score >=  50
+    !byte <$0100                                                      ; 4.    score >= 100
+    !byte <$0200                                                      ; 5.    score >= 200
+    !byte <$0300                                                      ; 6.    score >= 300
+    !byte <$0400                                                      ; 7.    score >= 400
+    !byte <$0500                                                      ; 8.    score >= 500
+    !byte <$0750                                                      ; 9.    score >= 750
+    !byte <$1000                                                      ; 10.   score >= 1000
 
-num_award_levels = * - award_thresholds
+award_thresholds_high
+    !byte >$0000                                                      ; 1.    score >=   0
+    !byte >$0020                                                      ; 2.    score >=  20
+    !byte >$0050                                                      ; 3.    score >=  50
+    !byte >$0100                                                      ; 4.    score >= 100
+    !byte >$0200                                                      ; 5.    score >= 200
+    !byte >$0300                                                      ; 6.    score >= 300
+    !byte >$0400                                                      ; 7.    score >= 400
+    !byte >$0500                                                      ; 8.    score >= 500
+    !byte >$0750                                                      ; 9.    score >= 750
+    !byte >$1000                                                      ; 10.   score >= 1000
+
+
+num_award_levels = award_thresholds_high - award_thresholds_low
 
 ; ----------------------------------------------------------------------------------
 show_any_retirement_award
     jsr calculate_award                                               ;
     bmi no_award                                                      ;
 
-    ldx #award_survived_string                                        ;
-    jsr print_compressed_string                                       ;
-    jmp show_any_award                                                ;
+    jsr award_adjective                                               ;
+
+    lda award                                                         ;
+    clc
+    adc #award_outcome_escape_1                                       ;
+    tax                                                               ;
+    jmp print_award                                                   ;
 
 ; ----------------------------------------------------------------------------------
 show_any_posthumous_award
     jsr calculate_award                                               ;
     bmi no_award                                                      ;
 
-    ldx #award_posthumously_string                                    ;
-    jsr print_compressed_string                                       ;
+    jsr award_adjective                                               ;
 
-show_any_award
-    ldy award_y                                                       ;
-    ldx award_type_string_index,y                                     ;
-    jsr print_compressed_string                                       ;
-    ldy award_y                                                       ;
-    ldx award_level_string_index,y                                    ;
+    lda award                                                         ;
+    clc
+    adc #award_outcome_die_1                                          ;
+    tax                                                               ;
+print_award
     jsr print_compressed_string                                       ;
     lda #'.'                                                          ;
     jsr oswrch                                                        ;
 no_award
     jmp leave_after_plotting_line_of_underscores                      ;
 
+adjective_table
+    !byte award_adjective_1
+    !byte award_adjective_2
+    !byte award_adjective_3
+    !byte award_adjective_3
+    !byte award_adjective_4
+    !byte award_adjective_4
+    !byte award_adjective_5
+    !byte award_adjective_5
+    !byte award_adjective_5
+
+award_adjective
+    ldx #award_review_string                                          ;
+    jsr print_compressed_string                                       ;
+
+    lda #award_adjective_6                                            ; distinguished
+    ldx command_number                                                ;
+    cpx #9                                                            ;
+    bcs +                                                             ;
+    lda adjective_table - 1,x                                         ;
++
+    tax                                                               ;
+    jmp print_compressed_string                                       ;
+
 ; ----------------------------------------------------------------------------------
 ; On Exit:
-;   Y = 0-10 is the award index, or $ff means no award
+;   Y = 0-9 is the award index
 ; ----------------------------------------------------------------------------------
 calculate_award
-    ldy #num_award_levels-1                                           ; start at highest award level
+    ldy #num_award_levels - 1                                         ; start at highest award level
     lda score_as_bcd + 2                                              ;
     bne done_award                                                    ;
-    lda score_as_bcd + 1                                              ;
     iny                                                               ;
 -
-    dey
-    bmi done_award                                                    ;
-    cmp award_thresholds,y                                            ;
-    bcc -
+    dey                                                               ;
+    lda score_as_bcd + 1                                              ;
+    cmp award_thresholds_high,y                                       ;
+    bcc -                                                             ;
+    bne done_award                                                    ;
+    lda score_as_bcd                                                  ;
+    cmp award_thresholds_low,y                                        ;
+    bcc -                                                             ;
 done_award
     tya                                                               ; set the negative flag for testing if we have an award
-    sty award_y                                                       ;
+    sty award                                                         ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9325,6 +9376,9 @@ print_compressed_loop
     bcs return4                                                       ; found terminator value 31
     tax                                                               ;
     lda text_header_data,x                                            ;
+output_character
+    cmp #128                                                          ;
+    bcs special_case                                                  ;
     jsr oswrch                                                        ;
     jmp print_compressed_loop                                         ;
 return4
@@ -9333,9 +9387,30 @@ return4
 extended
     ldx #8                                                            ;
     jsr get_x_bits                                                    ;
-    jsr oswrch                                                        ;
-    jmp print_compressed_loop                                         ;
+    jmp output_character                                              ;
 
+special_case
+    sec
+    sbc #$80 - award_you_the_order_of_the                             ;
+    tax                                                               ;
+    lda lookup_low                                                    ;
+    pha                                                               ;
+    lda lookup_high                                                   ;
+    pha                                                               ;
+    lda lookup_byte                                                   ;
+    pha                                                               ;
+    lda lookup_bit                                                    ;
+    pha                                                               ;
+    jsr print_compressed_string                                       ;
+    pla                                                               ;
+    sta lookup_bit                                                    ;
+    pla                                                               ;
+    sta lookup_byte                                                   ;
+    pla                                                               ;
+    sta lookup_high                                                   ;
+    pla                                                               ;
+    sta lookup_low                                                    ;
+    jmp print_compressed_loop                                         ;
 
 ; ----------------------------------------------------------------------------------
 frontier_star_positions
