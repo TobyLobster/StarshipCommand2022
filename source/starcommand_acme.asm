@@ -9417,28 +9417,135 @@ special_case
 
 ; ----------------------------------------------------------------------------------
 frontier_star_positions
-    !byte $d5, $82, $d5, $7b, $d5, $88, $d5, $75, $d3, $8f, $d3, $6e  ; this defines a 'globe' of 128 stars
-    !byte $d3, $84, $d3, $79, $d2, $8d, $d2, $70, $d1, $95, $d1, $68  ; (two bytes each)
-    !byte $cf, $92, $cf, $6b, $cf, $9b, $cf, $62, $cf, $87, $cf, $76  ;
-    !byte $cb, $a0, $cb, $5d, $cb, $98, $cb, $65, $c9, $8b, $c9, $72  ;
-    !byte $c7, $9c, $c7, $61, $c7, $a5, $c7, $58, $c3, $aa, $c3, $53  ;
-    !byte $c2, $8d, $c2, $70, $c1, $a0, $c1, $5d, $be, $ae, $be, $4f  ;
-    !byte $bb, $a4, $bb, $59, $b9, $90, $b9, $6d, $b8, $b2, $b8, $4b  ;
-    !byte $b4, $a7, $b4, $56, $b3, $b5, $b3, $48, $af, $91, $af, $6c  ;
-    !byte $ad, $b7, $ad, $46, $ad, $a9, $ad, $54, $a6, $b9, $a6, $44  ;
-    !byte $a5, $ab, $a5, $52, $a5, $92, $a5, $6b, $a0, $ba, $a0, $43  ;
-    !byte $9d, $ab, $9d, $52, $9a, $bb, $9a, $43, $9a, $93, $9a, $6b  ;
-    !byte $96, $ab, $96, $52, $93, $ba, $93, $43, $8e, $ab, $8e, $52  ;
-    !byte $8e, $92, $8e, $6b, $8d, $b9, $8d, $44, $86, $a9, $86, $54  ;
-    !byte $86, $b7, $86, $46, $84, $91, $84, $6c, $80, $b5, $80, $48  ;
-    !byte $7f, $a7, $7f, $56, $7b, $b2, $7b, $4b, $7a, $90, $7a, $6d  ;
-    !byte $78, $a4, $78, $59, $75, $ae, $75, $4f, $72, $a0, $72, $5d  ;
-    !byte $71, $8d, $71, $70, $70, $aa, $70, $53, $6c, $a5, $6c, $58  ;
-    !byte $6c, $9c, $6c, $61, $6a, $8b, $6a, $72, $68, $98, $68, $65  ;
-    !byte $68, $a0, $68, $5d, $64, $92, $64, $6b, $64, $9b, $64, $62  ;
-    !byte $64, $87, $64, $76, $62, $95, $62, $68, $61, $8d, $61, $70  ;
-    !byte $60, $8f, $60, $6e, $60, $84, $60, $79, $5e, $82, $5e, $7b  ;
-    !byte $5e, $88, $5e, $75                                          ;
+    ; this defines a 'globe' of 128 stars each with (X,Y) position
+    !byte $5E, $80
+    !byte $5F, $78
+    !byte $5F, $7D
+    !byte $5F, $83
+    !byte $5F, $88
+    !byte $60, $70
+    !byte $60, $90
+    !byte $61, $73
+    !byte $61, $8D
+    !byte $62, $7B
+    !byte $62, $85
+    !byte $63, $69
+    !byte $63, $97
+    !byte $64, $6E
+    !byte $64, $92
+    !byte $65, $79
+    !byte $65, $87
+    !byte $66, $62
+    !byte $66, $9E
+    !byte $68, $6A
+    !byte $68, $96
+    !byte $6A, $5B
+    !byte $6A, $77
+    !byte $6A, $89
+    !byte $6A, $A5
+    !byte $6D, $66
+    !byte $6D, $9A
+    !byte $70, $56
+    !byte $70, $75
+    !byte $70, $8B
+    !byte $70, $AA
+    !byte $72, $62
+    !byte $72, $9E
+    !byte $75, $50
+    !byte $75, $B0
+    !byte $76, $74
+    !byte $76, $8C
+    !byte $79, $5F
+    !byte $79, $A1
+    !byte $7C, $4C
+    !byte $7C, $B4
+    !byte $7D, $73
+    !byte $7D, $8D
+    !byte $7F, $5C
+    !byte $7F, $A4
+    !byte $83, $49
+    !byte $83, $B7
+    !byte $85, $72
+    !byte $85, $8E
+    !byte $87, $5A
+    !byte $87, $A6
+    !byte $8A, $46
+    !byte $8A, $BA
+    !byte $8D, $71
+    !byte $8D, $8F
+    !byte $8E, $59
+    !byte $8E, $A7
+    !byte $92, $45
+    !byte $92, $BB
+    !byte $96, $58
+    !byte $96, $71
+    !byte $96, $8F
+    !byte $96, $A8
+    !byte $9A, $44
+    !byte $9A, $BC
+    !byte $9E, $58
+    !byte $9E, $71
+    !byte $9E, $8F
+    !byte $9E, $A8
+    !byte $A2, $45
+    !byte $A2, $BB
+    !byte $A6, $59
+    !byte $A6, $A7
+    !byte $A7, $71
+    !byte $A7, $8F
+    !byte $AA, $46
+    !byte $AA, $BA
+    !byte $AD, $5A
+    !byte $AD, $A6
+    !byte $AF, $72
+    !byte $AF, $8E
+    !byte $B1, $49
+    !byte $B1, $B7
+    !byte $B5, $5C
+    !byte $B5, $A4
+    !byte $B7, $73
+    !byte $B7, $8D
+    !byte $B8, $4C
+    !byte $B8, $B4
+    !byte $BB, $5F
+    !byte $BB, $A1
+    !byte $BE, $74
+    !byte $BE, $8C
+    !byte $BF, $50
+    !byte $BF, $B0
+    !byte $C2, $62
+    !byte $C2, $9E
+    !byte $C4, $56
+    !byte $C4, $75
+    !byte $C4, $8B
+    !byte $C4, $AA
+    !byte $C7, $66
+    !byte $C7, $9A
+    !byte $CA, $5B
+    !byte $CA, $77
+    !byte $CA, $89
+    !byte $CA, $A5
+    !byte $CC, $6A
+    !byte $CC, $96
+    !byte $CE, $62
+    !byte $CE, $9E
+    !byte $CF, $79
+    !byte $CF, $87
+    !byte $D0, $6E
+    !byte $D0, $92
+    !byte $D1, $69
+    !byte $D1, $97
+    !byte $D2, $7B
+    !byte $D2, $85
+    !byte $D3, $73
+    !byte $D3, $8D
+    !byte $D4, $70
+    !byte $D4, $90
+    !byte $D5, $78
+    !byte $D5, $7D
+    !byte $D5, $83
+    !byte $D5, $88
+    !byte $D6, $80
 
 star_table
     !fill maximum_number_of_stars_in_game * 4,0                       ; table to hold the star data while in game
