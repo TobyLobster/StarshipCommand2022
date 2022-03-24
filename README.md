@@ -205,7 +205,45 @@ In summary: If you score 80 points, you definitely get another command. At 60 po
 All of this is unchanged from the original game, but is interesting to document.
 
 ### The new awards system
-There are ten different possible Star-Fleet reactions at the end of the game if you live, and another ten outcomes if you die. There is no random bonus here, it's based purely on your total score.
+There are ten different possible Star-Fleet reactions at the end of the game if you live, and another ten outcomes if you die. There is no random bonus here, it's based purely on your total score:
+```
+"After reviewing your ADJECTIVE career, Star-Fleet OUTCOME."
+
+ADJECTIVE:
+
+if only one command: "all-too brief"
+if only two commands: "short"
+if three to four: "fairly short"
+if five to six: "fairly long"
+seven to nine: "long"
+else "distinguished"
+
+OUTCOME IF YOU DIE:
+
+1. list your name on the Pluto monument
+2. mention you in a tri-vi broadcast
+3. award you the Order of the Badger
+4. award you the Order of the Lion, Second Class
+5. award you the Order of the Lion, First Class
+6. award you the Order of the Lion, First Class, with Oak Leaves
+7. award you the Order of the Lion, First Class, with Oak Leaves and Crossed Blasters
+8. put your face on recruiting posters
+9. build a statue of you on Mars
+10. rename the Academy after you
+
+OUTCOME IF YOU ESCAPE IN POD:
+
+1. court-martial you for cowardice
+2. demote you to worker grade
+3. retrain you as a gardener
+4. assign you to planning staff
+5. grant you a full pension
+6. promote you to Commodore
+7. promote you to Rear-Admiral
+8. promote you to Admiral
+9. promote you to Grand Admiral
+10. elect you President of the Solar Federation
+```
 
 ### Compressing text
 There is around 2k of text in Starship Command. The text is compressed to save memory.
