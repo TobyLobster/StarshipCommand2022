@@ -16,20 +16,6 @@ This new version features:
 
 ## Technical Changes
 
-Topics:
-
-Performance
-    Multiplication
-    Plotting a point
-    Adding new enemies
-Saving Memory
-    Compressing text
-    Reusing common code
-    Using all areas of available RAM
-Reporting
-    The Secret Bonus
-    Adding the new awards system
-
 ## How the original game works
 
 Here we detail some interesting implementation points of the original game.
@@ -37,11 +23,11 @@ Here we detail some interesting implementation points of the original game.
 ### Plotting enemies
 Unusually, each enemy is plotted using a pixel plotting routine, not a sprite plotting routine as per most games. It makes sense for this game since each enemy can be rotated at 32 different angles. Enemies are drawn using five arcs of this circle:
 
-[Circle](documents/circle.png)
+![Circle](documents/circle.png)
 
 The regular enemy design is this (colours show the individual arcs):
 
-[Enemy](documents/old_enemy.png)
+![Enemy](documents/old_enemy.png)
 
 For the most part, each arc continues drawing from where the last arc left off. Having drawn the last point of arc 1 (yellow), the position is moved from point 10 on the circle down one to point 11. This is where the next arc starts plotting. The second arc is a special case in that it goes anticlockwise in an unintuitive manner. Having drawn the first point, it uses the offset from point 20 on the circle to 21 to offset the current position (up and to the left in this case), but then decrements the current point number from 20 to 19 to calculate the next offset.
 
@@ -58,13 +44,13 @@ To add new enemy designs much of the above had to be generalised. The trick of i
 
 So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles, into a cached version. The number of enemies each command is two, so we only need two full sized caches.
 
-[Enemy](documents/enemy1.png)
+![Enemy](documents/enemy1.png)
 
 The enemies are still drawn using arcs of the circle, but there can be a different number of arcs per enemy (in practice we use 5 or 6). Each arc also has a start point (x,y) to move to before starting plotting.
 
 A five arc enemy takes 100 bytes to define, and a six arc enemy takes 120 bytes.
 
-[Enemy](documents/enemy2.png)
+![Enemy](documents/enemy2.png)
 
 ### Looking at the starship
 One thing the enemies do a lot is rotate themselves to point at your Starship before starting to fire. Given the (x,y) position on screen of an enemy (relative to your Starship) the code needs to work out which of the 32 angles is desired.
@@ -191,4 +177,3 @@ There is around 2k of text in Starship Command. The text is compressed to save m
 Each string starts with one byte of length (number of encoded bytes before the next string), followed by a bitstream. The most common characters in the text are stored in 5 bits as values 0-30. Value 31 indicates that a less common letter follows in the next 8 bits. Once decoded, a character 'c' of 128 or higher indicates string[c-128] should be printed at this point. In this way common words or phrases can be encoded cheaply.
 
 Some strings don't compress well, containing too many unusual characters. These are stored in a separate set of regular (uncompressed) strings.
-
