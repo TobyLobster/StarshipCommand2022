@@ -124,7 +124,7 @@ The new code uses 1k of table lookups to help do the same thing, but quicker:
 
 ```
 eor_play_area_pixel
-    ldy y_pixels                                   
+    ldy y_pixels
     lda play_area_row_table_high,y                 ; table lookup
     sta screen_address_high
     lda row_table_low,y                            ; table lookup
@@ -141,7 +141,7 @@ Note that in this new version, the X register holds x_pixels, and is preserved a
 ### Fast arc plotting
 We have a routine that draws an entire circle, pixel by pixel. It is an unrolled loop. We jump into this routine at the appropriate starting point for the arc we want to draw, having already modified the code to write an RTS instruction at the point we want to stop drawing. This (a) minimises the cycle cost of working out what coordinates to incement or decrement to get the the next pixel and (b) also removes the overhead of a loop counter and branch instruction.
 
-In fact it draw more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. This fits into one page of memory, for easier/quicker self modification.
+In fact it draws more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. This fits into one page of memory, for easier/quicker self modification.
 
 ```
 plus_angle0
