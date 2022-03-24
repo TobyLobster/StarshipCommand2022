@@ -973,9 +973,9 @@ unset_pixel
 ; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
-; Checks that the point we about to plot is close to the centre of the object.
+; Checks that the point we are about to plot is close to the centre of the object.
 ; If it isn't, it's because the point wrapped around from one side of the
-; play area and back on the other side.
+; play area and back onto the other side.
 ;
 ; On Entry:
 ;   X        = x coordinate to plot
