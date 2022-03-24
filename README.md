@@ -2,6 +2,8 @@
 
 This is an update to the original 1983 game Starship Command by Peter Irvin.
 
+As always, nothing written here is meant to denigrate the original work from 1983, which remains a remarkable achievement in the world before such things as the internet, source control, fast reliable storage media, extensive information and a community about the inner workings of the BBC Micro, etc. It all just highlights the benefits we have today.
+
 This new version features:
 
 * Significantly faster and more responsive (less slow-down).
@@ -55,7 +57,7 @@ A five arc enemy takes 100 bytes to define, and a six arc enemy takes 120 bytes.
 ### Looking at the starship
 One thing the enemies do a lot is rotate themselves to point at your Starship before starting to fire. Given the (x,y) position on screen of an enemy (relative to your Starship) the code needs to work out which of the 32 angles is desired.
 
-In a picture, the number in red is the result we are looking for when inside the black or white segment:
+In this picture, the number in red is the result we are looking for when inside the black or white segment:
 
 ![32 Angles around a circle](documents/angles2.png)
 
