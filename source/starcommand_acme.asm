@@ -51,7 +51,7 @@
 ;   * fires cluster torpedoes (more likely in later commands)
 ;     if set, fires groups of four torpedoes at once
 ;
-;   * large and capable of cloaking (more likely in later commands)
+;   * second enemy type, capable of cloaking (more likely in later commands)
 ;     if set, can become invisible
 ;
 ;   * torpedo cooldown (more likely to be lower in later commands)
@@ -63,7 +63,7 @@
 ;         defensive about damage          c0 ac 98 84 70 5c 48 34 20 20 20 20 20
 ;         defensive about angle           82 74 66 58 4a 3c 2e 20 12 04 04 04 04
 ;         fires cluster torpedoes         04 13 22 31 40 4f 5e 6d 7c 8b 9a a9 b8
-;         large and capable of cloaking   02 19 30 47 5e 75 8c a3 ba d1 e8 ff ff
+;         second enemy type & cloakable   02 19 30 47 5e 75 8c a3 ba d1 e8 ff ff
 ;
 ;     maximum torpedo cooldown            0f 0d 0b 09 07 05 03 02 02 02 02 02 02
 ;
@@ -107,17 +107,17 @@
 ;
 ; Points are scored for destroyed enemy ships as follows:
 ;
-;     regular enemy ship, starship torpedo                    8
-;     regular enemy ship, enemy torpedo                       3
-;     regular enemy ship, escape capsule                     70
-;     regular enemy ship, collision with other enemy ship     3
-;     regular enemy ship, collision with starship             2
+;     first enemy ship type, starship torpedo                      8
+;     first enemy ship type, enemy torpedo                         3
+;     first enemy ship type, escape capsule                       70
+;     first enemy ship type, collision with other enemy ship       3
+;     first enemy ship type, collision with starship               2
 ;
-;     large enemy ship, starship torpedo                     12
-;     large enemy ship, enemy torpedo                         4
-;     large enemy ship, escape capsule                       90
-;     large enemy ship, collision with other enemy ship       4
-;     large enemy ship, collision with starship               3
+;     second enemy ship type, starship torpedo                    12
+;     second enemy ship type, enemy torpedo                        4
+;     second enemy ship type, escape capsule                      90
+;     second enemy ship type, collision with other enemy ship      4
+;     second enemy ship type, collision with starship              3
 ;
 ;
 ; A random, undisclosed factor of between 0 and 39 points is added to the score
@@ -156,8 +156,8 @@
 ;      ..2..... defensive about angle
 ;      .4...... defensive about damage
 ;  enemy_ships_type
-;      0 = regular
-;      1 = large
+;      0 = first ship type
+;      1 = second ship type
 ;      4 = cloaked
 ;
 ;  enemy_ships_on_screen
@@ -419,19 +419,18 @@ object_x_pixels                         = $2b   ;
 object_y_fraction                       = $2c   ;
 object_y_pixels                         = $2d   ;
 
-enemy_ships_flags_or_explosion_timer    = $2e + 0 * maximum_number_of_enemy_ships
-enemy_ships_on_screen                   = $2e + 1 * maximum_number_of_enemy_ships
-enemy_ships_x_fraction                  = $2e + 2 * maximum_number_of_enemy_ships
-enemy_ships_x_pixels                    = $2e + 3 * maximum_number_of_enemy_ships
-enemy_ships_x_screens                   = $2e + 4 * maximum_number_of_enemy_ships
-enemy_ships_y_fraction                  = $2e + 5 * maximum_number_of_enemy_ships
-enemy_ships_y_pixels                    = $2e + 6 * maximum_number_of_enemy_ships
-enemy_ships_y_screens                   = $2e + 7 * maximum_number_of_enemy_ships
-enemy_ships_velocity                    = $2e + 8 * maximum_number_of_enemy_ships
-enemy_ships_angle                       = $2e + 9 * maximum_number_of_enemy_ships
-enemy_ships_temporary_behaviour_flags   = $2e + 10 * maximum_number_of_enemy_ships
-enemy_ships_energy                      = $2e + 11 * maximum_number_of_enemy_ships
-
+enemy_ships_flags_or_explosion_timer    = $2e +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $2e
+enemy_ships_on_screen                   = $2e +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $36
+enemy_ships_x_fraction                  = $2e +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $3e
+enemy_ships_x_pixels                    = $2e +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $46
+enemy_ships_x_screens                   = $2e +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $4e
+enemy_ships_y_fraction                  = $2e +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $56
+enemy_ships_y_pixels                    = $2e +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $5e
+enemy_ships_y_screens                   = $2e +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $66
+enemy_ships_velocity                    = $2e +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $6e
+enemy_ships_angle                       = $2e +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $76
+enemy_ships_temporary_behaviour_flags   = $2e + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $7e
+enemy_ships_energy                      = $2e + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $86
 rnd_1                                   = $8e   ;
 rnd_2                                   = $8f   ;
 
@@ -530,8 +529,8 @@ enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_s
 enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships
 
 ; 64 table entries. Each entry has a high byte and a low byte.
-; The first  32 entries are the address of each angle of the regular enemy.
-; The second 32 entries are the address of each angle of the alternative enemy.
+; The first  32 entries are the address of each angle of the first enemy type design.
+; The second 32 entries are the address of each angle of the second enemy type design.
 ; These addresses depend upon the number of arcs in each enemy,
 ; so are filled in via code (in fill_enemy_cache).
 enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships
@@ -3200,7 +3199,7 @@ enemy_ship_isnt_cloaked
 debug_plot_enemy
     ; which enemy to use
     lda enemy_ship_type                                               ;
-    beq regular_ship                                                  ;
+    beq first_ship_type                                               ;
 
     ; alternate ship
     ldx enemy_number                                                  ;
@@ -3212,7 +3211,7 @@ debug_plot_enemy
     tax                                                               ;
     bne got_ship                                                      ; ALWAYS branch
 
-regular_ship
+first_ship_type
     ldx enemy_number                                                  ;
     dex                                                               ;
     lda enemy_strides,x                                               ;
@@ -3652,7 +3651,7 @@ fill_enemy_cache
     sta cache_start_high                                              ;
     jsr fill_one_enemy_cache                                          ;
 
-    inc enemy_number                                                  ; enemy number incremented to alternative enemy type
+    inc enemy_number                                                  ; enemy number incremented to second enemy type
     lda #<enemy_cache_b                                               ;
     sta end_low                                                       ;
     sta cache_start_low                                               ;
@@ -6444,16 +6443,16 @@ rotation_gauge_position
     !byte 0                                                           ;
 scores_for_destroying_enemy_ships
     ; BCD scores
-    !byte $08   ; regular ship, starship torpedo                           ; how_enemy_ship_was_damaged = 0
-    !byte $12   ; large or cloaked ship, starship torpedo
-    !byte $03   ; regular ship, enemy torpedo                              ; how_enemy_ship_was_damaged = 1
-    !byte $04   ; large or cloaked ship, enemy torpedo
-    !byte $70   ; regular ship, escape capsule                             ; how_enemy_ship_was_damaged = 2
-    !byte $90   ; large or cloaked ship, escape capsule
-    !byte $03   ; regular ship, collision with other enemy ship            ; how_enemy_ship_was_damaged = -1
-    !byte $04   ; large or cloaked ship, collision with other enemy ship
-    !byte $02   ; regular ship, collision with starship                    ; how_enemy_ship_was_damaged = -1
-    !byte $03   ; large ship, collision with starship
+    !byte $08   ; first ship type, starship torpedo                           ; how_enemy_ship_was_damaged = 0
+    !byte $12   ; second ship type / cloaked ship, starship torpedo
+    !byte $03   ; first ship type, enemy torpedo                              ; how_enemy_ship_was_damaged = 1
+    !byte $04   ; second ship type / cloaked ship, enemy torpedo
+    !byte $70   ; first ship type, escape capsule                             ; how_enemy_ship_was_damaged = 2
+    !byte $90   ; second ship type / cloaked ship, escape capsule
+    !byte $03   ; first ship type, collision with other enemy ship            ; how_enemy_ship_was_damaged = -1
+    !byte $04   ; second ship type / cloaked ship, collision with other enemy ship
+    !byte $02   ; first ship type, collision with starship                    ; how_enemy_ship_was_damaged = -1
+    !byte $03   ; second ship type / cloaked ship, collision with starship
 
 ; ----------------------------------------------------------------------------------
 score_points_for_destroying_enemy_ship
@@ -7304,24 +7303,24 @@ probability_of_new_enemy_ship_being_defensive_about_angle
     !byte 0                                                           ;
 probability_of_new_enemy_ship_firing_torpedo_clusters
     !byte 0                                                           ;
-probability_of_new_enemy_ship_being_large
+probability_of_new_enemy_ship_being_second_type
     !byte 0                                                           ;
 
 initial_enemy_ship_spawning_probabilities
     !byte $c0                                                         ; probability_of_new_enemy_ship_being_defensive_about_damage
     !byte $82                                                         ; probability_of_new_enemy_ship_being_defensive_about_angle
     !byte 4                                                           ; probability_of_new_enemy_ship_firing_torpedo_clusters
-    !byte 2                                                           ; probability_of_new_enemy_ship_being_large
+    !byte 2                                                           ; probability_of_new_enemy_ship_being_second_type
 change_in_enemy_ship_spawning_probabilities_per_command
     !byte $ec                                                         ; probability_of_new_enemy_ship_being_defensive_about_damage
     !byte $f2                                                         ; probability_of_new_enemy_ship_being_defensive_about_angle
     !byte $0f                                                         ; probability_of_new_enemy_ship_firing_torpedo_clusters
-    !byte $17                                                         ; probability_of_new_enemy_ship_being_large
+    !byte $17                                                         ; probability_of_new_enemy_ship_being_second_type
 ultimate_enemy_ship_probabilities
     !byte $20                                                         ; probability_of_new_enemy_ship_being_defensive_about_damage
     !byte 4                                                           ; probability_of_new_enemy_ship_being_defensive_about_angle
     !byte $b8                                                         ; probability_of_new_enemy_ship_firing_torpedo_clusters
-    !byte $ff                                                         ; probability_of_new_enemy_ship_being_large
+    !byte $ff                                                         ; probability_of_new_enemy_ship_being_second_type
 
 ; ----------------------------------------------------------------------------------
 initialise_enemy_ship
@@ -7389,7 +7388,7 @@ defensive_about_angle
     sta enemy_ships_flags_or_explosion_timer,x                        ;
 clusters_unset
     ldy #0                                                            ;
-    lda probability_of_new_enemy_ship_being_large                     ;
+    lda probability_of_new_enemy_ship_being_second_type               ;
     cmp rnd_2                                                         ;
     bcc small_ship                                                    ;
     iny                                                               ;
@@ -7454,13 +7453,13 @@ prepare_starship_for_next_command
     stx starship_type                                                 ;
 
     ; Enemy designs range from 0-5. There are two designs per command
-    ; the pairs: (0,1) (2,3) (4,5) the regular design and the
-    ; alternative design.
+    ; the pairs: (0,1) (2,3) (4,5) the first type and the
+    ; second type.
 
-    ; We increment the enemy number to be the next regular ship.
-    ; Up to this point it has been pointing at the alternative ship
+    ; We increment the enemy number to be the next first ship type design.
+    ; Up to this point it has been pointing at the second ship type design
     ; from the previous round. The call to fill_enemy_cache below
-    ; will increment it again to be the alternative ship again for
+    ; will increment it again to be the second ship type again for
     ; the duration of this command.
     inc enemy_number                                                  ;
     ldx enemy_number                                                  ;
@@ -7912,7 +7911,7 @@ debug
 
     lda #1                                                            ;
     sta command_number                                                ;
-    lda #0                                                            ; Zero for regular ship, 1 for alternative ship
+    lda #0                                                            ; Zero for first ship type, 1 for second ship type
     sta enemy_ship_type                                               ;
 
     lda #0                                                            ;
