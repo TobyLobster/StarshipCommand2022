@@ -1273,8 +1273,6 @@ update_position_for_rotation
 
     ; Y' = X*cosine - Y*sine
 
-;    ldx object_x_fraction                                             ;
-;    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     ldx object_y_fraction                                             ;
     ldy object_y_pixels                                               ;
