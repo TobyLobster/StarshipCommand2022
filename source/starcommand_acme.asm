@@ -3567,14 +3567,14 @@ enemy5
 
 ; Enemy definitions for the current command
 
-; 1.5K of enemy definition cache
+; 1.375K of enemy definition cache
 enemy_cache_a
     ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*5*32        ; bytes * arcs * angles
+    !skip 4*5*32        ; bytes * arcs * angles = 640 bytes
 
 enemy_cache_b
     ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*6*32        ; bytes * arcs * angles
+    !skip 4*6*32        ; bytes * arcs * angles = 768 bytes
 
 ; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the
 ; perimeter of the circle. 32 entries, with the tables overlapping.
