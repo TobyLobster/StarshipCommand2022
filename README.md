@@ -14,7 +14,7 @@ This new version features:
 * A slightly less harsh difficulty ramp for the first two commands (enemies are slower at the start of the command, gradually ramping up to regular speed as the number of enemies killed goes up). This change is to help new players, and perhaps to help compensate for difficulty added due to the faster speed of the game.
 * Rotational dampers on by default, with current setting remembered between missions and games.
 * Enhanced reporting/awards at the end of each mission/game.
-* Master compatible.
+* Master compatible (fixes the scanner static).
 
 ## Technical Changes
 
