@@ -3312,22 +3312,22 @@ enemy_table_high
 
 ; The number of arcs that define the enemy
 enemy_arc_counts
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 6
+    !byte 5     ; enemy 0
+    !byte 5     ; enemy 1
+    !byte 5     ; enemy 2
+    !byte 5     ; enemy 3
+    !byte 5     ; enemy 4
+    !byte 6     ; enemy 5
 
 ; the stride of an enemy is the number of bytes to get from the definition of one angle
 ; of the enemy to the next. Four times the number of arcs of the enemy.
 enemy_strides
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*6
+    !byte 4*5   ; enemy 0
+    !byte 4*5   ; enemy 1
+    !byte 4*5   ; enemy 2
+    !byte 4*5   ; enemy 3
+    !byte 4*5   ; enemy 4
+    !byte 4*6   ; enemy 5
 
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
