@@ -23,7 +23,9 @@ This new version features:
 Here we detail some interesting implementation points of the original game.
 
 ### Plotting enemies
-Unusually, each enemy is plotted using a pixel plotting routine, not a sprite plotting routine as per most games. It makes sense for this game since each enemy can be rotated at 32 different angles. Enemies are drawn using five arcs of this circle:
+Unusually, each enemy is plotted using a pixel plotting routine, not a sprite plotting routine as per most games. It makes sense for this game since each enemy can be rotated at 32 different angles, which would be a lot of sprites.
+
+Enemies are drawn using five arcs of this circle:
 
 ![Circle](documents/circle.png)
 
@@ -31,20 +33,22 @@ The regular enemy design is this (colours show the individual arcs):
 
 ![Enemy](documents/old_enemy.png)
 
-For the most part, each arc continues drawing from where the last arc left off. Having drawn the last point of arc 1 (yellow), the position is moved from point 10 on the circle down one to point 11. This is where the next arc starts plotting. The second arc is a special case in that it goes anticlockwise in an unintuitive manner. Having drawn the first point, it uses the offset from point 20 on the circle to 21 to offset the current position (up and to the left in this case), but then decrements the current point number from 20 to 19 to calculate the next offset.
+For the most part, each arc continues drawing from where the last arc left off. Having drawn the last point of arc 1 (yellow), the position is moved from point 10 on the circle down one to point 11. This is where the next arc starts plotting. The second arc is a special case in that it goes anticlockwise in a logical but unintuitive manner.
+
+Having drawn the first point, it uses the offset from point 20 on the circle to 21 to offset the current position (up and to the left in this case), but then decrements the current point number from 20 to 19 to calculate the next offset.
 
 Another wrinkle in the plotting is that two of the arcs require a move to a new starting point (i.e. Arc 1 and Arc 4). They don't start directly at the end of a previous arc. These offsets are calculated in code in the original game.
 
 Continuing this way it draws the entire enemy.
 
-To rotate the enemy clockwise, increment the starting point of each arc around the circle one position. In this way we can draw the enemy in 32 different rotations with only one definition of the enemy.
+To rotate the enemy clockwise, increment the starting point of each arc around the circle one position. In this way we can draw the enemy in 32 different rotations with only one enemy definition.
 
 There are two enemy types in the original game. The second is similar to the first but with a different start position for Arc 4, which is also hardcoded.
 
 ### Adding new enemies
 To add new enemy designs much of the above had to be generalised. The trick of incrementing the starting point to rotate the enemy doesn't work well in general for other designs.
 
-So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles, into a cached version. The number of enemies each command is two, so we only need two full sized caches.
+So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles from the first five, into a cached version. The number of enemies in each command is two, so we only need two full sized caches.
 
 ![Enemy](documents/enemy1.gif)
 
