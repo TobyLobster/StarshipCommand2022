@@ -516,28 +516,28 @@ award                                   = enemy_ships_flags_or_explosion_timer
 high_score_table                        = $0100
 
 ; enemy data $0400-$04ff
-enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships
-enemy_ships_previous_x_fraction         = $0400 +  1 * maximum_number_of_enemy_ships
-enemy_ships_previous_x_pixels           = $0400 +  2 * maximum_number_of_enemy_ships
-enemy_ships_previous_x_screens          = $0400 +  3 * maximum_number_of_enemy_ships
-enemy_ships_previous_y_fraction         = $0400 +  4 * maximum_number_of_enemy_ships
-enemy_ships_previous_y_pixels           = $0400 +  5 * maximum_number_of_enemy_ships
-enemy_ships_previous_y_screens          = $0400 +  6 * maximum_number_of_enemy_ships
-enemy_ships_previous_angle              = $0400 +  7 * maximum_number_of_enemy_ships
-enemy_ships_type                        = $0400 +  8 * maximum_number_of_enemy_ships
-enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_ships
-enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships
+enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $0400
+enemy_ships_previous_x_fraction         = $0400 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $0408
+enemy_ships_previous_x_pixels           = $0400 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $0410
+enemy_ships_previous_x_screens          = $0400 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $0418
+enemy_ships_previous_y_fraction         = $0400 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $0420
+enemy_ships_previous_y_pixels           = $0400 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $0428
+enemy_ships_previous_y_screens          = $0400 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $0430
+enemy_ships_previous_angle              = $0400 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $0438
+enemy_ships_type                        = $0400 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $0440
+enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $0448
+enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $0450
 
 ; 64 table entries. Each entry has a high byte and a low byte.
-; The first  32 entries are the address of each angle of the first enemy type design.
-; The second 32 entries are the address of each angle of the second enemy type design.
+; The first  32 entries are the address of each angle of the regular enemy.
+; The second 32 entries are the address of each angle of the alternative enemy.
 ; These addresses depend upon the number of arcs in each enemy,
 ; so are filled in via code (in fill_enemy_cache).
-enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships
-enemy_address_high                      = enemy_address_low + 64
-enemy_address_high_end                  = enemy_address_high + 64
+enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $0458
+enemy_address_high                      = enemy_address_low + 64                        ; i.e. starts at $0498
+enemy_address_high_end                  = enemy_address_high + 64                       ; i.e. end    at $04d7
 
-; 32 unused bytes
+; 40 unused bytes starts at $04d8
 
 stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
 
