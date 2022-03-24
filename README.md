@@ -214,16 +214,14 @@ Each string starts with one byte of length (number of encoded bytes before the n
 
 Some strings don't compress well, containing too many unusual characters. These are stored in a separate set of regular (uncompressed) strings.
 
-### Final thoughts
-It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and also the physics are very believable.
+## Final thoughts
+It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
 
-Now the game feels more dynamic, but still very controllable.
-
-Enjoy...
+I believe the game now feels more dynamic and responsive, but still very controllable.
 
 TobyLobster
 
-### Thanks
+## Thanks
 * Thanks to Adrian Nelson for the new enemy designs and a new Starship design.
 * Thanks to Graham Nelson for the logic and wording of the new awards system.
 * And to both for useful feedback and play testing.
