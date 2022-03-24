@@ -278,7 +278,7 @@ promote_you_to
 
 ; 132
 award_oak_leaves
-    !text ", with Oak Leaves"
+    !text ", with Oak",140," Leaves"
 
 ; 133
 award_career
