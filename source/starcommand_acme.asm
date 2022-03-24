@@ -3485,6 +3485,8 @@ enemy3
     !byte  3, -3, 8, 9
 
 enemy4
+    ; (x, y, start_angle, length)
+
     ; angle 0
     !byte  1, -5, 1,11
     !byte  4,  5,12,11
@@ -3521,6 +3523,8 @@ enemy4
     !byte  3, -3, 8, 9
 
 enemy5
+    ; (x, y, start_angle, length)
+
     ; angle 0
     !byte  3,  3,21, 7
     !byte -1,  0,31, 3
