@@ -44,20 +44,20 @@ To add new enemy designs much of the above had to be generalised. The trick of i
 
 So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles, into a cached version. The number of enemies each command is two, so we only need two full sized caches.
 
-![Enemy](documents/enemy1.png)
+![Enemy](documents/enemy1.gif)
 
 The enemies are still drawn using arcs of the circle, but there can be a different number of arcs per enemy (in practice we use 5 or 6). Each arc also has a start point (x,y) to move to before starting plotting.
 
 A five arc enemy takes 100 bytes to define, and a six arc enemy takes 120 bytes.
 
-![Enemy](documents/enemy2.png)
+![Enemy](documents/enemy2.gif)
 
 ### Looking at the starship
 One thing the enemies do a lot is rotate themselves to point at your Starship before starting to fire. Given the (x,y) position on screen of an enemy (relative to your Starship) the code needs to work out which of the 32 angles is desired.
 
 In a picture, the number in red is the result we are looking for when inside the black or white segment:
 
-[documents/angles2.png]
+![32 Angles around a circle](documents/angles2.png)
 
 In maths terms this is the atan2(y,x) function. Not so easy for a humble 6502. But we can simplify given that we have a limited number of angles. Firstly, by symmetry we can assume the angle is 0-45 degrees.
 
