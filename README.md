@@ -2,7 +2,7 @@
 
 This is an update to the original 1983 game Starship Command by Peter Irvin.
 
-As always, nothing written here is meant to denigrate the original work from 1983, which remains a remarkable achievement in the world before such things as the internet, source control, fast reliable storage media, extensive information and a community about the inner workings of the BBC Micro, etc. It all just highlights the benefits we have today.
+As always, nothing written here is meant to denigrate the original work from 1983, which remains a remarkable achievement in the world before such things as the Internet, source control, fast reliable storage media, extensive information and a community about the inner workings of the BBC Micro, etc. It all just highlights the benefits we have today.
 
 This new version features:
 
@@ -70,7 +70,7 @@ In the original game the remaining calculation is done by a 12 bit division y/x 
 In this updated version of the game we instead calculate kx for some fixed constants k (we have a very fast multiply, see below), and compare each against y. This is in effect testing if y/x < k, i.e. the slope is less than the constants.
 
 ### Fast multiply
-A fast multiply routine is a key part of the increase in speed. The original game has a several multiply routines ranging from 3 bit, 5 bit, 8 bit, 16 bit and 24 bits.
+A fast multiply routine is a key part of the increase in speed. The original game has several multiply routines: 3 bit, 5 bit, 8 bit, 16 bit and 24 bit.
 
 Every star, torpedo, enemy ship, explosion fragment, etc rotates around the player ship. So when the game gets busy, lot of rotations means lots of multiplications:
 
@@ -145,20 +145,20 @@ In fact it draws more than one complete circle, so you can join just at the end 
 
 ```
 plus_angle0
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
+    jsr eor_play_area_pixel
+    inx
 plus_angle1
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
-    inc y_pixels                                                      ;
+    jsr eor_play_area_pixel
+    inx
+    inc y_pixels
 plus_angle2
     ...
 plus_angle41
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    inc y_pixels                                                      ;
+    jsr eor_play_area_pixel
+    dex
+    inc y_pixels
 plus_angle42
-    rts                                                               ;
+    rts
 ```
 
 ### The secret bonus
