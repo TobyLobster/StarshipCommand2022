@@ -182,7 +182,7 @@
 ;
 ; Enemy torpedoes are stored in array 'enemy_torpedoes_table', 6 bytes per torpedo:
 ;
-;        +0 ttl                 (time to live, in frames)
+;        +0 time to live (in frames)
 ;        +1 x_fraction
 ;        +2 x_pixels
 ;        +3 y_fraction
@@ -191,7 +191,7 @@
 ;
 ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
 ;
-;        +0 ttl                 (time to live, in frames)
+;        +0 time to live (in frames)
 ;        +1 x_fraction for head of torpedo
 ;        +2 x_pixels
 ;        +3 y_fraction
@@ -737,7 +737,7 @@ starship_angle_fraction
     !byte $c4                                                         ;
 starship_angle_delta
     !byte $ff                                                         ;
-value_used_for_enemy_torpedo_ttl
+value_used_for_enemy_torpedo_time_to_live
     !byte $20                                                         ;
 maximum_number_of_stars
     !byte $11                                                         ;
@@ -1622,7 +1622,7 @@ plot_starship_torpedoes_loop
 
 torpedo_present
     sec                                                               ;
-    sbc #1                                                            ; Decrease torpedo TTL
+    sbc #1                                                            ; Decrease torpedo time to live
     sta (temp0_low),y                                                 ;
     bne torpedo_still_alive                                           ;
     dec number_of_live_starship_torpedoes                             ;
@@ -1634,7 +1634,7 @@ torpedo_still_alive
 
     ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
     ;
-    ;        +0 ttl                 (time to live, in frames)
+    ;        +0 time to live (frames)
     ;        +1 x_fraction for head of torpedo
     ;        +2 x_pixels
     ;        +3 y_fraction
@@ -2080,7 +2080,7 @@ update_enemy_torpedoes_loop
 ; ----------------------------------------------------------------------------------
 enemy_torpedo_in_slot
     sec                                                               ;
-    sbc #1                                                            ; Decrease torpedo TTL
+    sbc #1                                                            ; Decrease torpedo time to live
     sta (temp0_low),y                                                 ;
     bne enemy_torpedo_still_alive                                     ;
     jsr plot_expiring_torpedo                                         ;
@@ -5257,7 +5257,7 @@ free_slot
     jmp fire_enemy_torpedo_cluster                                    ;
 
 single_torpedo
-    lda value_used_for_enemy_torpedo_ttl                              ;
+    lda value_used_for_enemy_torpedo_time_to_live                     ;
     ldy #0                                                            ;
     sta (temp0_low),y                                                 ;
     lda enemy_ships_angle,x                                           ;
@@ -5723,7 +5723,7 @@ fire_enemy_torpedo_cluster
 ; ----------------------------------------------------------------------------------
 add_single_torpedo_to_enemy_torpedo_cluster
     ldy #0                                                            ;
-    lda value_used_for_enemy_torpedo_ttl                              ;
+    lda value_used_for_enemy_torpedo_time_to_live                     ;
     sta (temp0_low),y                                                 ;
     ldy #2                                                            ;
     lda output_fraction                                               ;
@@ -8130,7 +8130,7 @@ skip_player_movement
     and #$1f                                                          ;
     adc y_pixels                                                      ;
     adc #$0c                                                          ;
-    sta value_used_for_enemy_torpedo_ttl                              ;
+    sta value_used_for_enemy_torpedo_time_to_live                     ;
     jmp main_game_loop                                                ;
 
 ; ----------------------------------------------------------------------------------
