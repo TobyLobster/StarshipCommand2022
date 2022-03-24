@@ -18,14 +18,10 @@ This new version features:
 
 ## Technical Changes
 
-## How the original game works
-
-Here we detail some interesting implementation points of the original game.
-
 ### Plotting enemies
 Unusually, each enemy is plotted using a pixel plotting routine, not a sprite plotting routine as per most games. It makes sense for this game since each enemy can be rotated at 32 different angles, which would be a lot of sprites.
 
-Enemies are drawn using five arcs of this circle:
+Enemies are drawn using arcs of this circle:
 
 ![Circle](documents/circle.png)
 
@@ -46,13 +42,13 @@ To rotate the enemy clockwise, increment the starting point of each arc around t
 There are two enemy types in the original game. The second is similar to the first but with a different start position for Arc 4, which is also hardcoded.
 
 ### Adding new enemies
-To add new enemy designs much of the above had to be generalised. The trick of incrementing the starting point to rotate the enemy doesn't work well in general for other designs.
+To add new enemy designs much of the above had to be generalised. The trick of incrementing the starting point to rotate the enemy doesn't work well in general for other designs, producing poor looking results.
 
 So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles from the first five, into a cached version. The number of enemies in each command is two, so we only need two full sized caches.
 
 ![Enemy](documents/enemy1.gif)
 
-The enemies are still drawn using arcs of the circle, but there can be a different number of arcs per enemy (in practice we use 5 or 6). Each arc also has a start point (x,y) to move to before starting plotting.
+The enemies are still drawn using arcs of the circle, but where the original used five arcs, there can now be a different number of arcs per enemy (in practice we use 5 or 6). Each arc also has a start point (x,y) to move to before starting plotting.
 
 A five arc enemy takes 100 bytes to define, and a six arc enemy takes 120 bytes.
 
