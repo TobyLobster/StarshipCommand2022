@@ -28,9 +28,9 @@ myfilesizehex=$(printf '%x\n' $myfilesize)
 echo "$.STAR     FFFF1F00 FFFF$entry_point $myfilesizehex" >build/disk/STAR.INF
 
 # Create new SSD file with the appropriate files
-cp templates/EMPTY.SSD STAR.SSD
+cp templates/EMPTY.SSD STAR2022.SSD
 cd build/disk
-python3 ../../tools/image.py -d ../../STAR.SSD -i !BOOT -i STAR
+python3 ../../tools/image.py -d ../../STAR2022.SSD -i !BOOT -i STAR
 cd ../..
 
 if [ $USER == "tobynelson" ];
@@ -39,8 +39,8 @@ then
     osascript -e 'quit app "b2 Debug"'
     sleep 1
     DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-    open -a 'b2 Debug' --args -0 "$DIR/STAR.SSD" -b
+    open -a 'b2 Debug' --args -0 "$DIR/STAR2022.SSD" -b
 else
     # Open SSD in BeebEm
-    open STAR.SSD
+    open STAR2022.SSD
 fi
