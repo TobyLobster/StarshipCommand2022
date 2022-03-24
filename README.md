@@ -124,13 +124,13 @@ The new code uses 1k of table lookups to help do the same thing, but quicker:
 
 ```
 eor_play_area_pixel
-    ldy y_pixels
-    lda play_area_row_table_high,y
+    ldy y_pixels                                   
+    lda play_area_row_table_high,y                 ; table lookup
     sta screen_address_high
-    lda row_table_low,y
+    lda row_table_low,y                            ; table lookup
     sta screen_address_low
-    ldy xandf8,x
-    lda xbit_table,x
+    ldy xandf8,x                                   ; table lookup
+    lda xbit_table,x                               ; table lookup
     eor (screen_address_low),y
     sta (screen_address_low),y
     rts
