@@ -536,7 +536,7 @@ enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_s
 ; so are filled in via code (in fill_enemy_cache).
 enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships, i.e. starts at $458
 enemy_address_high                      = enemy_address_low + 64,                     i.e. starts at $498
-enemy_address_high_end                  = enemy_address_high + 64,                    i.e. end    at $4d8
+enemy_address_high_end                  = enemy_address_high + 64,                    i.e. end    at $4d7
 
 ; 40 unused bytes starts at $4d8
 
