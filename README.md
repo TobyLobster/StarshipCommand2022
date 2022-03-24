@@ -4,12 +4,191 @@ This is an update to the original 1983 game Starship Command by Peter Irvin.
 
 This new version features:
 
-* Much faster and more responsive (less slow-down).
+* Significantly faster and more responsive (less slow-down).
 * Reduced flicker.
-* More starship designs.
 * More enemy ship designs.
+* More starship designs.
 * Uses standard keys Z X / : and RETURN. (the original keys still work too)
+* A slightly less harsh difficulty ramp for the first two commands (enemies are slower at the start of the command, gradually ramping up to regular speed as the number of enemies killed goes up). This change is to help new players, and perhaps to help compensate for difficulty added due to the faster speed of the game.
 * Rotational dampers on by default, with current setting remembered between missions and games.
-* A slightly less harsh difficulty ramp on the first two levels.
 * Enhanced reporting/awards at the end of each mission/game.
 * Master compatible.
+
+## Technical Changes
+
+Topics:
+
+Performance
+    Multiplication
+    Plotting a point
+    Adding new enemies
+Saving Memory
+    Compressing text
+    Reusing common code
+    Using all areas of available RAM
+Reporting
+    The Secret Bonus
+    Adding the new awards system
+
+## How the original game works
+
+Here we detail some interesting implementation points of the original game.
+
+### Plotting enemies
+Unusually, each enemy is plotted using a pixel plotting routine, not a sprite plotting routine as per most games. It makes sense for this game since each enemy can be rotated at 32 different angles. Enemies are drawn using five arcs of this circle:
+
+[Circle](documents/circle.png)
+
+The regular enemy design is this (colours show the individual arcs):
+
+[Enemy](documents/old_enemy.png)
+
+For the most part, each arc continues drawing from where the last arc left off. Having drawn the last point of arc 1 (yellow), the position is moved from point 10 on the circle down one to point 11. This is where the next arc starts plotting. The second arc is a special case in that it goes anticlockwise in an unintuitive manner. Having drawn the first point, it uses the offset from point 20 on the circle to 21 to offset the current position (up and to the left in this case), but then decrements the current point number from 20 to 19 to calculate the next offset.
+
+Another wrinkle in the plotting is that two of the arcs require a move to a new starting point (i.e. Arc 1 and Arc 4). They don't start directly at the end of a previous arc. These offsets are calculated in code in the original game.
+
+Continuing this way it draws the entire enemy.
+
+To rotate the enemy clockwise, increment the starting point of each arc around the circle one position. In this way we can draw the enemy in 32 different rotations with only one definition of the enemy.
+
+There are two enemy types in the original game. The second is similar to the first but with a different start position for Arc 4, which is also hardcoded.
+
+### Adding new enemies
+To add new enemy designs much of the above had to be generalised. The trick of incrementing the starting point to rotate the enemy doesn't work well in general for other designs.
+
+So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create definitions for all 32 angles, into a cached version. The number of enemies each command is two, so we only need two full sized caches.
+
+[Enemy](documents/enemy1.png)
+
+The enemies are still drawn using arcs of the circle, but there can be a different number of arcs per enemy (in practice we use 5 or 6). Each arc also has a start point (x,y) to move to before starting plotting.
+
+A five arc enemy takes 100 bytes to define, and a six arc enemy takes 120 bytes.
+
+[Enemy](documents/enemy2.png)
+
+### Looking at the starship
+One thing the enemies do a lot is rotate themselves to point at your Starship before starting to fire. Given the (x,y) position on screen of an enemy (relative to your Starship) the code needs to work out which of the 32 angles is desired.
+
+In a picture, the number in red is the result we are looking for when inside the black or white segment:
+
+[documents/angles2.png]
+
+In maths terms this is the atan2(y,x) function. Not so easy for a humble 6502. But we can simplify given that we have a limited number of angles. Firstly, by symmetry we can assume the angle is 0-45 degrees.
+
+In the original game the remaining calculation is done by a 12 bit division y/x to find a slope which is then tested against predetermined values to find the appropriate angle.
+
+In this updated version of the game we instead calculate kx for some fixed constants k (we have a very fast multiply, see below), and compare each against y. This is in effect testing if y/x < k, i.e. the slope is less than the constants.
+
+### Fast multiply
+A fast multiply routine is a key part of the increase in speed. The original game has a several multiply routines ranging from 3 bit, 5 bit, 8 bit, 16 bit and 24 bits.
+
+Every star, torpedo, enemy ship etc rotates around the player ship. So when the game gets busy, lot of rotations means lots of multiplications:
+
+    X' = Y*sine + X*cosine
+    Y' = X*cosine - Y*sine
+
+By stuffing all available RAM with code/data and compressing text, enough memory has been freed to allow for a very fast modern multiply routine. The code itself is not large, but it uses 2K of tables of squares.
+
+Moreover, if the same angle of rotation is used repeatedly (as here), the multiplication routine gets faster still, basically reducing to four table look ups and two subtracts.  This can be inlined for speed. See [here](https://codebase64.org/doku.php?id=base:seriously_fast_multiplication) for details.
+
+### Fast Pixel Plotting
+Every star, torpedo, enemy ship is drawn from individual pixels. This is the single most expensive function in the game. So making this fast is also key to the speed increase.
+
+The original code calculates the screen address with shifting and anding:
+
+    lda #0
+    sta screen_address_low
+    lda y_pixels
+    lsr
+    lsr
+    lsr
+    sta screen_address_high
+    lsr
+    ror screen_address_low
+    lsr
+    ror screen_address_low
+    adc screen_address_high
+    adc screen_start_high
+    sta screen_address_high
+    lda y_pixels
+    and #7
+    adc screen_address_low
+    sta screen_address_low
+    lda x_pixels
+    and #$f8
+    tay
+    lda x_pixels
+    and #7
+    tax
+    lda bit_table,x
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    rts
+
+The new code uses 1.75k of table lookups to do the same thing, optimised for speed:
+
+    ldy y_pixels
+    lda play_area_row_table_high,y
+    sta screen_address_high
+    lda row_table_low,y
+    sta screen_address_low
+    ldy xandf8,x
+    lda xbit_table,x
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    rts
+
+
+### The Secret Bonus
+Just before your command is judged by Star-Fleet, a secret random bonus of 0-39 is added to your score. This luck can make all the difference as to whether you get another command. With bonus added:
+
+|  Score Range   | Star-Fleet are said to be...                                       |
+| -------------- | ------------------------------------------------------------------ |
+|     0 -  39    | furious,      and they retire you from active service              |
+|    40 -  59    | displeased,   and they retire you from active service              |
+|    60 -  79    | disappointed, and they retire you from active service              |
+|    80 - 139    | disappointed, but they allow you the command of another starship   |
+|   140 - 259    | satisfied,    and they allow you the command of another starship   |
+|   260 - 399    | pleased,      and they allow you the command of another starship   |
+|   400 - 599    | impressed,    and they allow you the command of another starship   |
+|      600+      | delighted,    and they allow you the command of another starship   |
+
+The implementation of the bonus score is a little eccentric, in that it adds a random binary number between $00-$3f to your score stored as a binary coded decimal. The result is therefore no longer a BCD number (since it may now contain hex digits outside the range 0-9). The practical upshot of this quirk is minor: the probability of another command increases as four increasing linear sections with small steps up at each multiple of ten in score:
+
+| Score without bonus | Probability of another command  |
+| ------------------- | ------------------------------- |
+| 40 or less          | 0%                              |
+| 41                  | 1/64 = 1.6%                     |
+| 42                  | 2/64 = 3.1%                     |
+| 43                  | 3/64 = 4.7%                     |
+| ...                 | ...                             |
+| 49                  | 9/64 = 14.1%                    |
+| 50                  | 15/64 = 23.4%                   |
+| 51                  | 16/64 = 25.0%                   |
+| 52                  | 17/64 = 26.6%                   |
+| ...                 | ...                             |
+| 59                  | 24/64 = 37.5%                   |
+| 60                  | 31/64 = 48.4%                   |
+| 61                  | 32/64 = 50.0%                   |
+| ...                 | ...                             |
+| 69                  | 42/64 = 65.6%                   |
+| 70                  | 48/64 = 75%                     |
+| 71                  | 49/64 = 76.6%                   |
+| ...                 | ...                             |
+| 79                  | 58/64 = 90.6%                   |
+| 80 or more          | 100%                            |
+
+In summary: To be certain of getting another command, you must score (without bonus) at least 80 points. At 61 points you have a 50% chance of another command. Anything 40 or below is a lost cause - no bonus will be enough for another command.
+
+All of this is unchanged from the original game.
+
+### The New Awards System
+There are ten different possible Star-Fleet reactions at the end of the game if you live, and another ten outcomes if you die. There is no random bonus here, it's based purely on your total score.
+
+### Compressing Text
+There is around 2k of text in Starship Command. The text is compressed to save memory.
+
+Each string starts with one byte of length (number of encoded bytes before the next string), followed by a bitstream. The most common characters in the text are stored in 5 bits as values 0-30. Value 31 indicates that a less common letter follows in the next 8 bits. Once decoded, a character 'c' of 128 or higher indicates string[c-128] should be printed at this point. In this way common words or phrases can be encoded cheaply.
+
+Some strings don't compress well, containing too many unusual characters. These are stored in a separate set of regular (uncompressed) strings.
+
