@@ -200,7 +200,7 @@ The implementation of the bonus score is a little eccentric, in that it adds a r
 | 79                  | 57/64 = 89.1%                   |
 | 80 or more          | 100%                            |
 
-In summary: To be certain of getting another command, you must score (without bonus) at least 80 points. At 61 points you have a 50% chance of another command. Anything 40 or below is a lost cause - no bonus will be enough for another command.
+In summary: If you score 80 points, you definitely get another command. At 60 points you have a 50% chance of another command. Anything 40 or below is a lost cause - no bonus will be enough for another command.
 
 All of this is unchanged from the original game, but is interesting to document.
 
