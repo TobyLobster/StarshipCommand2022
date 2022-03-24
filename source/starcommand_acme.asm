@@ -1272,6 +1272,7 @@ update_position_for_rotation
 
     ; Y' = X*cosine - Y*sine
 
+;    These assignments are not needed since X,Y are still set to these values:
 ;    ldx object_x_fraction                                             ;
 ;    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
@@ -1630,77 +1631,97 @@ torpedo_present
 
 torpedo_still_alive
     jsr plot_starship_torpedo                                         ;
+
+    ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
+    ;
+    ;        +0 ttl                 (time to live, in frames)
+    ;        +1 x_fraction for head of torpedo
+    ;        +2 x_pixels
+    ;        +3 y_fraction
+    ;        +4 y_pixels
+    ;        +5 x_fraction for tail of torpedo
+    ;        +6 x_pixels
+    ;        +7 y_fraction
+    ;        +8 y_pixels
+
     ldy #1                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
     ldy #5                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
 
+    ; update head of torpedo
     ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; x fraction for head of torpedo
     sec                                                               ;
-    sbc (temp1_low),y                                                 ;
+    sbc (temp1_low),y                                                 ; x fraction for tail of torpedo
     sta output_pixels                                                 ;
 
-    iny                                                               ; two
-    lda (temp0_low),y                                                 ;
-    sbc (temp1_low),y                                                 ;
-    asl output_pixels                                                 ;
-    rol                                                               ;
-    asl output_pixels                                                 ;
-    rol                                                               ;
-    sta output_fraction                                               ;
+    iny                                                               ; Y=2
+    lda (temp0_low),y                                                 ; x pixels for head of torpedo
+    sbc (temp1_low),y                                                 ; x pixels for tail of torpedo
+    asl output_pixels                                                 ; }
+    rol                                                               ; }
+    asl output_pixels                                                 ; } store difference * 4
+    rol                                                               ; }
+    sta output_fraction                                               ; }
 
-    iny                                                               ; three
-    lda (temp0_low),y                                                 ;
+    iny                                                               ; Y=3
+    lda (temp0_low),y                                                 ; y fraction for head of torpedo
     sec                                                               ;
-    sbc (temp1_low),y                                                 ;
+    sbc (temp1_low),y                                                 ; y fraction for tail of torpedo
     sta temp9                                                         ;
-    iny                                                               ; four
+    iny                                                               ; Y=4
     lda (temp0_low),y                                                 ;
     sbc (temp1_low),y                                                 ;
-    asl temp9                                                         ;
-    rol                                                               ;
-    asl temp9                                                         ;
-    rol                                                               ;
-    sta temp10                                                        ;
+    asl temp9                                                         ; }
+    rol                                                               ; }
+    asl temp9                                                         ; } store difference * 4
+    rol                                                               ; }
+    sta temp10                                                        ; }
 
     ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
+    lda (temp0_low),y                                                 ; x fraction for head of torpedo
     clc                                                               ;
-    adc output_pixels                                                 ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ; two
-    lda (temp0_low),y                                                 ;
-    adc output_fraction                                               ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ; three
-    lda (temp0_low),y                                                 ;
-    clc                                                               ;
-    adc temp9                                                         ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ; four
-    lda (temp0_low),y                                                 ;
-    adc temp10                                                        ;
-    sta (temp0_low),y                                                 ;
+    adc output_pixels                                                 ; add difference
+    sta (temp0_low),y                                                 ; store
+    iny                                                               ; Y=2
+    lda (temp0_low),y                                                 ; x pixels for head of torpedo
+    adc output_fraction                                               ; add difference
+    sta (temp0_low),y                                                 ; store
 
+    iny                                                               ; Y=3
+    lda (temp0_low),y                                                 ; y fraction for head of torpedo
+    clc                                                               ;
+    adc temp9                                                         ; add difference
+    sta (temp0_low),y                                                 ; store
+
+    iny                                                               ; Y=4
+    lda (temp0_low),y                                                 ; y pixels for head of torpedo
+    adc temp10                                                        ; add difference
+    sta (temp0_low),y                                                 ; store
+
+    ; now update tail
     ldy #1                                                            ;
-    lda (temp1_low),y                                                 ;
+    lda (temp1_low),y                                                 ; x fraction for tail of torpedo
     clc                                                               ;
-    adc output_pixels                                                 ;
-    sta (temp1_low),y                                                 ;
-    iny                                                               ; two
-    lda (temp1_low),y                                                 ;
-    adc output_fraction                                               ;
-    sta (temp1_low),y                                                 ;
-    iny                                                               ; three
-    lda (temp1_low),y                                                 ;
+    adc output_pixels                                                 ; add difference
+    sta (temp1_low),y                                                 ; store
+
+    iny                                                               ; Y=2
+    lda (temp1_low),y                                                 ; x pixels for tail of torpedo
+    adc output_fraction                                               ; add difference
+    sta (temp1_low),y                                                 ; store
+
+    iny                                                               ; Y=3
+    lda (temp1_low),y                                                 ; y fraction for tail of torpedo
     clc                                                               ;
-    adc temp9                                                         ;
-    sta (temp1_low),y                                                 ;
-    iny                                                               ; four
-    lda (temp1_low),y                                                 ;
-    adc temp10                                                        ;
-    sta (temp1_low),y                                                 ;
+    adc temp9                                                         ; add difference
+    sta (temp1_low),y                                                 ; store
+
+    iny                                                               ; Y=4
+    lda (temp1_low),y                                                 ; y pixels for tail of torpedo
+    adc temp10                                                        ; add difference
+    sta (temp1_low),y                                                 ; store
 
     jsr check_for_collision_with_enemy_ships                          ;
     bcs update_next_torpedo                                           ;
@@ -1966,7 +1987,7 @@ plot_starship_torpedo
     tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; y coordinate
     jsr eor_play_area_pixel                                           ;
 
     lda starship_torpedo_type                                         ;
@@ -1977,32 +1998,36 @@ small_starship_torpedoes
     ; Tail of torpedo
     ldy #2                                                            ;
     lda (temp1_low),y                                                 ;
-    sta x_pixels
+    sta x_pixels                                                      ;
     tax                                                               ; x coordinate
     ldy #4                                                            ;
     lda (temp1_low),y                                                 ;
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; y coordinate
     jsr eor_play_area_pixel                                           ; Plot pixel for tail of torpedo
 
     ; Middle of torpedo
+    ; Add head and tail positions and divide by two to get the middle point between them
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc (temp1_low),y                                                 ;
-    iny                                                               ; two
+
+    iny                                                               ; Y=2
     lda (temp0_low),y                                                 ;
     adc x_pixels                                                      ;
     ror                                                               ;
     tax                                                               ; x coordinate
-    iny                                                               ; three
+
+    iny                                                               ; Y=3
     lda (temp0_low),y                                                 ;
     clc                                                               ;
     adc (temp1_low),y                                                 ;
-    iny                                                               ; four
+
+    iny                                                               ; Y=4
     lda (temp0_low),y                                                 ;
     adc y_pixels                                                      ;
     ror                                                               ;
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; y coordinate
     jmp eor_play_area_pixel                                           ; Plot pixel for middle of torpedo
 
 ; ----------------------------------------------------------------------------------
@@ -3313,22 +3338,22 @@ enemy_table_high
 
 ; The number of arcs that define the enemy
 enemy_arc_counts
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 5
-    !byte 6
+    !byte 5     ; enemy 0
+    !byte 5     ; enemy 1
+    !byte 5     ; enemy 2
+    !byte 5     ; enemy 3
+    !byte 5     ; enemy 4
+    !byte 6     ; enemy 5
 
 ; the stride of an enemy is the number of bytes to get from the definition of one angle
 ; of the enemy to the next. Four times the number of arcs of the enemy.
 enemy_strides
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*5
-    !byte 4*6
+    !byte 4*5   ; enemy 0
+    !byte 4*5   ; enemy 1
+    !byte 4*5   ; enemy 2
+    !byte 4*5   ; enemy 3
+    !byte 4*5   ; enemy 4
+    !byte 4*6   ; enemy 5
 
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
@@ -3486,6 +3511,8 @@ enemy3
     !byte  3, -3, 8, 9
 
 enemy4
+    ; (x, y, start_angle, length)
+
     ; angle 0
     !byte  1, -5, 1,11
     !byte  4,  5,12,11
@@ -3522,6 +3549,8 @@ enemy4
     !byte  3, -3, 8, 9
 
 enemy5
+    ; (x, y, start_angle, length)
+
     ; angle 0
     !byte  3,  3,21, 7
     !byte -1,  0,31, 3
@@ -3564,14 +3593,14 @@ enemy5
 
 ; Enemy definitions for the current command
 
-; 1.5K of enemy definition cache
+; 1.375K of enemy definition cache
 enemy_cache_a
     ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*5*32        ; bytes * arcs * angles
+    !skip 4*5*32        ; bytes * arcs * angles = 640 bytes
 
 enemy_cache_b
     ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*6*32        ; bytes * arcs * angles
+    !skip 4*6*32        ; bytes * arcs * angles = 768 bytes
 
 ; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the
 ; perimeter of the circle. 32 entries, with the tables overlapping.
