@@ -217,7 +217,7 @@ Some strings don't compress well, containing too many unusual characters. These 
 ## Final thoughts
 It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
 
-I believe the game now feels more dynamic and responsive, but still very controllable.
+I believe the game now feels more dynamic and responsive, but still controllable. Now I must be going, the frontiers of space need defending...
 
 TobyLobster
 
