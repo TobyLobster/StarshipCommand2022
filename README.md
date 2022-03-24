@@ -185,19 +185,19 @@ The implementation of the bonus score is a little eccentric, in that it adds a r
 | 43                  | 3/64 = 4.7%                     |
 | ...                 | ...                             |
 | 49                  | 9/64 = 14.1%                    |
-| 50                  | 15/64 = 23.4%                   |
-| 51                  | 16/64 = 25.0%                   |
-| 52                  | 17/64 = 26.6%                   |
+| 50                  | 16/64 = 25.0%                   |
+| 51                  | 17/64 = 26.6%                   |
+| 52                  | 18/64 = 28.1%                   |
 | ...                 | ...                             |
-| 59                  | 24/64 = 37.5%                   |
-| 60                  | 31/64 = 48.4%                   |
-| 61                  | 32/64 = 50.0%                   |
+| 59                  | 25/64 = 39.1%                   |
+| 60                  | 32/64 = 50.0%                   |
+| 61                  | 33/64 = 51.6%                   |
 | ...                 | ...                             |
-| 69                  | 42/64 = 65.6%                   |
+| 69                  | 41/64 = 64.1%                   |
 | 70                  | 48/64 = 75%                     |
 | 71                  | 49/64 = 76.6%                   |
 | ...                 | ...                             |
-| 79                  | 58/64 = 90.6%                   |
+| 79                  | 57/64 = 89.1%                   |
 | 80 or more          | 100%                            |
 
 In summary: To be certain of getting another command, you must score (without bonus) at least 80 points. At 61 points you have a 50% chance of another command. Anything 40 or below is a lost cause - no bonus will be enough for another command.
