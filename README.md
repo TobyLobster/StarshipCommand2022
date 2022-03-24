@@ -141,7 +141,7 @@ Note that in this new version, the X register holds x_pixels, and is preserved a
 ### Fast arc plotting
 We have a routine that draws an entire circle, pixel by pixel. It is an unrolled loop. We jump into this routine at the appropriate starting point for the arc we want to draw, having already modified the code to write an RTS instruction at the point we want to stop drawing. This (a) minimises the cycle cost of working out what coordinates to incement or decrement to get the the next pixel and (b) also removes the overhead of a loop counter and branch instruction.
 
-In fact it draw more than one circle, so you can join just at the end of one circle and still draw an arc of reasonable length.
+In fact it draw more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. This fits into one page of memory, for easier/quicker self modification.
 
 ```
 plus_angle0
@@ -217,7 +217,7 @@ Some strings don't compress well, containing too many unusual characters. These 
 ## Final thoughts
 It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
 
-I believe this updated version retains the spirit of the original game, but more dynamic and responsive. Now I must be going, the frontiers of space need defending...
+I believe this updated version retains the spirit of the original game, but improves the speed and responsiveness, with a few bells and whistles added. Now I must be going, the frontiers of space need defending...
 
 TobyLobster
 
