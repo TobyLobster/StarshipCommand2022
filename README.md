@@ -248,7 +248,7 @@ OUTCOME IF YOU ESCAPE IN POD:
 ### Compressing text
 There is around 2k of text in Starship Command. The text is compressed to save memory.
 
-Each string starts with one byte of length (number of encoded bytes before the next string), followed by a bitstream. The most common characters in the text are stored in 5 bits as values 0-30. Value 31 indicates that a less common letter follows in the next 8 bits. Once decoded, a character 'c' of 128 or higher indicates string c-128 should be inserted at this point. In this way common words or phrases can be duplicated cheaply.
+Each string starts with one byte of length (number of encoded bytes before the next string), followed by a bitstream. The most common characters in the text are stored in 5 bits as values 0-30. Value 31 indicates that a less common character follows in the next 8 bits. Once decoded, a character 'c' of 128 or higher indicates string c-128 should be inserted at this point. In this way common words or phrases can be duplicated cheaply.
 
 Some strings don't compress well, containing too many unusual characters. These are stored in a separate set of regular (uncompressed) strings.
 
