@@ -258,7 +258,7 @@ Some strings don't compress well, containing too many unusual characters. These 
 Having added / : and RETURN as keys, pressing combinations of these keys also generates a COPY key output (due to the limitations of the keyboard matrix), which unwantedly pauses the game. This did not happen in emulation, but did on a real BBC Micro. So the pause function is now on the P key (SPACE to unpause), and all is well again.
 
 ### Master compatible
-The original game is mostly already compatible with the Master. The one issue is the scanner static display which doesn't look right on the Master. The original game read 'random' byte information from the OS at $d000, but this doesn't work correctly on the Master. So instead the 'randomness' is now taken from bytes within the program itself.
+The original game is mostly already compatible with the Master. The one issue noticed is the scanner static display which doesn't look right on the Master. The original game read 'random' byte information from the OS at $d000, but this doesn't look right on the Master. So instead the 'randomness' is now taken from bytes within the program itself.
 
 ## Final thoughts
 It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
