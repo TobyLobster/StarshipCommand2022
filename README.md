@@ -254,6 +254,9 @@ Each string starts with one byte of length (number of encoded bytes before the n
 
 Some strings don't compress well, containing too many unusual characters. These are stored in a separate set of regular (uncompressed) strings.
 
+### Keyboard clash
+Having added / : and RETURN as keys, pressing combinations of these keys also generates a COPY key output (due to the limitations of the keyboard matrix), which unwantedly pauses the game. This did not happen in emulation, but did on a real BBC Micro. So I moved the pause function to the P key (SPACE to unpause).
+
 ## Final thoughts
 It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
 
