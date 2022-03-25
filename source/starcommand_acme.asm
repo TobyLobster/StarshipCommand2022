@@ -4628,111 +4628,111 @@ random_number_generator
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
 sound_1
-    !byte $11, 0                                                      ;
-    !byte 0, 0                                                        ;
+    !byte $11, 0                                                      ; channel 1
+    !byte 0, 0                                                        ; volume 0 (silent)
 sound_1_pitch
-    !byte 0, 0                                                        ;
-    !byte 8, 0                                                        ;
+    !byte 0, 0                                                        ; pitch for the white noise of sound_2
+    !byte 8, 0                                                        ; duration 8
 
 ; ----------------------------------------------------------------------------------
 ; Exploding starship 2
 ; ----------------------------------------------------------------------------------
 sound_2
-    !byte $10, 0                                                      ;
-sound_1_volume_low
-    !byte 0                                                           ;
-sound_1_volume_high
+    !byte $10, 0                                                      ; channel 0 (white noise)
+sound_2_volume_low
+    !byte 0                                                           ; volume
+sound_2_volume_high
     !byte 0
-    !byte 7, 0                                                        ;
-    !byte 8, 0                                                        ;
+    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
+    !byte 8, 0                                                        ; duration 8
 
 ; ----------------------------------------------------------------------------------
 ; Starship fired torpedo
 ; ----------------------------------------------------------------------------------
 sound_3
-    !byte $13, 0                                                      ;
-    !byte 1, 0                                                        ;
-    !byte $80, 0                                                      ;
-    !byte 4, 0                                                        ;
+    !byte $13, 0                                                      ; channel 3
+    !byte 1, 0                                                        ; envelope 1
+    !byte $80, 0                                                      ; pitch 128
+    !byte 4, 0                                                        ; duration 4
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ship fired torpedo
 ; ----------------------------------------------------------------------------------
 sound_4
-    !byte $12, 0                                                      ;
-    !byte 2, 0                                                        ;
-    !byte $c0, 0                                                      ;
-    !byte $1f, 0                                                      ;
+    !byte $12, 0                                                      ; channel 2
+    !byte 2, 0                                                        ; envelope 2
+    !byte $c0, 0                                                      ; pitch 192
+    !byte $1f, 0                                                      ; duration 31
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ship hit by torpedo
 ; ----------------------------------------------------------------------------------
 sound_5
-    !byte $12, 0                                                      ;
-    !byte 4, 0                                                        ;
-    !byte $40, 0                                                      ;
-    !byte 8, 0                                                        ;
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $40, 0                                                      ; pitch 64
+    !byte 8, 0                                                        ; duration 8
 
 ; ----------------------------------------------------------------------------------
 ; Starship hit by torpedo
 ; ----------------------------------------------------------------------------------
 sound_6
-    !byte $12, 0                                                      ;
-    !byte 4, 0                                                        ;
-    !byte $be, 0                                                      ;
-    !byte 8, 0                                                        ;
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $be, 0                                                      ; pitch 190
+    !byte 8, 0                                                        ; duration 8
 
 ; ----------------------------------------------------------------------------------
 ; Enemy ships collided with each other
 ; ----------------------------------------------------------------------------------
 sound_7
-    !byte $13, 0                                                      ;
-    !byte 2, 0                                                        ;
-    !byte $6c, 0                                                      ;
-    !byte 8, 0                                                        ;
+    !byte $13, 0                                                      ; channel 3
+    !byte 2, 0                                                        ; envelope 2
+    !byte $6c, 0                                                      ; pitch 108
+    !byte 8, 0                                                        ; duration 8
 
 ; ----------------------------------------------------------------------------------
 ; Escape capsule launched
 ; ----------------------------------------------------------------------------------
 sound_8
-    !byte $13, 0                                                      ;
+    !byte $13, 0                                                      ; channel 3
 sound_8_volume_low
-    !byte 0                                                           ;
+    !byte 0                                                           ; volume
 sound_8_volume_high
     !byte 0                                                           ;
-    !byte $64, 0                                                      ;
-    !byte 4  , 0                                                      ;
+    !byte $64, 0                                                      ; pitch 100
+    !byte 4  , 0                                                      ; duration 4
 
 ; ----------------------------------------------------------------------------------
 ; Low energy warning
 ; ----------------------------------------------------------------------------------
 sound_9
-    !byte $11, 0                                                      ;
-    !byte $f1, $ff                                                    ;
-    !byte $c8, 0                                                      ;
-    !byte 4, 0                                                        ;
+    !byte $11, 0                                                      ; channel 1
+    !byte $f1, $ff                                                    ; volume 15
+    !byte $c8, 0                                                      ; duration 200
+    !byte 4, 0                                                        ; duration 4
 
 ; ----------------------------------------------------------------------------------
 ; Starship engine
 ; ----------------------------------------------------------------------------------
 sound_10
-    !byte $11, 0                                                      ;
+    !byte $11, 0                                                      ; channel 1
 sound_10_volume_low
-    !byte 0                                                           ;
+    !byte 0                                                           ; volume
 sound_10_volume_high
     !byte 0                                                           ;
 sound_10_pitch
-    !byte 0, 0                                                        ;
-    !byte 4, 0                                                        ;
+    !byte 0, 0                                                        ; pitch
+    !byte 4, 0                                                        ; duration 4
 
 ; ----------------------------------------------------------------------------------
 ; Exploding enemy ship
 ; ----------------------------------------------------------------------------------
 sound_11
-    !byte $10, 0                                                      ;
-    !byte 3, 0                                                        ;
-    !byte 7, 0                                                        ;
-    !byte $1e, 0                                                      ;
+    !byte $10, 0                                                      ; channel 0 (white noise)
+    !byte 3, 0                                                        ; envelope 3
+    !byte 7, 0                                                        ; pitch 7
+    !byte $1e, 0                                                      ; duration 30
 
 ; ----------------------------------------------------------------------------------
 plot_energy_bar_edges
@@ -5037,14 +5037,14 @@ skip_pitch_bend
 skip_ceiling1
     eor #$ff                                                          ;
     adc #1                                                            ;
-    sta sound_1_volume_low                                            ;
+    sta sound_2_volume_low                                            ;
     lda #$ff                                                          ;
     adc #0                                                            ;
-    sta sound_1_volume_high                                           ;
-    ldx #<(sound_1)                                                   ;
-    ldy #>(sound_1)                                                   ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    sta sound_2_volume_high                                           ;
+    ldx #<(sound_1)                                                   ; }
+    ldy #>(sound_1)                                                   ; } no sound output here (volume is 0), but it
+    lda #osword_sound                                                 ; } sets the pitch for the white noise of sound_2
+    jsr osword                                                        ; } to follow...
     ldx #<(sound_2)                                                   ;
     ldy #>(sound_2)                                                   ;
     lda #osword_sound                                                 ;
@@ -9720,14 +9720,23 @@ initialise_envelopes
     jmp osword                                                        ;
 
 ; ----------------------------------------------------------------------------------
+; Envelope 1, used by sound_3 (Starship fired torpedo)
 envelope1
-    !byte 1  , 0  , $f8, $fa, $0f, 4  , $0a, 8  , $7f, $fe, $fc, $ff, $7e, $64 ;
+    !byte 1, 0  , $f8, $fa, $0f, 4  , $0a, 8  , $7f, $fe, $fc, $ff, $7e, $64
+
+; Envelope 2, used by sound_4 (Enemy ship fired torpedo),
+;                 and sound_7 (Enemy ships colliding with each other)
 envelope2
-    !byte 2  , 0  , $f8, $fa, $fe, 4  , $0a, 8  , $7f, $fe, $ff, $ff, $64, $50 ;
+    !byte 2, 0  , $f8, $fa, $fe, 4  , $0a, 8  , $7f, $fe, $ff, $ff, $64, $50
+
+; Envelope 3, used by sound_11 (Exploding enemy ship)
 envelope3
-    !byte 3  , $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78 ;
+    !byte 3, $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78
+
+; Envelope 4, used by sound_5 (Enemy ship hit by torpedo)
+;                 and sound_6 (Starship hit by torpedo)
 envelope4
-    !byte 4  , 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64 ;
+    !byte 4, 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64
 
 ; ----------------------------------------------------------------------------------
 delta
