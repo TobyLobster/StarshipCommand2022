@@ -86,7 +86,9 @@ See [here](https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
 ### Fast pixel plotting
 Every star, torpedo, enemy ship, and explosion is drawn from individual pixels. This is the single most expensive function in the game. So making this fast is also key to the speed increase.
 
-The original code calculates the screen address with shifts and 'and's:
+The play area is 256x256 pixels, so all coordinates are eight bit values, and this simplifies calculating the screen address.
+
+The original code calculates the screen address and plots in a fairly standard way with shifts and 'and's:
 
 ```
 eor_pixel
