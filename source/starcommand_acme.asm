@@ -529,8 +529,8 @@ enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_s
 enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $0450
 
 ; 64 table entries. Each entry has a high byte and a low byte.
-; The first  32 entries are the address of each angle of the regular enemy.
-; The second 32 entries are the address of each angle of the alternative enemy.
+; The first  32 entries are the address of each angle of the first enemy type.
+; The second 32 entries are the address of each angle of the second enemy type.
 ; These addresses depend upon the number of arcs in each enemy,
 ; so are filled in via code (in fill_enemy_cache).
 enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $0458
@@ -3226,13 +3226,13 @@ debug_plot_enemy
     lda enemy_ship_type                                               ;
     beq first_ship_type                                               ;
 
-    ; alternate ship
+    ; second enemy ship type
     ldx enemy_number                                                  ;
     lda enemy_strides,x                                               ;
     sta enemy_stride                                                  ;
     lda temp11                                                        ; angle
     clc                                                               ;
-    adc #32                                                           ; move to alternate ship angles
+    adc #32                                                           ; move to second ship definition
     tax                                                               ;
     bne got_ship                                                      ; ALWAYS branch
 
