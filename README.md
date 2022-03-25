@@ -79,7 +79,7 @@ Every star, torpedo, enemy ship, explosion fragment, etc rotates around the play
 
 By stuffing all available RAM with code/data (e.g. the lower half of page 1 holds the highscore table) and compressing the text (see below), enough memory has been freed to allow for a very fast modern multiply routine. The code itself is not large, but it uses a full 2K of tables of squares.
 
-Moreover, if the same angle of rotation is used repeatedly (as here), the multiplication routine gets faster still, basically reducing to four table look ups and two subtracts. Self modifying code is used. It can (and is) inlined for speed.
+Moreover, if the same angle of rotation is used repeatedly (as here), the multiplication routine gets faster still, basically reducing to four table look ups and two subtracts. Self modifying code is used. It is inlined for speed.
 
 See [here](https://codebase64.org/doku.php?id=base:seriously_fast_multiplication) for details.
 
