@@ -1,6 +1,6 @@
 # Starship Command 2022 Edition (for the BBC Micro)
 
-This is an update to the original 1983 game Starship Command by Peter Irvin.
+This is an update to the original 1983 game *Starship Command* by Peter Irvin.
 
 As always, nothing written here is meant to denigrate the original work from 1983, which remains a remarkable achievement in the world before such things as the Internet, source control, fast reliable storage media, extensive information and a community about the inner workings of the BBC Micro, etc. It all just highlights the benefits we have today.
 
