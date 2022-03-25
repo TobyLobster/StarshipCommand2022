@@ -46,7 +46,7 @@ There are two enemy types in the original game. The second is similar to the fir
 ### Adding new enemies
 To add new enemy designs much of the above had to be generalised. The trick of incrementing the starting point to rotate the enemy doesn't work well in general for other designs, producing poor looking results.
 
-Better results are obtained by hand-drawing different orientations. So it seems like there needs to be 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create equivalent definitions for all 32 angles from the first five, writing into a cache. The number of enemies in each command is two, so we only need two full size caches.
+Better results are obtained by hand-drawing different orientations. So it seems like we need 32 different definitions of each enemy. That's a lot of memory. Instead, we define just the first five rotations (0-45 degrees) for each enemy. At the beginning of a new command, we use reflection and rotation to create equivalent definitions for all 32 angles from the first five, writing into a cache. The number of enemies in each command is two, so we only need two full size caches.
 
 ![Enemy](documents/enemy1.gif)
 
