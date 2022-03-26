@@ -261,7 +261,7 @@ Having added / : and RETURN as keys, pressing combinations of these keys also ge
 The original game is mostly already compatible with the Master. The one issue noticed is the scanner static display which doesn't look right on the Master. The original game read 'random' byte information from the OS at $d000, but this doesn't look right on the Master. So instead the 'randomness' is now taken from bytes within the program itself.
 
 ## Final thoughts
-It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable.
+It is subjective of course, but I've always had a soft spot for Starship Command. It has unique elements that make it stand out from the herd. The explosions look great with a full particle system going on, with pieces rotating away. The way you can spray bullets around is very satisfying, and the physics are very believable. The thin layer of narrative surrounding the gameplay also adds something to the game.
 
 I believe this updated version retains the spirit of the original game, but improves the speed and responsiveness, with a few bells and whistles added. Now I must be going, the frontiers of space need defending...
 
