@@ -228,9 +228,9 @@
 ; ----------------------------------------------------------------------------------
 
 do_debug = 0
-elk=1 ; 0xC0DE: 0=Beeb version, 1=Elk version
-antiflicker=1 ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
-cheat=0 ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
+elk=0           ; 0xC0DE: 0=Beeb version, 1=Elk version
+antiflicker=1   ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
+cheat=0         ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
 
 ; ----------------------------------------------------------------------------------
 ; gameplay constants
@@ -8065,7 +8065,7 @@ no_danger
     sec
     rts
 
-lower_half    
+lower_half
     ; enemy ship is in lower half of screen, but what about the electron beam?
     lda irq_counter
     beq no_danger ; electron beam is in upper half, so no problem
@@ -9331,7 +9331,7 @@ irq_routine
     lsr irq_counter ; 0 indicates electron beam is in upper half of screen
     bcc call_old_irq ; jump always
 
-check_rtc    
+check_rtc
     ; check RTC interrupt (at 100th scanline)
     lda $fe00
     and #8
