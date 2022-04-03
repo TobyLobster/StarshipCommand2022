@@ -229,6 +229,7 @@
 
 do_debug = 0
 elk=1 ; 0xC0DE: 0=Beeb version, 1=Elk version
+antiflicker=1 ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
 cheat=0 ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
 
 ; ----------------------------------------------------------------------------------
@@ -411,7 +412,7 @@ cache_start_high                        = $23   ; } same location
 enemy_number                            = $24   ; Enemy definition 0-5
 enemy_stride                            = $25   ; offset in bytes to get from one enemy angle definition to the next
 
-irq_counter                             = $26   ;
+irq_counter                             = $26   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 danger_height                           = $27   ;
 temp_x                                  = $28   ;
 temp_y                                  = $29   ;
@@ -2414,7 +2415,7 @@ try_plot_enemy_ship
     lda enemy_ships_on_screen,x                                       ;
     bne not_on_screen_a                                               ;
 
-!if elk=0 {
+!if (elk=0) or (elk+antiflicker=2) {
     ; check if we are in the danger zone, if so then skip this one
     lda enemy_ships_y_pixels,x                                        ;
     jsr is_in_danger_area                                             ;
@@ -2517,6 +2518,15 @@ plot_enemy_ships_loop
     dec enemy_ships_still_to_consider                                 ;
     bne plot_enemy_ships_loop                                         ;
 
+!if elk=1 {
+    ; check if all enemies have updated (instead of checking all 8 enemies; this allows use to change maximum_number_of_enemy_ships if we wanted)
+    ldx #maximum_number_of_enemy_ships-1
+check_update_loop
+    lda enemy_ship_update_done,x
+    beq retry_loop
+    dex
+    bpl check_update_loop
+} else {
     ; check if all enemies have updated
     lda enemy_ship_update_done                                        ;
     and enemy_ship_update_done+1                                      ;
@@ -2527,6 +2537,7 @@ plot_enemy_ships_loop
     and enemy_ship_update_done+6                                      ;
     and enemy_ship_update_done+7                                      ;
     beq retry_loop                                                    ;
+}
 
 return8
     rts                                                               ;
@@ -8034,7 +8045,37 @@ debug
     jmp --                                                            ;
 }
 
-!if elk=0 { ; anti flicker could possibly be improved on the Elk by using the rtc interrupt (at 100th scanline) and deciding when to draw/skip an enemy ship based on that
+!if elk+antiflicker=2 { ; crude anti flicker on Elk
+; ----------------------------------------------------------------------------------
+; On Entry:
+;   A = Y coordinate to plot at
+; On Exit:
+;   Carry clear if in danger area
+;   Preserves X,Y
+; ----------------------------------------------------------------------------------
+is_in_danger_area
+    cmp #100
+    bcs lower_half
+
+    ; enemy ship is in upper half of screen, but what about the electron beam?
+    lda irq_counter
+    beq in_danger
+    ; electron beam is in lower half, so no problem
+no_danger
+    sec
+    rts
+
+lower_half    
+    ; enemy ship is in lower half of screen, but what about the electron beam?
+    lda irq_counter
+    beq no_danger ; electron beam is in upper half, so no problem
+in_danger
+    clc
+    rts
+
+}
+
+!if elk=0 {
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   A = Y coordinate to plot at
@@ -9274,6 +9315,37 @@ rotate_clockwise
 return31
     rts                                                               ;
 
+!if elk+antiflicker=2 {
+; ----------------------------------------------------------------------------------
+; Only uses A, preserves X,Y
+irq_routine
+    ; check master IRQ
+    lda $fe00
+    and #1
+    beq call_old_irq
+
+    ; check DisplayEnd interrupt (vsync)
+    lda $fe00
+    and #4
+    beq check_rtc
+    lsr irq_counter ; 0 indicates electron beam is in upper half of screen
+    bcc call_old_irq ; jump always
+
+check_rtc    
+    ; check RTC interrupt (at 100th scanline)
+    lda $fe00
+    and #8
+    beq call_old_irq
+    sec
+    rol irq_counter ; 1 indicates electron beam is in lower half of screen
+    ; fall through to call_old_irq
+
+call_old_irq
+    lda irq_accumulator
+    jmp (old_irq1_low)
+
+}
+
 !if elk=0 {
 ; ----------------------------------------------------------------------------------
 ; Only uses A, preserves X,Y
@@ -9683,14 +9755,16 @@ done
     dex                                                               ;
     bpl -                                                             ;
 
-!if elk=0 {
+!if (elk=0) or (elk+antiflicker=2) {
     ; set up timer
     lda #0                                                            ;
     sta timing_counter                                                ;
     sta irq_counter                                                   ;
 
     sei                                                               ;
+}
 
+!if elk=0 {
     ; enable timer 1 in free run mode (on the User VIA)
     lda #0                                                            ; Disable all interrupts on the User VIA
     sta userVIAInterruptEnableRegister                                ;
@@ -9698,7 +9772,9 @@ done
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
     lda #$40                                                          ; Enable free run mode for timer 1
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
+}
 
+!if (elk=0) or (elk+antiflicker=2) {
     ; set up our own IRQ routine to increment a timer
     lda irq1_vector_low                                               ;
     sta old_irq1_low                                                  ;
@@ -9711,8 +9787,10 @@ done
     sta irq1_vector_high                                              ;
 
     cli                                                               ;
+}
 
-    ; Set timer to fire every 'short time' (set latch)
+ !if elk=0 {
+   ; Set timer to fire every 'short time' (set latch)
     lda #<ShortTimerValue                                             ;
     sta userVIATimer1LatchLow                                         ;
     lda #>ShortTimerValue                                             ;
