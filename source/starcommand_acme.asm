@@ -228,6 +228,8 @@
 ; ----------------------------------------------------------------------------------
 
 do_debug = 0
+elk=1 ; 0xC0DE: 0=Beeb version, 1=Elk version
+cheat=0 ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
 
 ; ----------------------------------------------------------------------------------
 ; gameplay constants
@@ -2412,10 +2414,12 @@ try_plot_enemy_ship
     lda enemy_ships_on_screen,x                                       ;
     bne not_on_screen_a                                               ;
 
+!if elk=0 {
     ; check if we are in the danger zone, if so then skip this one
     lda enemy_ships_y_pixels,x                                        ;
     jsr is_in_danger_area                                             ;
     bcc skip_enemy_altogether                                         ; if in danger zone, skip this enemy
+}
 
 not_on_screen_a
     ; DEBUG
@@ -2994,6 +2998,8 @@ return10
 
 ; ----------------------------------------------------------------------------------
 incur_damage
+
+!if cheat=0 {
     stx value_of_x_when_incur_damage_called                           ;
     ldx starship_shields_active                                       ;
     beq shields_are_active                                            ;
@@ -3006,13 +3012,19 @@ skip13
     inc damage_high                                                   ;
 shields_are_active
     ldx value_of_x_when_incur_damage_called                           ;
+}
+
 incur_low_damage
+
+!if cheat=0 {
     clc                                                               ;
     adc damage_low                                                    ;
     sta damage_low                                                    ;
     bcc return11                                                      ;
     inc damage_high                                                   ;
 return11
+}
+
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -4712,6 +4724,7 @@ sound_9
     !byte $c8, 0                                                      ; duration 200
     !byte 4, 0                                                        ; duration 4
 
+!if elk=0 {
 ; ----------------------------------------------------------------------------------
 ; Starship engine
 ; ----------------------------------------------------------------------------------
@@ -4724,6 +4737,7 @@ sound_10_volume_high
 sound_10_pitch
     !byte 0, 0                                                        ; pitch
     !byte 4, 0                                                        ; duration 4
+}
 
 ; ----------------------------------------------------------------------------------
 ; Exploding enemy ship
@@ -4986,6 +5000,7 @@ escape_capsule_not_launched
 
 ; ----------------------------------------------------------------------------------
 play_starship_engine_sound
+!if elk=0 { ; disabled engine sound. Elk has 1 sound channel and the starship engine sound is interfering with the other sounds
     lda starship_velocity_low                                         ;
     clc                                                               ;
     adc #$40                                                          ;
@@ -5011,6 +5026,7 @@ skip_ceiling
     ldy #>(sound_10)                                                  ;
     lda #osword_sound                                                 ;
     jsr osword                                                        ;
+}
     jmp consider_torpedo_sound                                        ;
 
 ; ----------------------------------------------------------------------------------
@@ -8018,6 +8034,7 @@ debug
     jmp --                                                            ;
 }
 
+!if elk=0 { ; anti flicker could possibly be improved on the Elk by using the rtc interrupt (at 100th scanline) and deciding when to draw/skip an enemy ship based on that
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   A = Y coordinate to plot at
@@ -8039,6 +8056,7 @@ is_in_danger_area
     cmp danger_height                                                 ;
 done1
     rts                                                               ;
+}
 
 ; ----------------------------------------------------------------------------------
 main_game_loop
@@ -8065,6 +8083,7 @@ main_game_loop
     jsr plot_enemy_ships_on_scanners                                  ;
 skip_scanner_update
 
+!if elk=0 {
 wait_for_timer
     ; wait for some time to have elapsed
 -
@@ -8078,6 +8097,7 @@ post_wait_for_timer
     clc                                                               ;
     adc old_timing_counter                                            ;
     sta old_timing_counter                                            ;
+}
 
     jsr plot_enemy_ships                                              ;
     jsr update_stars                                                  ;
@@ -9254,6 +9274,7 @@ rotate_clockwise
 return31
     rts                                                               ;
 
+!if elk=0 {
 ; ----------------------------------------------------------------------------------
 ; Only uses A, preserves X,Y
 irq_routine
@@ -9299,6 +9320,7 @@ check_vsync
 call_old_irq
     lda irq_accumulator                                     ;
     jmp (old_irq1_low)                                      ;
+}
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
@@ -9661,6 +9683,7 @@ done
     dex                                                               ;
     bpl -                                                             ;
 
+!if elk=0 {
     ; set up timer
     lda #0                                                            ;
     sta timing_counter                                                ;
@@ -9698,6 +9721,8 @@ done
     ; Start the timer going
     lda #>ShortTimerValue                                             ;
     sta userVIATimer1CounterHigh                                      ;
+}
+
     jmp start                                                         ;
 
 ; ----------------------------------------------------------------------------------
