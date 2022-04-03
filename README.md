@@ -1,4 +1,4 @@
-# Starship Command 2022 Edition (for the BBC Micro)
+# Starship Command 2022 Edition (for the BBC Micro and Electron)
 
 This is an update to the original 1983 Acornsoft game *Starship Command* by Peter Irvin.
 
@@ -15,6 +15,7 @@ This new version features:
 * Rotational dampers on by default, with the setting remembered between commands and games.
 * Enhanced reporting/awards at the end of each command/game.
 * Master compatible (fixes the scanner static).
+* Electron version - many thanks to [0xC0DE](https://twitter.com/0xC0DE6502) for making the required changes.
 
 ## Technical Changes
 
@@ -272,3 +273,4 @@ TobyLobster
 * Thanks to Graham Nelson for the logic and wording of the new awards system.
 * And to both for useful feedback and play testing.
 * Thanks to Level 7 for the excellent [disassembly](http://www.level7.org.uk/miscellany/starship-command-disassembly.txt) that started this.
+* Thanks to [0xC0DE](https://twitter.com/0xC0DE6502) for making the required changes for the Electron.

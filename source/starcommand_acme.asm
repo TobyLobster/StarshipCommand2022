@@ -1,6 +1,6 @@
 ; ----------------------------------------------------------------------------------
 ;
-; Starship Command 2022 (for the BBC Micro)
+; Starship Command 2022 (for the BBC Micro and Electron)
 ;
 ; An update to the original Starship Command (1983) by Peter Irvin.
 ;
@@ -228,8 +228,10 @@
 ; ----------------------------------------------------------------------------------
 
 do_debug = 0
+!ifndef elk {
 elk=0           ; 0xC0DE: 0=Beeb version, 1=Elk version
-antiflicker=1   ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
+}
+antiflicker=0   ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
 cheat=0         ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
 
 ; ----------------------------------------------------------------------------------
