@@ -973,21 +973,14 @@ unset_pixel
     ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
 !if elk=1 {
-    txa
-    and #7
-    tax
-    lda inverse,x
+    lda xbit_table,x                                                  ;
+    eor #$ff                                                          ;
 } else {
     lda xinverse_bit_table,x                                          ;
 }
     and (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
-
-!if elk=1 {
-inverse
-    !byte %01111111,%10111111,%11011111,%11101111,%11110111,%11111011,%11111101,%11111110
-}
 
 ; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
