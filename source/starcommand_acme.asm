@@ -548,7 +548,10 @@ stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enem
 
 xandf8                                  = $0500  ; }
 xbit_table                              = $0600  ; } tables of constants (768 bytes)
+
+!if elk=0 {
 xinverse_bit_table                      = $0700  ; }
+}
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
 squares1_high                           = $0b00  ; } (1k total)
@@ -969,10 +972,22 @@ unset_pixel
     sta screen_address_low                                            ;
     ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
+!if elk=1 {
+    txa
+    and #7
+    tax
+    lda inverse,x
+} else {
     lda xinverse_bit_table,x                                          ;
+}
     and (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
+
+!if elk=1 {
+inverse
+    !byte %01111111,%10111111,%11011111,%11101111,%11110111,%11111011,%11111101,%11111110
+}
 
 ; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
@@ -9198,6 +9213,7 @@ start
     jsr initialise_joystick_and_cursor_keys                           ;
 
     jsr mode4                                                         ;
+    jsr disable_cursor                                                ;
     ldy #0                                                            ;
     jsr plot_line_of_underscores_at_y                                 ;
     ldy #3                                                            ;
@@ -9741,11 +9757,15 @@ done
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
 
-    ; copy strings to $0d01, with RTI at $d00
+    ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
     ldx #regular_strings_end - regular_strings_start
 -
     lda regular_strings_start-1,x                                     ;
+!if elk=0 {
     sta $0d00-1,x                                                     ;
+} else {
+    sta $0700-1,x
+}
     dex                                                               ;
     bne -                                                             ;
 
@@ -9923,9 +9943,11 @@ create_other_tables
     ldx #0
 -
     sta xbit_table,x
+!if elk=0 {
     eor #$ff
     sta xinverse_bit_table,x
     eor #$ff
+}
     lsr
     bcc +
     lda #$80
@@ -9950,10 +9972,8 @@ regular_string_index_command                        = 11
 regular_string_index_command_move                   = 12
 
 ; ----------------------------------------------------------------------------------
-regular_strings_start
 
-!pseudopc $0d00 {
-    rti                                                               ; put RTI at $0d00
+!macro m_regular_strings {
 
 shield_state_string1
     !byte shield_state_string1_end - shield_state_string1             ;
@@ -10030,13 +10050,21 @@ blank_string_end
 ; ----------------------------------------------------------------------------------
 enable_cursor_string
     !byte enable_cursor_string_end - enable_cursor_string
+!if elk=1 {
+    !byte 23, 1, 1, 0, 0, 0, 0, 0, 0, 0
+} else {
     !byte $17, 0, 10, $60, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &60
+}
 enable_cursor_string_end
 
 ; ----------------------------------------------------------------------------------
 disable_cursor_string
     !byte disable_cursor_string_end - disable_cursor_string
+!if elk=1 {
+    !byte 23, 1, 0, 0, 0, 0, 0, 0, 0, 0
+} else {
     !byte $17, 0, 10, $3c, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &3c
+}
 disable_cursor_string_end
 
 ; ----------------------------------------------------------------------------------
@@ -10066,5 +10094,20 @@ command_move_string_horizontal_pos
     !byte $6f                                                         ;
     !byte 4, $81, 0                                                   ;
 command_move_string_end
+
+} ; end macro m_regular_strings
+
+regular_strings_start
+
+!if elk=1 {
+!pseudopc $0700 {
+    +m_regular_strings
 }
+} else {
+!pseudopc $0d00 {
+    rti                                                               ; put RTI at $0d00
+    +m_regular_strings
+}
+}
+
 regular_strings_end
