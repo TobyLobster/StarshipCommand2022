@@ -1283,7 +1283,7 @@ update_position_for_rotation
     adc output_fraction                                               ; sine_y_pixels
     sta temp10                                                        ; cosine_x_plus_sine_y_pixels
 
-    ; Y' = X*cosine - Y*sine
+    ; Y' = Y*cosine - X*sine
 
 ;    These assignments are not needed since X,Y are still set to these values:
 ;    ldx object_x_fraction                                             ;
