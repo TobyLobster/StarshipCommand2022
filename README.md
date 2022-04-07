@@ -76,7 +76,7 @@ A fast multiply routine is a key part of the increase in speed. The original gam
 Every star, torpedo, enemy ship, explosion fragment, etc rotates around the player ship. So when the game gets busy, lot of rotations means lots of multiplications:
 
     X' = Y*sine + X*cosine
-    Y' = X*cosine - Y*sine
+    Y' = Y*cosine - X*sine
 
 By stuffing all available RAM with code/data (e.g. the lower half of page 1 holds the highscore table) and compressing the text (see below), enough memory has been freed to allow for a very fast modern multiply routine. The code itself is not large, but it uses a full 2K of tables of squares.
 
