@@ -5053,6 +5053,7 @@ check_key_x
     cpy #$ff                                                          ;
     rts                                                               ;
 
+random_data = $4000 ;* and $ff00
 ; ----------------------------------------------------------------------------------
 play_sounds
     lda sound_enabled                                                 ;
@@ -7116,6 +7117,7 @@ continue3
     sty y_pixels                                                      ;
     jsr set_pixel                                                     ; plot pixel in middle of long range scanner
     dec screen_start_high                                             ;
+return25
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -7144,45 +7146,7 @@ skip_unplotting_scanners
     lda rnd_1                                                         ;
     ora #$42                                                          ;
     sta scanner_failure_duration                                      ;
-    lda #0                                                            ;
-    sta temp0_low                                                     ;
-
-    ; Previously this used OS ROM as source of static (at $d000) but this doesn't work on the Master!
-    ; So we use part of the program that looks sufficiently random itself, 'play_sounds' at around
-    ; $3800 instead.
-    lda #<play_sounds                                                 ;
-    sta temp5                                                         ;
-    lda #>play_sounds                                                 ;
-    sta temp6                                                         ;
-
-    lda #$59                                                          ;
-    sta temp0_high                                                    ;
-    ldx #8                                                            ;
-plot_static_row_loop
-    ldy #$3f                                                          ;
-plot_static_column_loop
-    lda (temp5),y                                                     ;
-    sta (temp0_low),y                                                 ;
-    dey                                                               ;
-    bpl plot_static_column_loop                                       ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #$40                                                          ;
-    sta temp0_low                                                     ;
-    lda temp0_high                                                    ;
-    adc #1                                                            ;
-    sta temp0_high                                                    ;
-    lda temp5                                                         ;
-    clc                                                               ;
-    adc #$40                                                          ;
-    sta temp5                                                         ;
-    lda temp6                                                         ;
-    adc #1                                                            ;
-    sta temp6                                                         ;
-    dex                                                               ;
-    bne plot_static_row_loop                                          ;
-return25
-    rts                                                               ;
+    bne draw_static
 
 ; ----------------------------------------------------------------------------------
 starship_didnt_incur_major_damage
@@ -7191,33 +7155,42 @@ starship_didnt_incur_major_damage
 handle_failed_scanner
     dec scanner_failure_duration                                      ;
     beq clear_long_range_scanner                                      ;
-    lda #0                                                            ;
-    sta temp0_low                                                     ;
-    lda #$59                                                          ; temp0 = $5900
-    sta temp0_high                                                    ;
-    ldx #8                                                            ;
-update_static_row_loop
-    ldy #$3f                                                          ;
-    lda y_pixels                                                      ;
-update_static_column_loop
-    eor (temp0_low),y                                                 ;
-    sta (temp0_low),y                                                 ;
-    dey                                                               ;
-    eor (temp0_low),y                                                 ;
-    sta (temp0_low),y                                                 ;
-    dey                                                               ;
-    bpl update_static_column_loop                                     ;
-    sta y_pixels                                                      ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #$40                                                          ;
-    sta temp0_low                                                     ;
-    lda temp0_high                                                    ;
-    adc #1                                                            ;
-    sta temp0_high                                                    ;
+draw_static
+    eor y_pixels
+    tay
+	;; most of the time we want white-ish noise as cheaply as we can make it
+	;; but *occasionally* show bursts of periodic noise
+    cpy #$10
+    bcs white
+    lda #update_static_loop-update_static_loop_end
+    !byte $2c
+white
+    lda #update_static_loop_white-update_static_loop_end
+    sta update_static_loop_end-1
+    ldx #$3f
+update_static_loop_white
+    eor random_data,x
+update_static_loop
+    eor random_data,y
+    sta $5900,x
+    ror
+    sta $5e00,x
+    eor random_data+$100,y
+    sta $61c0,x
+    ror
+    sta $5cc0,x
+    eor random_data+$200,y
+    sta $5f40,x
+    ror
+    sta $5a40,x
+    ror
+    eor random_data+$300,y
+    sta $5b80,x
+    ror
+    sta $6080,x
     dex                                                               ;
-    bne update_static_row_loop                                        ;
-    lda y_pixels                                                      ;
+    bpl update_static_loop                                        ;
+update_static_loop_end
 return26
     rts                                                               ;
 
@@ -7249,8 +7222,7 @@ clear_long_range_scanner_column_loop
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     lda starship_shields_active_before_failure                        ;
     bne return26                                                      ;
-    jsr unplot_long_range_scanner_if_shields_inactive                 ;
-    rts                                                               ;
+    jmp unplot_long_range_scanner_if_shields_inactive                 ;
 
 ; ----------------------------------------------------------------------------------
 ; timid ship, retreats upwards as soon as on screen
