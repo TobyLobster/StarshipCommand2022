@@ -591,154 +591,153 @@ play_area_row_table_high
 }
 
 plus_angle0
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle1
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle2
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle3
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle4
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle5
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle6
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle7
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle8
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle9
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle10
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle11
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle12
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle13
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle14
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle15
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle16
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle17
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle18
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle19
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle20
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle21
-    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle22
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle23
-    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle24
-    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle25
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle26
-    jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle27
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle28
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle29
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle30
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle31
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle32
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle33
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle34
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
 plus_angle35
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle36
-    jsr eor_play_area_pixel                                           ;
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle37
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-plus_angle38
     jsr eor_play_area_pixel                                           ;
+plus_angle38
     inx                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle39
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle40
-    jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-plus_angle41
     jsr eor_play_area_pixel                                           ;
+plus_angle41
     dex                                                               ;
     inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ;
 plus_angle42
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 starship_angle_fraction
@@ -847,8 +846,49 @@ plot_table_offset
     !byte <plus_angle39
     !byte <plus_angle40
     !byte <plus_angle41
-    !byte <plus_angle42
-
+plot_table_offset2 = *-2 ; 0,1 are unused
+    !byte <plus_angle1-3
+    !byte <plus_angle2-3
+    !byte <plus_angle3-3
+    !byte <plus_angle4-3
+    !byte <plus_angle5-3
+    !byte <plus_angle6-3
+    !byte <plus_angle7-3
+    !byte <plus_angle8-3
+    !byte <plus_angle9-3
+    !byte <plus_angle10-3
+    !byte <plus_angle11-3
+    !byte <plus_angle12-3
+    !byte <plus_angle13-3
+    !byte <plus_angle14-3
+    !byte <plus_angle15-3
+    !byte <plus_angle16-3
+    !byte <plus_angle17-3
+    !byte <plus_angle18-3
+    !byte <plus_angle19-3
+    !byte <plus_angle20-3
+    !byte <plus_angle21-3
+    !byte <plus_angle22-3
+    !byte <plus_angle23-3
+    !byte <plus_angle24-3
+    !byte <plus_angle25-3
+    !byte <plus_angle26-3
+    !byte <plus_angle27-3
+    !byte <plus_angle28-3
+    !byte <plus_angle29-3
+    !byte <plus_angle30-3
+    !byte <plus_angle31-3
+    !byte <plus_angle32-3
+    !byte <plus_angle33-3
+    !byte <plus_angle34-3
+    !byte <plus_angle35-3
+    !byte <plus_angle36-3
+    !byte <plus_angle37-3
+    !byte <plus_angle38-3
+    !byte <plus_angle39-3
+    !byte <plus_angle40-3
+    !byte <plus_angle41-3
+    !byte <plus_angle42-3
 
 segment_angle_to_x_deltas_table
     !byte $1     ; 0   x+ y0
@@ -2872,12 +2912,13 @@ plot_segment_unrolled
     clc                                                               ;
     adc segment_length                                                ; add the segment length
     tax                                                               ;
-    lda plot_table_offset,x                                           ;
+    lda plot_table_offset2,x                                           ;
     tax                                                               ;
     stx remember_x                                                    ; remember the address (low) to finish at
-    lda #$60                                                          ; opcode for RTS
+    lda #$4C                                                          ; opcode for JMP
     sta plus_angle0,x                                                 ;
     ldx x_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ; first point
 jump_address = * + 1
     jsr plus_angle0                                                   ;
     ldx remember_x                                                    ; recall the address (low)
