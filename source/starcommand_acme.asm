@@ -1030,10 +1030,12 @@ eor_pixel_with_boundary_check
 ; ----------------------------------------------------------------------------------
 eor_play_area_pixel
     ldy y_pixels                                                      ;
+eor_play_area_pixel_ycoord_in_y
     lda play_area_row_table_high,y                                    ;
     sta screen_address_high                                           ;
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
+eor_play_area_pixel_same_y
     ldy xandf8,x                                                      ;
     lda xbit_table,x                                                  ;
     eor (screen_address_low),y                                        ;
@@ -1828,25 +1830,10 @@ empty_torpedo_slot
     bcs return3                                                       ;
     jmp plot_starship_torpedo                                         ;
 
-; ----------------------------------------------------------------------------------
-plot_big_torpedo
-    inx                                                               ; x coordinate
-    jsr eor_play_area_pixel                                           ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    inx                                                               ;
-    jmp eor_play_area_pixel                                           ;
-
+	;; -21012
+	;;  .OOO.
+	;;  OOOOO
+	;;   OOO
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
     ldy #2                                                            ;
@@ -1855,29 +1842,54 @@ plot_expiring_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
+    ;; jsr eor_play_area_pixel	;0,0
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	;0,1
+    ;; inx                                                               ;
+    ;; jsr eor_play_area_pixel	;1,1
+    ;; inx                                                               ;
+    ;; dec y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	;2,0
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel	;1,0
+    ;; dec y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	;1,-1
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel	;0,-1
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel	;-1,-1
+    ;; dex                                                               ;
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	;-2,0
+    ;; inx                                                               ;
+    ;; jsr eor_play_area_pixel	;-1,0
+    ;; inc y_pixels                                                      ;
+    ;; jmp eor_play_area_pixel	;-1,1
+    dex
+    dex
+    jsr eor_play_area_pixel
+    inx
+    jsr eor_play_area_pixel_same_y
+    inx
+    jsr eor_play_area_pixel_same_y
+    inx
+    jsr eor_play_area_pixel_same_y
+    inx
+    jsr eor_play_area_pixel_same_y
+    dex
     inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    inc y_pixels                                                      ;
-    jmp eor_play_area_pixel                                           ;
+    jsr eor_play_area_pixel
+    dex
+    jsr eor_play_area_pixel_same_y
+    dex
+    jsr eor_play_area_pixel_same_y
+    dec y_pixels
+    dec y_pixels
+    jsr eor_play_area_pixel
+    inx
+    jsr eor_play_area_pixel_same_y
+    inx
+    jmp eor_play_area_pixel_same_y
 
 ; ----------------------------------------------------------------------------------
 update_stars
@@ -1992,6 +2004,49 @@ plot_top_and_right_edge_of_long_range_scanner_without_text
 return5
     rts                                                               ;
 
+	;; 101
+	;; .O.  2
+	;; OOO  1
+	;; OOO  0
+	;; .O. -1
+; ----------------------------------------------------------------------------------
+plot_big_torpedo
+    ;; inx                                                               ; x coordinate
+    ;; jsr eor_play_area_pixel	   ;1,0
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	   ;1,1
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel_same_y ;0,1
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel	;0,2
+    ;; dex                                                               ;
+    ;; dec y_pixels		;-1,1
+    ;; jsr eor_play_area_pixel                                           ;
+    ;; dec y_pixels		;-1,0
+    ;; jsr eor_play_area_pixel                                           ;
+    ;; dec y_pixels
+    ;; inx			;0,-1
+    ;; jmp eor_play_area_pixel                                           ;
+    inx
+    jsr eor_play_area_pixel_same_y
+    dex
+    dex
+    jsr eor_play_area_pixel_same_y
+    inc y_pixels
+    jsr eor_play_area_pixel
+    inx
+    jsr eor_play_area_pixel_same_y
+    inx
+    jsr eor_play_area_pixel_same_y
+    inc y_pixels
+    dex
+    jsr eor_play_area_pixel
+    lda y_pixels
+    sec
+    sbc #3
+    tay
+    jmp eor_play_area_pixel_ycoord_in_y
+
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
     ; Head of torpedo
@@ -2001,11 +2056,10 @@ plot_starship_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ; y coordinate
-    jsr eor_play_area_pixel                                           ;
+    jsr eor_play_area_pixel                                           ; Plot pixel for head of torpedo
 
-    lda starship_torpedo_type                                         ;
-    beq small_starship_torpedoes                                      ;
-    jmp plot_big_torpedo                                              ; Plot pixel for head of torpedo
+    lda starship_torpedo_type
+    bne plot_big_torpedo
 
 small_starship_torpedoes
     ; Tail of torpedo
@@ -2267,11 +2321,11 @@ enemy_torpedo_type_instruction
     rts                                                               ; self modifying code
     ; ... actually NOP if (option_enemy_torpedoes == 1)
     inx                                                               ;
-    jsr eor_play_area_pixel                                           ;
+    jsr eor_play_area_pixel_same_y                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dex                                                               ;
-    jmp eor_play_area_pixel                                           ;
+    jmp eor_play_area_pixel_same_y                                           ;
 
 ; ----------------------------------------------------------------------------------
 apply_velocity_to_enemy_ships
