@@ -358,6 +358,7 @@ systemVIAInterruptFlagRegister          = $fe4d         ;
 oswrch                                  = $ffee
 osword                                  = $fff1
 osbyte                                  = $fff4
+bytev                                   = $20a
 
 ; ----------------------------------------------------------------------------------
 ; zero page
@@ -9773,14 +9774,29 @@ enemy_torpedoes_table
 ; ----------------------------------------------------------------------------------
 entry_point
     lda #140                                                          ; *TAPE
-    ldx #0                                                            ;
-    jsr osbyte                                                        ;
-
+    jsr osbyte_zeroxy                                                 ;
     lda #225                                                          ; Function keys are
-    ldx #0                                                            ; not expanded.
-    ldy #0                                                            ;
+    jsr osbyte_zeroxy                                                 ; not expanded.
+    lda #234                                                          ; disable tube
+    jsr osbyte_zeroxy                                                 ;
+    lda #200                                                          ; clear memory
+    ldx #3                                                            ; on break
+    jsr osbyte_zeroy                                                  ;
+!if elk=0 {
+    lda #143                                                          ; claim NMI vector
+    ldx #12                                                           ; so we can safely use
+    ldy #255                                                          ; page D
     jsr osbyte                                                        ;
-
+}
+    lda #133                                                          ; read HIMEM were we to
+    ldx #4                                                            ; switch into MODE 4
+    jsr osbyte_zeroy
+    tya
+    bpl noshadow                                                      ; if it's >$7FFF we need to
+    lda #114                                                          ; disable shadow screen
+    ldx #1                                                            ; (we can't do this unconditionally
+    jsr osbyte_zeroy                                                  ; because it's not implemented
+noshadow                                                              ; on earlier machines)
     lda #0                                                            ;
     tay                                                               ;
     sta $80                                                           ;
@@ -9887,6 +9903,12 @@ done
 }
 
     jmp start                                                         ;
+
+osbyte_zeroxy
+    ldx #0
+osbyte_zeroy
+    ldy #0
+    jmp (bytev)
 
 ; ----------------------------------------------------------------------------------
 initialise_envelopes
