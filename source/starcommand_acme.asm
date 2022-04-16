@@ -551,7 +551,7 @@ xandf8                                  = $0500  ; }
 xbit_table                              = $0600  ; } tables of constants (768 bytes)
 
 !if elk=0 {
-xinverse_bit_table                      = $0700  ; }
+xtwobits_table                      = $0700  ; }
 }
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
@@ -1013,12 +1013,8 @@ unset_pixel
     sta screen_address_low                                            ;
     ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
-!if elk=1 {
     lda xbit_table,x                                                  ;
     eor #$ff                                                          ;
-} else {
-    lda xinverse_bit_table,x                                          ;
-}
     and (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
@@ -1083,6 +1079,46 @@ eor_play_area_pixel_same_y
     sta (screen_address_low),y                                        ;
 return
     rts                                                               ;
+!if (elk=0) {
+eor_two_play_area_pixels
+    ldy y_pixels                                                      ;
+eor_two_play_area_pixels_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_two_play_area_pixels_same_y
+    lda xtwobits_table,x                                                  ;
+    beq straddle ; straddles two bytes
+    ldy xandf8,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    rts                                                               ;
+straddle
+    jsr eor_play_area_pixel_same_y
+    inx ; second pixel is off screen?
+    beq returna
+    jsr	eor_play_area_pixel_same_y
+returna
+    dex ; restore
+    rts
+} else {
+eor_two_play_area_pixels
+    ldy y_pixels                                                      ;
+eor_two_play_area_pixels_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_two_play_area_pixels_same_y
+    jsr eor_play_area_pixel_same_y
+    inx ; second pixel is off screen?
+    beq returna
+    jsr	eor_play_area_pixel_same_y
+returna
+    dex ; restore
+    rts
+}
 
 ; ----------------------------------------------------------------------------------
 ; version with variable start address (screen_start_high)
@@ -1115,7 +1151,7 @@ eor_frontier_pixel
     lda play_area_row_table_high,y                                    ;
     adc #$07                                                          ;
     sta screen_address_high                                           ;
-    jmp eor_pixel_with_screen_address                                 ;
+    bne eor_pixel_with_screen_address                                 ; always
 
 ; ----------------------------------------------------------------------------------
 ; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
@@ -1908,27 +1944,23 @@ plot_expiring_torpedo
     ;; jmp eor_play_area_pixel	;-1,1
     dex
     dex
-    jsr eor_play_area_pixel
+    jsr eor_two_play_area_pixels
+    inx
+    inx
+    jsr eor_two_play_area_pixels_same_y
+    inx
     inx
     jsr eor_play_area_pixel_same_y
-    inx
-    jsr eor_play_area_pixel_same_y
-    inx
-    jsr eor_play_area_pixel_same_y
-    inx
-    jsr eor_play_area_pixel_same_y
+    dex
     dex
     inc y_pixels                                                      ;
-    jsr eor_play_area_pixel
-    dex
-    jsr eor_play_area_pixel_same_y
+    jsr eor_two_play_area_pixels
     dex
     jsr eor_play_area_pixel_same_y
     dec y_pixels
     dec y_pixels
-    jsr eor_play_area_pixel
+    jsr eor_two_play_area_pixels
     inx
-    jsr eor_play_area_pixel_same_y
     inx
     jmp eor_play_area_pixel_same_y
 
@@ -2364,9 +2396,8 @@ enemy_torpedo_type_instruction
     inx                                                               ;
     jsr eor_play_area_pixel_same_y                                           ;
     inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
     dex                                                               ;
-    jmp eor_play_area_pixel_same_y                                           ;
+    jmp eor_two_play_area_pixels
 
 ; ----------------------------------------------------------------------------------
 apply_velocity_to_enemy_ships
@@ -4674,9 +4705,9 @@ skip_uninversion_cosine1
     lda segment_angle                                                 ;
     bne leave_after_restoring_y                                       ;
     inc y_pixels                                                      ;
-    jsr eor_pixel_with_boundary_check                                 ;
-    dex                                                               ;
-    jsr eor_pixel_with_boundary_check                                 ;
+    beq leave_after_restoring_y
+    dex
+    jsr eor_two_play_area_pixels                                 ;
 leave_after_restoring_y
     ldy temp11                                                        ;
     rts                                                               ;
@@ -10028,19 +10059,29 @@ create_other_tables
     ldx #0
 -
     sta xbit_table,x
-!if elk=0 {
-    eor #$ff
-    sta xinverse_bit_table,x
-    eor #$ff
-}
     lsr
     bcc +
     lda #$80
 +
     inx
     bne -
+!if (elk=0) {
+	;; make xtwobits_table
+    ldx #0
+-
+    txa
+    and #$07
+    tay
+    lda xtwobits_table_template,y
+    sta xtwobits_table,x
+    inx
+    bne -
+}
     rts
-
+!if (elk=0) {
+xtwobits_table_template
+    !byte $c0, $60, $30, $18, $0c, $06, $03, $00
+}
 ; ----------------------------------------------------------------------------------
 regular_string_index_shield_state_on                = 0
 regular_string_index_shield_state_off               = 1
