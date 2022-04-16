@@ -2084,6 +2084,7 @@ return5
 	;; .O. -1
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
+    jmp plot_3x4
     ;; inx                                                               ; x coordinate
     ;; jsr eor_play_area_pixel	   ;1,0
     ;; inc y_pixels                                                      ;
@@ -2100,25 +2101,26 @@ plot_big_torpedo
     ;; dec y_pixels
     ;; inx			;0,-1
     ;; jmp eor_play_area_pixel                                           ;
-    inx
-    jsr eor_play_area_pixel_same_y
-    dex
-    dex
-    jsr eor_play_area_pixel_same_y
-    inc y_pixels
-    jsr eor_play_area_pixel
-    inx
-    jsr eor_play_area_pixel_same_y
-    inx
-    jsr eor_play_area_pixel_same_y
-    inc y_pixels
-    dex
-    jsr eor_play_area_pixel
-    lda y_pixels
-    sec
-    sbc #3
-    tay
-    jmp eor_play_area_pixel_ycoord_in_y
+
+    ;; inx
+    ;; jsr eor_play_area_pixel_same_y
+    ;; dex
+    ;; dex
+    ;; jsr eor_play_area_pixel_same_y
+    ;; inc y_pixels
+    ;; jsr eor_play_area_pixel
+    ;; inx
+    ;; jsr eor_play_area_pixel_same_y
+    ;; inx
+    ;; jsr eor_play_area_pixel_same_y
+    ;; inc y_pixels
+    ;; dex
+    ;; jsr eor_play_area_pixel
+    ;; lda y_pixels
+    ;; sec
+    ;; sbc #3
+    ;; tay
+    ;; jmp eor_play_area_pixel_ycoord_in_y
 
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
@@ -2129,12 +2131,11 @@ plot_starship_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ; y coordinate
-    jsr eor_play_area_pixel                                           ; Plot pixel for head of torpedo
-
     lda starship_torpedo_type
     bne plot_big_torpedo
 
 small_starship_torpedoes
+    jsr eor_play_area_pixel                                           ; Plot pixel for head of torpedo
     ; Tail of torpedo
     ldy #2                                                            ;
     lda (temp1_low),y                                                 ;
@@ -4410,33 +4411,67 @@ skip_uninversion_cosine
     sta temp9                                                         ;
     jmp plot_segment                                                  ;
 
+
+; -101
+;-1.h.
+; 0gab
+; 1fdc
+; 2.e.
 ; ----------------------------------------------------------------------------------
 plot_variable_size_fragment
-    ldx x_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
+    ;; ldx x_pixels                                                      ;
+    ;; jsr eor_play_area_pixel                                           ; 0,0 (a)
+    ;; lda temp8                                                         ;
+    ;; cmp #$c0                                                          ;
+    ;; beq return15                                                      ;
+    ;; inx                                                               ;
+    ;; jsr eor_play_area_pixel                                           ; 1,0 (b)
+    ;; lda temp8                                                         ;
+    ;; bmi return15                                                      ;
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel                                           ; 1,1 (c)
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel                                           ; 0,1 (d)
+    ;; lda temp8                                                         ;
+    ;; bne return15                                                      ;
+    ;; inc y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel                                           ; 0,2 (e)
+    ;; dec y_pixels                                                      ;
+    ;; dex                                                               ;
+    ;; jsr eor_play_area_pixel                                           ;-1,1 (f)
+    ;; dec y_pixels                                                      ;
+    ;; jsr eor_play_area_pixel                                           ;-1,0 (g)
+    ;; dec y_pixels                                                      ;
+    ;; inx                                                               ;
+    ;; jmp eor_play_area_pixel                                           ; 0,-1 (h)
+    ldx x_pixels
     lda temp8                                                         ;
     cmp #$c0                                                          ;
-    beq return15                                                      ;
-    inx                                                               ;
-    jsr eor_play_area_pixel                                           ;
+    beq plot_1x1
     lda temp8                                                         ;
-    bmi return15                                                      ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    lda temp8                                                         ;
-    bne return15                                                      ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    dex                                                               ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dec y_pixels                                                      ;
-    inx                                                               ;
-    jmp eor_play_area_pixel                                           ;
+    bmi plot_2x1                                                      ;
+    bne plot_2x2
+plot_3x4
+    dec y_pixels
+    jsr eor_play_area_pixel ; h
+    inc y_pixels
+    jsr eor_two_play_area_pixels ; a,b
+    dex
+    jsr eor_play_area_pixel_same_y ; g
+    inc y_pixels
+    jsr eor_play_area_pixel ; f
+    inx
+    jsr eor_two_play_area_pixels_same_y ; d,c
+    inc y_pixels
+plot_1x1
+    jmp eor_play_area_pixel ; e
+plot_2x2
+    jsr eor_two_play_area_pixels
+    inc y_pixels
+    ; here we don't need this check
+    ;beq return15 ; wrapped?
+plot_2x1
+    jmp eor_two_play_area_pixels
 
 ; ----------------------------------------------------------------------------------
 initialise_starship_explosion_pieces
@@ -4567,7 +4602,7 @@ update_enemy_explosion_pieces_loop
     and #$3f                                                          ;
     iny                                                               ;
     sta (temp5),y                                                     ;
-    jmp move_to_next_piece_after_dey                                  ;
+    bne move_to_next_piece_after_dey                                  ; always
 
 piece_still_active
     sta (temp5),y                                                     ; store updated age
@@ -4697,20 +4732,45 @@ skip_uninversion_cosine1
 
     ; draw a dot or two, or four
     ldx x_pixels                                                      ;
-    jsr eor_pixel_with_boundary_check                                 ;
+    ; boundary check X
+    txa                                                               ;
+    sec                                                               ;
+    sbc temp10                                                        ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs leave_after_restoring_y                                       ;
+
+    ; boundary check Y
+    lda y_pixels                                                      ;
+    sec                                                               ;
+    sbc temp9                                                         ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs leave_after_restoring_y                                       ;
+    ; fall through...
+    ; TODO: merge with plot_variable_size_fragment
     lda segment_angle                                                 ;
-    bmi leave_after_restoring_y                                       ;
-    inx
-    jsr eor_pixel_with_boundary_check                                 ;
-    lda segment_angle                                                 ;
-    bne leave_after_restoring_y                                       ;
-    inc y_pixels                                                      ;
-    beq leave_after_restoring_y
-    dex
-    jsr eor_two_play_area_pixels                                 ;
+    bmi plot_1x1_a                                                    ;
+    bne plot_2x1_a                                                    ;
+plot_2x2_a
+    jsr eor_two_play_area_pixels
+    inc y_pixels
+    beq leave_after_restoring_y ; wrapped?
+plot_2x1_a
+    jsr eor_two_play_area_pixels
 leave_after_restoring_y
     ldy temp11                                                        ;
     rts                                                               ;
+plot_1x1_a
+    jsr eor_play_area_pixel
+    ldy temp11                                                        ;
+return16
+    rts                                                               ;
+
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_ship_or_explosion_segments
@@ -4725,9 +4785,6 @@ plot_enemy_ship_or_explosion_segments
     cmp #frame_of_enemy_ship_explosion_after_which_no_segments_are_plotted ;
     bcc plot_enemy_explosion_segments                                 ;
     jmp plot_enemy_ship                                               ;
-
-return16
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_explosion_segments
