@@ -394,8 +394,6 @@ enemy_ship_was_on_screen                = $12
 remember_x                              = $13
 old_timing_counter                      = $14
 timing_counter                          = $15
-old_irq1_low                            = $16
-old_irq1_high                           = $17
 enemy_low                               = $18
 enemy_high                              = $19
 plot_enemy_progress                     = $1a
@@ -9509,7 +9507,8 @@ check_rtc
 
 call_old_irq
     lda irq_accumulator
-    jmp (old_irq1_low)
+old_irq1
+    jmp $0000
 
 }
 
@@ -9558,7 +9557,8 @@ check_vsync
 
 call_old_irq
     lda irq_accumulator                                     ;
-    jmp (old_irq1_low)                                      ;
+old_irq1
+    jmp $0000
 }
 
 ; ----------------------------------------------------------------------------------
@@ -9967,9 +9967,9 @@ done
 !if (elk=0) or (elk+antiflicker=2) {
     ; set up our own IRQ routine to increment a timer
     lda irq1_vector_low                                               ;
-    sta old_irq1_low                                                  ;
+    sta old_irq1+1
     lda irq1_vector_high                                              ;
-    sta old_irq1_high                                                 ;
+    sta old_irq1+2
 
     lda #<irq_routine                                                 ;
     sta irq1_vector_low                                               ;
