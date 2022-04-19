@@ -9848,8 +9848,9 @@ starship_explosion_table
 enemy_explosion_tables
     !fill 512,0                                                       ;
 
-starship_torpedoes_table
-    !fill 108,0                                                       ;
+starship_torpedoes_table = $373 ; 108 bytes spare from $373 to $3df
+;starship_torpedoes_table
+;    !fill 108,0                                                       ;
 
 enemy_torpedoes_table
     !fill 144,0                                                       ;
