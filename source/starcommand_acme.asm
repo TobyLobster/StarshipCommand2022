@@ -8836,10 +8836,7 @@ plot_instructions
     ldx #instructions_string2                                         ;
     jsr print_compressed_string                                       ;
 
-    ldy #0                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #3                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
+    jsr plot_underscores_at_0_3
     jmp leave_after_plotting_line_of_underscores                      ;
 
 ; ----------------------------------------------------------------------------------
@@ -8893,24 +8890,24 @@ option_address_high_table
     !byte >keyboard_or_joystick                                       ;
 
 ; ----------------------------------------------------------------------------------
-plot_selected_options
-    ldx #3                                                            ;
-plot_selected_options_loop
+plot_selected_option
+    dey
     lda #$1f                                                          ;
     jsr oswrch                                                        ;
     lda #9                                                            ;
     jsr oswrch                                                        ;
-    txa                                                               ;
-    asl                                                               ;
-    adc game_options,x                                                ;
-    asl                                                               ;
-    adc #11                                                           ;
-    jsr oswrch                                                        ;
-    lda #$2d                                                          ;
-    jsr oswrch                                                        ;
-    dex                                                               ;
-    bpl plot_selected_options_loop                                    ;
-    rts                                                               ;
+    tya
+    asl
+    jsr oswrch
+    tya
+    and #1
+    eor game_options,x
+    beq +
+    lda #'*' ; more legible than '-'
+    !byte $2c
++
+    lda #' '
+    jmp oswrch
 
 ; ----------------------------------------------------------------------------------
 wait_for_return
@@ -8929,6 +8926,7 @@ wait_for_return_loop
     beq wait_for_return_loop                                          ;
     cpx #$0d                                                          ;
     bne wait_for_return_loop                                          ;
+return28
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -8960,12 +8958,16 @@ combat_preparation_screen
     jsr print_compressed_string                                       ;
 
 finished_plotting_combat_preparations
-    ldy #1                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #4                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
+    jsr plot_underscores_at_0_3
     jsr set_foreground_colour_to_white                                ;
-    jsr plot_selected_options                                         ;
+plot_selected_options
+    ldx #3                                                            ;
+    ldy #13                                                            ;
+plot_selected_options_loop                                    ;
+    jsr plot_selected_option
+    jsr plot_selected_option
+    dex                                                               ;
+    bpl plot_selected_options_loop                                    ;
 get_keypress
     lda #osbyte_flush_buffer_class                                    ;
     ldx #1                                                            ;
@@ -9013,10 +9015,8 @@ not_f1
     lda option_enemy_torpedoes,x                                      ;
     ldy #0                                                            ;
     sta (temp0_low),y                                                 ;
-    jmp combat_preparation_screen                                     ;
+    jmp plot_selected_options
 
-return28
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 mode4
@@ -9097,11 +9097,14 @@ plot_name_loop
     bne plot_high_scores_loop                                         ;
 
 leave_after_plotting_underscores
-    ldy #1                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #4                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
+    jsr plot_underscores_at_0_3
     jmp wait_for_return                                               ;
+
+plot_underscores_at_0_3
+    ldy #0                                                            ;
+    jsr plot_line_of_underscores_at_y                                 ;
+    ldy #3                                                            ;
+    jmp plot_line_of_underscores_at_y                                 ;
 
 ; ----------------------------------------------------------------------------------
 plot_two_digit_high_score
@@ -9361,10 +9364,7 @@ start
 
     jsr mode4                                                         ;
     jsr disable_cursor                                                ;
-    ldy #0                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #3                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
+    jsr plot_underscores_at_0_3
 
     ; display string
     ldx #the_frontiers_string1                                        ;

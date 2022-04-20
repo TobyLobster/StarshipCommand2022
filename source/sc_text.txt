@@ -187,40 +187,40 @@ instructions_string2
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_string
-    !byte $1f, 6 , 3                                                  ; TAB(6 , 3)
+    !byte $1f, 6 , 2                                                  ; TAB(6 , 3)
     !text "**** COMBAT PREPARATION ****"                              ;
-    !byte $1f, 6 , 7                                                  ; TAB(6 , 7)
+    !byte $1f, 6 , 6                                                  ; TAB(6 , 7)
     !text "f0  View starship controls"                                ;
-    !byte $1f, 6 , 9                                                  ; TAB(6 , 9)
+    !byte $1f, 6 , 8                                                  ; TAB(6 , 9)
     !text "f1  View",134,"records"                                    ;
-    !byte $1f, 6 , 11                                                 ; TAB(6 , 11)
+    !byte $1f, 6 , 10                                                 ; TAB(6 , 11)
     !text "f2  Enable"                                                ;
-    !byte $1f, 17, 12                                                 ; TAB(17, 12)
+    !byte $1f, 17, 11                                                 ; TAB(17, 12)
     !text "}the sound effects"                                        ;
-    !byte $1f, 6 , 13                                                 ; TAB(6 , 13)
+    !byte $1f, 6 , 12                                                 ; TAB(6 , 13)
     !text "f3  Disable"                                               ;
-    !byte $1f, 6 , 15                                                 ; TAB(6 , 15)
+    !byte $1f, 6 , 14                                                 ; TAB(6 , 15)
     !text "f4  Small"                                                 ;
-    !byte $1f, 17, 16                                                 ; TAB(17, 16)
+    !byte $1f, 17, 15                                                 ; TAB(17, 16)
     !text "}starship ", 139                                           ;
-    !byte $1f,  6, 17                                                 ; TAB( 6, 17)
+    !byte $1f,  6, 16                                                 ; TAB( 6, 17)
     !text "f5  Large"                                                 ;
-    !byte $1f,  6, 19                                                 ; TAB( 6, 19)
+    !byte $1f,  6, 18                                                 ; TAB( 6, 19)
     !text "f6  Small"                                                 ;
-    !byte $1f, 17, 20                                                 ; TAB(17, 20)
+    !byte $1f, 17, 19                                                 ; TAB(17, 20)
     !text "}enemy ", 139                                              ;
-    !byte $1f,  6, 21                                                 ; TAB( 6, 21)
+    !byte $1f,  6, 20                                                 ; TAB( 6, 21)
     !text "f7  Large"                                                 ;
-    !byte $1f,  6, 23                                                 ; TAB( 6, 23)
+    !byte $1f,  6, 22                                                 ; TAB( 6, 23)
     !text "f8  Keyboard"                                              ;
-    !byte $1f,  6, 25                                                 ; TAB( 6, 25)
+    !byte $1f,  6, 24                                                 ; TAB( 6, 25)
     !text "f9  Joystick"                                              ;
-    !byte $1f, 13, 30                                                 ; TAB(13, 30)
+    !byte $1f, 13, 29                                                 ; TAB(13, 30)
     !text "Press <RETURN>"                                            ;
 
 ; ----------------------------------------------------------------------------------
 starfleet_records_string
-    !byte $1f, 6  , 3                                                 ;
+    !byte $1f, 6  , 2                                                 ;
     !text "**** STAR-FLEET RECORDS ****"                              ;
     !byte $1f, 3  , 6                                                 ;
     !text    "Below is a list of the most highly",140                 ;
