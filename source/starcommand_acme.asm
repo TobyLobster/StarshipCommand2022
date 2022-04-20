@@ -9945,6 +9945,13 @@ done
     dex                                                               ;
     bpl -                                                             ;
 
+    ; zero starship torpedo table
+    ldx #107
+-
+    sta starship_torpedoes_table,x
+    dex
+    bpl -
+
 !if (elk=0) or (elk+antiflicker=2) {
     ; set up timer
     lda #0                                                            ;
