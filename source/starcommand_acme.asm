@@ -1082,7 +1082,6 @@ eor_play_area_pixel_same_y
     sta (screen_address_low),y                                        ;
 return
     rts                                                               ;
-!if (elk=0) {
 eor_two_play_area_pixels
     ldy y_pixels                                                      ;
 eor_two_play_area_pixels_ycoord_in_y
@@ -1091,37 +1090,32 @@ eor_two_play_area_pixels_ycoord_in_y
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
 eor_two_play_area_pixels_same_y
+    ldy xandf8,x
+!if (elk=0) {
     lda xtwobits_table,x                                                  ;
     beq straddle ; straddles two bytes
-    ldy xandf8,x
+} else {
+    lda xbit_table,x
+    lsr
+    bcs straddle
+    ora xbit_table,x
+}
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
 straddle
-    jsr eor_play_area_pixel_same_y
+    lda #1
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
     inx ; second pixel is off screen?
     beq returna
-    jsr	eor_play_area_pixel_same_y
+    lda #$80
+    ldy xandf8,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
 returna
     dex ; restore
     rts
-} else {
-eor_two_play_area_pixels
-    ldy y_pixels                                                      ;
-eor_two_play_area_pixels_ycoord_in_y
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_two_play_area_pixels_same_y
-    jsr eor_play_area_pixel_same_y
-    inx ; second pixel is off screen?
-    beq returna
-    jsr	eor_play_area_pixel_same_y
-returna
-    dex ; restore
-    rts
-}
 
 ; ----------------------------------------------------------------------------------
 ; version with variable start address (screen_start_high)
