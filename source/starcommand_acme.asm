@@ -355,7 +355,11 @@ systemVIATimer1LatchHigh                = $fe47         ;
 systemVIAAuxiliaryControlRegister       = $fe4b         ;
 systemVIAInterruptFlagRegister          = $fe4d         ;
 
-oswrch                                  = $ffee
+!if elk=1 {
+oswrch                                  = $de2d         ; we know the precise ROM address
+} else {
+oswrch                                  = $ffcb         ; nvwrch avoids an indirection
+}
 osword                                  = $fff1
 osbyte                                  = $fff4
 bytev                                   = $20a
