@@ -363,6 +363,7 @@ oswrch                                  = $ffcb         ; nvwrch avoids an indir
 osword                                  = $fff1
 osbyte                                  = $fff4
 bytev                                   = $20a
+wordv                                   = $20c
 
 ; ----------------------------------------------------------------------------------
 ; zero page
@@ -5171,8 +5172,7 @@ no_enemy_ship_was_hit
     ldx #<(sound_4)                                                   ;
     ldy #>(sound_4)                                                   ;
 play_explosion_or_firing_sound
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
 skip_explosion_or_firing_sound
     ldy #0                                                            ;
     lda escape_capsule_launched                                       ;
@@ -5189,8 +5189,7 @@ set_escape_capsule_sound_channel
     beq skip_sound_for_exploding_enemy_ship                           ;
     ldx #<(sound_11)                                                  ;
     ldy #>(sound_11)                                                  ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
 skip_sound_for_exploding_enemy_ship
     lda escape_capsule_sound_channel                                  ;
     beq escape_capsule_not_launched                                   ;
@@ -5202,8 +5201,7 @@ escape_capsule_not_launched
     dec sound_needed_for_low_energy                                   ;
     ldx #<(sound_9)                                                   ;
     ldy #>(sound_9)                                                   ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
     jmp consider_torpedo_sound                                        ;
 
 ; ----------------------------------------------------------------------------------
@@ -5232,8 +5230,7 @@ skip_ceiling
     sta sound_10_volume_high                                          ; volume = -min(pitch, 9) + 1
     ldx #<(sound_10)                                                  ;
     ldy #>(sound_10)                                                  ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
 }
     jmp consider_torpedo_sound                                        ;
 
@@ -5267,12 +5264,10 @@ skip_ceiling1
     sta sound_2_volume_high                                           ;
     ldx #<(sound_1)                                                   ; }
     ldy #>(sound_1)                                                   ; } no sound output here (volume is 0), but it
-    lda #osword_sound                                                 ; } sets the pitch for the white noise of sound_2
-    jsr osword                                                        ; } to follow...
+    jsr do_osword_sound                                               ; } sets the pitch for the white noise of sound_2 to follow...
     ldx #<(sound_2)                                                   ;
     ldy #>(sound_2)                                                   ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
 skip_starship_explosion_sound
     lda escape_capsule_sound_channel                                  ;
     beq consider_torpedo_sound                                        ;
@@ -5299,28 +5294,25 @@ set_volume_high
     sta sound_8_volume_high                                           ;
     ldx #<(sound_8)                                                   ;
     ldy #>(sound_8)                                                   ;
-    lda #osword_sound                                                 ;
-    jsr osword                                                        ;
+    jsr do_osword_sound                                               ;
     lda escape_capsule_sound_channel                                  ;
     cmp #3                                                            ; has the starship exploded?
-    beq return19                                                      ;
+    beq return20                                                      ;
 consider_torpedo_sound
     lda starship_fired_torpedo                                        ;
     beq skip_starship_torpedo_sound                                   ;
     ldx #<(sound_3)                                                   ;
     ldy #>(sound_3)                                                   ;
-    lda #osword_sound                                                 ;
-    jmp osword                                                        ;
+    bne do_osword_sound                                               ; always
 
 skip_starship_torpedo_sound
     lda enemy_ships_collided_with_each_other                          ;
-    beq return19                                                      ;
+    beq return20                                                      ;
     ldx #<(sound_7)                                                   ;
     ldy #>(sound_7)                                                   ;
+do_osword_sound
     lda #osword_sound                                                 ;
-    jsr osword                                                        ;
-return19
-    rts                                                               ;
+    jmp (wordv)                                                       ;
 
 ; ----------------------------------------------------------------------------------
 enemy_ships_collision_x_difference
