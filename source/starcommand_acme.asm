@@ -346,10 +346,13 @@ userVIATimer1CounterLow                 = $fe64         ; Timer 1 counter (low)
 userVIATimer1CounterHigh                = $fe65         ; Timer 1 counter (high)
 userVIATimer1LatchLow                   = $fe66         ; Timer 1 latch (low)
 userVIATimer1LatchHigh                  = $fe67         ; Timer 1 latch (high)
+userVIATimer2CounterLow                 = $fe68         ; Timer 2 counter (low)
+userVIATimer2CounterHigh                = $fe69         ; Timer 2 counter (high)
 userVIAAuxiliaryControlRegister         = $fe6b         ; auxiliary control register
 userVIAInterruptFlagRegister            = $fe6d         ; Interrupt flag register
 userVIAInterruptEnableRegister          = $fe6e         ; Interrupt enable register
 
+systemVIADirA                           = $fe41         ;
 systemVIATimer1LatchLow                 = $fe46         ;
 systemVIATimer1LatchHigh                = $fe47         ;
 systemVIAAuxiliaryControlRegister       = $fe4b         ;
@@ -399,6 +402,9 @@ enemy_ship_was_on_screen                = $12
 remember_x                              = $13
 old_timing_counter                      = $14
 timing_counter                          = $15
+
+engine_sound_shifter                    = $16
+engine_sound_shifter_orig               = $17 ; for testing
 enemy_low                               = $18
 enemy_high                              = $19
 plot_enemy_progress                     = $1a
@@ -5118,7 +5124,31 @@ skip_damper_keys
     lda #1                                                            ;
     sta starship_automatic_shields                                    ; automatic shields
     rts                                                               ;
-
+;-------------------------
+; check engine sound tweaker keys
++
+!if (elk=0) {
+    ldx #$cb
+    jsr check_key_x
+    bne +
+    jmp tweak_shifter_down
++
+    ldx #$db
+    jsr check_key_x
+    bne +
+    jmp tweak_shifter_up
++
+    ldx #$ea
+    jsr check_key_x
+    bne +
+    jmp tweak_timer_down
++
+    ldx #$d9
+    jsr check_key_x
+    bne +
+    jmp tweak_timer_up
+}
+;-------------------------
 +
     ldx #inkey_p                                                      ;
     jsr check_key_x                                                   ;
@@ -5190,13 +5220,13 @@ skip_sound_for_exploding_enemy_ship
     jmp play_escape_capsule_sound                                     ;
 
 escape_capsule_not_launched
-    lda sound_needed_for_low_energy                                   ;
-    beq play_starship_engine_sound                                    ;
-    dec sound_needed_for_low_energy                                   ;
-    ldx #<(sound_9)                                                   ;
-    ldy #>(sound_9)                                                   ;
-    jsr do_osword_sound                                               ;
-    jmp consider_torpedo_sound                                        ;
+    ;; lda sound_needed_for_low_energy                                   ;
+    ;; beq play_starship_engine_sound                                    ;
+    ;; dec sound_needed_for_low_energy                                   ;
+    ;; ldx #<(sound_9)                                                   ;
+    ;; ldy #>(sound_9)                                                   ;
+    ;; jsr do_osword_sound                                               ;
+    ;; jmp consider_torpedo_sound                                        ;
 
 ; ----------------------------------------------------------------------------------
 play_starship_engine_sound
@@ -5758,6 +5788,9 @@ initialise_game_screen
     jsr plot_command_number                                           ;
 !if do_debug = 0 {
     jsr plot_stars                                                    ;
+}
+!if (elk=0) {
+    jsr print_engine_tweaker
 }
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     jsr initialise_joystick_and_cursor_keys                           ;
@@ -9506,9 +9539,10 @@ old_irq1
 ; ----------------------------------------------------------------------------------
 ; Only uses A, preserves X,Y
 irq_routine
-    lda userVIAInterruptFlagRegister                        ; get interrupt flag register
+    bit userVIAInterruptFlagRegister                        ; get interrupt flag register
     bpl check_vsync                                         ; if (not a user via interrupt) then branch
 
+    bvc not_timer1
     ; At the entry point for the program we disabled every interrupt on the user via
     ; except for timer 1, so we know this must be a timer 1 interrupt. We clear it here.
     lda #$40                                                ;
@@ -9526,8 +9560,47 @@ irq_routine
     lda #0                                                  ;
 +
     sta irq_counter                                         ;
+irqret
     lda irq_accumulator                                     ;
     rti                                                     ;
+
+not_timer1
+    lda #$ff
+    sta $fe43
+flipbranch
+    bne +
+    clc
+    adc sound_10_volume_low
++
+    and #$df
+    sta $fe4f
+    sta userVIATimer2CounterLow
+    lda #0
+    sta $fe40
+    lda engine_sound_shifter 
+    cmp #$80
+    rol engine_sound_shifter
+engine_sound_timer=*+1
+    lda #$0d ; about 7ms
+    bcc +
+    asl
++
+    sta userVIATimer2CounterHigh
+    ;lda rnd_1
+    ;eor timing_counter
+    ;beq +
+    ;and #$1f
+    ;and #$3f
+engine_sound_randomness=*+1
+    ora #$80
+    sta userVIATimer2CounterLow
+    lda flipbranch
+    eor #$20
+    sta flipbranch
++
+    lda #8
+    sta $fe40
+    bne irqret
 
 ; ----------------------------------------------------------------------------------
 check_vsync
@@ -9550,7 +9623,60 @@ call_old_irq
 old_irq1
     jmp $0000
 }
+!if (elk=0) {
+;tweak_randomness
+;    inc engine_sound_randomness
+;    jmp print_engine_tweaker
 
+tweak_timer_up
+    inc engine_sound_timer
+    bne +;!byte $2c
+tweak_timer_down
+    dec engine_sound_timer
+    bne +
+    inc engine_sound_timer
++
+    bne print_engine_tweaker
+
+tweak_shifter_up
+    inc engine_sound_shifter_orig
+    !byte $2c
+tweak_shifter_down
+    dec engine_sound_shifter_orig
+    lda engine_sound_shifter_orig
+    sta engine_sound_shifter
+    jmp print_engine_tweaker
+
+print_engine_tweaker
+    lda #31
+    jsr oswrch
+    lda #19
+    jsr oswrch
+    lda #30
+    jsr oswrch
+;    lda engine_sound_randomness
+;    jsr hex_print
+    lda engine_sound_shifter_orig
+    jsr hex_print
+    lda engine_sound_timer
+
+hex_print
+   PHA                        ; Save A
+   LSR
+   LSR
+   LSR
+   LSR    ; Move top nybble to bottom nybble
+   JSR PrNybble               ; Print this nybble
+   PLA                        ; Get A back and print bottom nybble
+PrNybble
+   AND #15                    ; Keep bottom four bits
+   CMP #10
+   BCC PrDigit        ; If 0-9, jump to print
+   ADC #6                     ; Convert ':' to 'A'
+PrDigit
+   ADC #'0'
+   JMP oswrch     ; Convert to character and print
+}
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
@@ -9955,10 +10081,14 @@ done
     ; enable timer 1 in free run mode (on the User VIA)
     lda #0                                                            ; Disable all interrupts on the User VIA
     sta userVIAInterruptEnableRegister                                ;
-    lda #$c0                                                          ; Enable timer 1
+    lda #$e0                                                          ; Enable timer 1 and 2
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
     lda #$40                                                          ; Enable free run mode for timer 1
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
+    sta userVIATimer2CounterHigh
+    lda #$99
+    sta engine_sound_shifter
+    sta engine_sound_shifter_orig
 }
 
 !if (elk=0) or (elk+antiflicker=2) {
