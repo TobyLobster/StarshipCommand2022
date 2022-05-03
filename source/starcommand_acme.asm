@@ -404,7 +404,6 @@ old_timing_counter                      = $14
 timing_counter                          = $15
 
 engine_sound_shifter                    = $16
-engine_sound_shifter_orig               = $17 ; for testing
 enemy_low                               = $18
 enemy_high                              = $19
 plot_enemy_progress                     = $1a
@@ -5125,30 +5124,6 @@ skip_damper_keys
     sta starship_automatic_shields                                    ; automatic shields
     rts                                                               ;
 ;-------------------------
-; check engine sound tweaker keys
-+
-!if (elk=0) {
-    ldx #$cb
-    jsr check_key_x
-    bne +
-    jmp tweak_shifter_down
-+
-    ldx #$db
-    jsr check_key_x
-    bne +
-    jmp tweak_shifter_up
-+
-    ldx #$ea
-    jsr check_key_x
-    bne +
-    jmp tweak_timer_down
-+
-    ldx #$d9
-    jsr check_key_x
-    bne +
-    jmp tweak_timer_up
-}
-;-------------------------
 +
     ldx #inkey_p                                                      ;
     jsr check_key_x                                                   ;
@@ -5788,9 +5763,6 @@ initialise_game_screen
     jsr plot_command_number                                           ;
 !if do_debug = 0 {
     jsr plot_stars                                                    ;
-}
-!if (elk=0) {
-    jsr print_engine_tweaker
 }
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     jsr initialise_joystick_and_cursor_keys                           ;
@@ -9623,60 +9595,6 @@ call_old_irq
 old_irq1
     jmp $0000
 }
-!if (elk=0) {
-;tweak_randomness
-;    inc engine_sound_randomness
-;    jmp print_engine_tweaker
-
-tweak_timer_up
-    inc engine_sound_timer
-    bne +;!byte $2c
-tweak_timer_down
-    dec engine_sound_timer
-    bne +
-    inc engine_sound_timer
-+
-    bne print_engine_tweaker
-
-tweak_shifter_up
-    inc engine_sound_shifter_orig
-    !byte $2c
-tweak_shifter_down
-    dec engine_sound_shifter_orig
-    lda engine_sound_shifter_orig
-    sta engine_sound_shifter
-    jmp print_engine_tweaker
-
-print_engine_tweaker
-    lda #31
-    jsr oswrch
-    lda #19
-    jsr oswrch
-    lda #30
-    jsr oswrch
-;    lda engine_sound_randomness
-;    jsr hex_print
-    lda engine_sound_shifter_orig
-    jsr hex_print
-    lda engine_sound_timer
-
-hex_print
-   PHA                        ; Save A
-   LSR
-   LSR
-   LSR
-   LSR    ; Move top nybble to bottom nybble
-   JSR PrNybble               ; Print this nybble
-   PLA                        ; Get A back and print bottom nybble
-PrNybble
-   AND #15                    ; Keep bottom four bits
-   CMP #10
-   BCC PrDigit        ; If 0-9, jump to print
-   ADC #6                     ; Convert ':' to 'A'
-PrDigit
-   ADC #'0'
-   JMP oswrch     ; Convert to character and print
-}
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
@@ -10088,7 +10006,6 @@ done
     sta userVIATimer2CounterHigh
     lda #$99
     sta engine_sound_shifter
-    sta engine_sound_shifter_orig
 }
 
 !if (elk=0) or (elk+antiflicker=2) {
