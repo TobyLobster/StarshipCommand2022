@@ -352,11 +352,19 @@ userVIAAuxiliaryControlRegister         = $fe6b         ; auxiliary control regi
 userVIAInterruptFlagRegister            = $fe6d         ; Interrupt flag register
 userVIAInterruptEnableRegister          = $fe6e         ; Interrupt enable register
 
-systemVIADirA                           = $fe41         ;
-systemVIATimer1LatchLow                 = $fe46         ;
-systemVIATimer1LatchHigh                = $fe47         ;
-systemVIAAuxiliaryControlRegister       = $fe4b         ;
-systemVIAInterruptFlagRegister          = $fe4d         ;
+systemVIAOutB                           = $fe40         ; Output B
+systemVIAOutA                           = $fe41         ; Output A
+systemVIADirA                           = $fe43         ; Direction A
+systemVIATimer1CounterLow               = $fe44         ; Timer 1 counter (low)
+systemVIATimer1CounterHigh              = $fe45         ; Timer 1 counter (high)
+systemVIATimer1LatchLow                 = $fe46         ; Timer 1 latch (low)
+systemVIATimer1LatchHigh                = $fe47         ; Timer 1 latch (high)
+systemVIATimer2CounterLow               = $fe48         ; Timer 2 counter (low)
+systemVIATimer2CounterHigh              = $fe49         ; Timer 2 counter (high)
+systemVIAAuxiliaryControlRegister       = $fe4b         ; auxiliary control register
+systemVIAInterruptFlagRegister          = $fe4d         ; Interrupt flag register
+systemVIAInterruptEnableRegister        = $fe6e         ; Interrupt enable register
+systemVIAOutA_NH                        = $fe4f         ; Output A (no handshake)
 
 !if elk=1 {
 oswrch                                  = $de2d         ; we know the precise ROM address
@@ -9538,17 +9546,17 @@ irqret
 
 not_timer1
     lda #$ff
-    sta $fe43
+    sta systemVIADirA
 flipbranch
     bne +
     clc
     adc sound_10_volume_low
 +
     and #$df
-    sta $fe4f
+    sta systemVIAOutA_NH
     sta userVIATimer2CounterLow
     lda #0
-    sta $fe40
+    sta systemVIAOutB
     lda engine_sound_shifter 
     cmp #$80
     rol engine_sound_shifter
@@ -9571,7 +9579,7 @@ engine_sound_randomness=*+1
     sta flipbranch
 +
     lda #8
-    sta $fe40
+    sta systemVIAOutB
     bne irqret
 
 ; ----------------------------------------------------------------------------------
