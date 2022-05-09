@@ -411,6 +411,7 @@ old_timing_counter                      = $14
 timing_counter                          = $15
 
 engine_sound_shifter                    = $16
+irqtmp                                  = $17   ; IRQ-safe temporary
 enemy_low                               = $18
 enemy_high                              = $19
 plot_enemy_progress                     = $1a
@@ -777,7 +778,7 @@ damage_low
 starship_destroyed
     !byte 0                                                           ;
 starship_energy_divided_by_sixteen
-    !byte 0                                                           ;
+    !byte $ff                                                         ;
 starship_energy_regeneration
     !byte 0                                                           ;
 starship_automatic_shields
@@ -3188,8 +3189,7 @@ return11
 ; ----------------------------------------------------------------------------------
 update_various_starship_statuses_on_screen
     jsr apply_damage_to_starship_energy                               ;
-    jsr plot_starship_velocity_and_rotation_on_gauges                 ;
-    jmp flash_energy_when_low                                         ;
+    jmp plot_starship_velocity_and_rotation_on_gauges                 ;
 
 apply_damage_to_starship_energy
     lda starship_energy_low                                           ;
@@ -4936,7 +4936,7 @@ sound_9
     !byte $11, 0                                                      ; channel 1
     !byte $f1, $ff                                                    ; volume 15
     !byte $c8, 0                                                      ; duration 200
-    !byte 4, 0                                                        ; duration 4
+    !byte 2, 0                                                        ; duration 2
 
 !if elk=0 {
 ; ----------------------------------------------------------------------------------
@@ -5202,17 +5202,9 @@ skip_sound_for_exploding_enemy_ship
     jmp play_escape_capsule_sound                                     ;
 
 escape_capsule_not_launched
+    jsr consider_torpedo_sound                                        ;
     lda sound_needed_for_low_energy                                   ;
-    beq play_starship_engine_sound                                    ;
-    dec sound_needed_for_low_energy                                   ;
-!if elk=0 {
-    lda #$20                                                          ; disable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
-}
-    ldx #<(sound_9)                                                   ;
-    ldy #>(sound_9)                                                   ;
-    jsr do_osword_sound                                               ;
-    jmp consider_torpedo_sound                                        ;
+    bne return18
 
 ; ----------------------------------------------------------------------------------
 play_starship_engine_sound
@@ -5220,10 +5212,10 @@ play_starship_engine_sound
     lda starship_velocity_low                                         ;
     clc                                                               ;
     adc #$40                                                          ;
-    sta x_pixels                                                      ;
+    sta irqtmp                                                      ;
     lda #0                                                            ;
     adc starship_velocity_high                                        ;
-    asl x_pixels                                                      ;
+    asl irqtmp                                                      ;
     rol                                                               ;
     adc starship_rotation_magnitude                                   ;
     sta sound_10_pitch                                                ;
@@ -5244,7 +5236,7 @@ skip_ceiling
     lda #$a0                                                          ; enable engine interrupt
     sta userVIAInterruptEnableRegister                                ; on timer 2
 }
-    jmp consider_torpedo_sound                                        ;
+    rts
 
 ; ----------------------------------------------------------------------------------
 play_sound_for_exploding_starship
@@ -5354,28 +5346,27 @@ flash_energy_when_low
     bne energy_is_already_low                                         ;
     lda starship_energy_divided_by_sixteen                            ;
     cmp #$32                                                          ;
-    bcs consider_warning_sound                                        ;
-    lda #5                                                            ;
+    bcs return20                                        ;
+    lda #12                                                           ;
     sta energy_flash_timer                                            ;
-    jsr invert_energy_text                                            ;
-    jmp consider_warning_sound                                        ;
-
-energy_is_already_low
-    dec energy_flash_timer                                            ;
-    cmp #2                                                            ;
-    bne consider_warning_sound                                        ;
-    jsr invert_energy_text                                            ;
 consider_warning_sound
-    dec timer_for_low_energy_warning_sound                            ;
-    bne return20                                                      ;
-    lda #8                                                            ;
-    sta timer_for_low_energy_warning_sound                            ;
     lda starship_energy_divided_by_sixteen                            ;
     cmp #$19                                                          ;
-    bcs return20                                                      ;
-    inc sound_needed_for_low_energy                                   ;
-return20
-    rts                                                               ;
+    bcs invert_energy_text
+    ; beep has started
+    lda starship_has_exploded                                         ;
+    ora escape_capsule_sound_channel
+    ora sound_enabled                                                 ;
+    bne invert_energy_text
+    lda #1
+    sta sound_needed_for_low_energy                                   ;
+!if elk=0 {
+    lda #$20                                                          ; disable engine interrupt
+    sta userVIAInterruptEnableRegister                                ; on timer 2
+}
+    ldx #<(sound_9)                                                   ;
+    ldy #>(sound_9)                                                   ;
+    jsr do_osword_sound                                               ;
 
 ; ----------------------------------------------------------------------------------
 invert_energy_text
@@ -5386,7 +5377,25 @@ invert_energy_text_loop
     sta energy_screen_address,y                                       ;
     dey                                                               ;
     bpl invert_energy_text_loop                                       ;
+return20
     rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+energy_is_already_low
+    dec energy_flash_timer                                            ;
+    cmp #10                                                           ;
+    beq invert_energy_text
+    cmp #11                                                           ;
+    bne return20
+nobeep
+    ; beep has finished
+    lda starship_has_exploded                                         ;
+    ora escape_capsule_sound_channel
+    ora sound_enabled                                                 ;
+    bne return20
+    lda #0
+    sta sound_needed_for_low_energy                                   ;
+    jmp play_starship_engine_sound
 
 ; ----------------------------------------------------------------------------------
 enemy_ship_desired_angle_divided_by_eight
@@ -5396,7 +5405,7 @@ number_of_live_starship_torpedoes
 starship_fired_torpedo
     !byte $ea                                                         ;
 scanner_failure_duration
-    !byte $ea                                                         ;
+    !byte 0                                                         ;
 starship_shields_active_before_failure
     !byte $ea                                                         ;
 starship_torpedo_type
@@ -5785,7 +5794,9 @@ initialise_game_screen
 !if do_debug = 0 {
     jsr plot_stars                                                    ;
 }
-    jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
+    jsr plot_top_and_right_edge_of_long_range_scanner_without_text    ;
+    ldx #$c7                                                          ; draw full
+    jsr skip_swapping_start_and_end                                   ; energy bars
     jsr initialise_joystick_and_cursor_keys                           ;
     jmp set_foreground_colour_to_white                                ;
 
@@ -7249,53 +7260,15 @@ skip_unplotting_scanners
     lda rnd_1                                                         ;
     ora #$42                                                          ;
     sta scanner_failure_duration                                      ;
-    bne draw_static
+    rts
 
 ; ----------------------------------------------------------------------------------
 starship_didnt_incur_major_damage
     lda scanner_failure_duration                                      ;
-    beq return26                                                      ;
+    beq return25                                                      ;
 handle_failed_scanner
     dec scanner_failure_duration                                      ;
-    beq clear_long_range_scanner                                      ;
-draw_static
-    eor y_pixels
-    tay
-	;; most of the time we want white-ish noise as cheaply as we can make it
-	;; but *occasionally* show bursts of periodic noise
-    cpy #$10
-    bcs white
-    lda #update_static_loop-update_static_loop_end
-    !byte $2c
-white
-    lda #update_static_loop_white-update_static_loop_end
-    sta update_static_loop_end-1
-    ldx #$3f
-update_static_loop_white
-    eor random_data,x
-update_static_loop
-    eor random_data,y
-    sta $5900,x
-    ror
-    sta $5e00,x
-    eor random_data+$100,y
-    sta $61c0,x
-    ror
-    sta $5cc0,x
-    eor random_data+$200,y
-    sta $5f40,x
-    ror
-    sta $5a40,x
-    ror
-    eor random_data+$300,y
-    sta $5b80,x
-    ror
-    sta $6080,x
-    dex                                                               ;
-    bpl update_static_loop                                        ;
-update_static_loop_end
-return26
-    rts                                                               ;
+    bne return25
 
 ; ----------------------------------------------------------------------------------
 clear_long_range_scanner
@@ -7324,7 +7297,7 @@ clear_long_range_scanner_column_loop
     sta starship_shields_active                                       ;
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     lda starship_shields_active_before_failure                        ;
-    bne return26                                                      ;
+    bne return25                                                      ;
     jmp unplot_long_range_scanner_if_shields_inactive                 ;
 
 ; ----------------------------------------------------------------------------------
@@ -7734,7 +7707,6 @@ prepare_starship_for_next_command
     sta score_delta_low                                               ;
     sta damage_high                                                   ;
     sta damage_low                                                    ;
-    sta starship_energy_divided_by_sixteen                            ;
     sta velocity_damper                                               ;
     sta velocity_gauge_position                                       ;
     sta rotation_gauge_position                                       ;
@@ -7748,7 +7720,7 @@ prepare_starship_for_next_command
     sta energy_flash_timer                                            ;
     lda #4                                                            ;
     sta starship_velocity_high                                        ;
-    lda #1                                                            ;
+    lda #0                                                            ;
     sta scanner_failure_duration                                      ;
     sta starship_shields_active_before_failure                        ;
     lda #$80                                                          ;
@@ -7760,6 +7732,8 @@ prepare_starship_for_next_command
     sta starship_energy_high                                          ;
     lda #$7f                                                          ;
     sta starship_energy_low                                           ;
+    lda #$c7
+    sta starship_energy_divided_by_sixteen                            ;
 
     jsr init_self_modifying_bytes_for_starship_rotation               ;
 
@@ -9288,7 +9262,10 @@ end_of_command
     bne +                                                             ; if (non zero) then branch
     inc rnd_1                                                         ;
 +
-
+    lda #0                                                            ; turn static off
+    sta scanner_failure_duration                                      ;
+    lda #$ff
+    sta starship_energy_divided_by_sixteen                            ; disable energy low
     jsr mode4                                                         ;
     jsr disable_cursor                                                ;
     jsr set_foreground_colour_to_black                                ;
@@ -9496,6 +9473,7 @@ irq_routine
     and #4
     beq check_rtc
     lsr irq_counter ; 0 indicates electron beam is in upper half of screen
+    jmp every_vsync
     bcc call_old_irq ; jump always
 
 check_rtc
@@ -9596,12 +9574,75 @@ check_vsync
 
     lda #34                                                 ; reset count of character rows
     sta irq_counter                                         ; every vsync
-
+    jmp every_vsync
 call_old_irq
     lda irq_accumulator                                     ;
 old_irq1
     jmp $0000
 }
+
+; Do some things every frame rather than every game tick to improve perceived responsiveness:
+; * update the static
+; * flash the energy text and beep
+every_vsync
+    stx xtmp+1
+    sty ytmp+1
+
+    jsr flash_energy_when_low
+    lda scanner_failure_duration
+    beq skip_static
+!if elk {
+    ; only update the static every other frame
+    lda flipbranch
+    eor #$20
+    sta flipbranch
+flipbranch
+    bne skip_static
+}
+draw_static
+    jsr random_number_generator
+    tay
+	;; most of the time we want white-ish noise as cheaply as we can make it
+	;; but *occasionally* show bursts of periodic noise
+    cpy #$10
+    bcs white
+    lda #update_static_loop-update_static_loop_end
+    !byte $2c
+white
+    lda #update_static_loop_white-update_static_loop_end
+    sta update_static_loop_end-1
+    lda rnd_2
+    ldx #$3f
+update_static_loop_white
+    eor random_data,x
+update_static_loop
+    eor random_data,y
+    sta $5900,x
+    ror
+    sta $5e00,x
+    eor random_data+$100,y
+    sta $61c0,x
+    ror
+    sta $5cc0,x
+    eor random_data+$200,y
+    sta $5f40,x
+    ror
+    sta $5a40,x
+    ror
+    eor random_data+$300,y
+    sta $5b80,x
+    ror
+    sta $6080,x
+    dex                                                               ;
+    bpl update_static_loop                                        ;
+update_static_loop_end
+skip_static
+xtmp
+    ldx #0
+ytmp
+    ldy #0
+    jmp call_old_irq
+
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
