@@ -305,7 +305,6 @@ change_in_number_of_stars_per_command                               = -2
 osbyte_set_cursor_editing               = $04
 osbyte_flush_buffer_class               = $0f
 osbyte_select_adc_channels              = $10
-osbyte_acknowledge_escape               = $7e
 osbyte_read_adc_or_get_buffer_status    = $80
 osbyte_inkey                            = $81
 
@@ -8939,24 +8938,12 @@ wait_for_return_loop
     ldx #$32                                                          ;
     ldy #0                                                            ;
     jsr osbyte                                                        ;
-    cpy #$1b                                                          ;
-    beq escape_pressed                                                ;
     cpy #$ff                                                          ;
     beq wait_for_return_loop                                          ;
     cpx #$0d                                                          ;
     bne wait_for_return_loop                                          ;
 return28
     rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-escape_pressed
-    jsr ack                                                           ;
-    jmp wait_for_return_loop                                          ;
-
-; ----------------------------------------------------------------------------------
-ack
-    lda #osbyte_acknowledge_escape                                    ;
-    jmp osbyte                                                        ;
 
 ; ----------------------------------------------------------------------------------
 instructions_screen
@@ -8997,7 +8984,6 @@ get_keypress
     jsr osbyte                                                        ;
     cpx #$0d                                                          ;
     beq return28                                                      ;
-    jsr ack                                                           ;
     lda #$0a                                                          ;
     sta x_pixels                                                      ;
 check_next_key
@@ -9157,7 +9143,6 @@ input_osword_block
 
 ; ----------------------------------------------------------------------------------
 check_for_high_score
-    jsr mode4                                                         ;
     lda score_as_bcd                                                  ;
     ora score_as_bcd + 1                                              ;
     ora score_as_bcd + 2                                              ;
@@ -9200,6 +9185,7 @@ move_records_down_a_slot_loop
     jmp move_records_down_a_slot_loop                                 ;
 
 finished_moving_records
+    jsr mode4                                                         ;
     ldx #enter_your_name_string                                       ;
     jsr print_compressed_string                                       ;
 
@@ -9208,9 +9194,6 @@ finished_moving_records
     lda #osword_read_line                                             ;
     jsr osword                                                        ;
     sty y_pixels                                                      ;
-    bcc escape_not_pressed                                            ;
-    jsr ack                                                           ;
-escape_not_pressed
     ldx temp7                                                         ;
     lda score_as_bcd                                                  ;
     sta high_score_table + 2,x                                        ;
