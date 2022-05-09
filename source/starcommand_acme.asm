@@ -7846,14 +7846,16 @@ initialise_enemy_ships_loop
     rts                                                               ;
 
 initialise_joystick_and_cursor_keys
-    ldx #2                                                            ;
+    ldx keyboard_or_joystick                                          ; enable 2 ADC channels
+    beq not_joystick                                                  ; only if we need them
+    ldx #2	                                                      ; for joystick
+not_joystick
     lda #osbyte_select_adc_channels                                   ;
     jsr osbyte                                                        ;
     ldx #1                                                            ;
     lda #osbyte_set_cursor_editing                                    ;
     jsr osbyte                                                        ;
-    jsr convert_score_as_bcd_to_score_as_digits                       ;
-    rts                                                               ;
+    jmp convert_score_as_bcd_to_score_as_digits                       ;
 
 ; ----------------------------------------------------------------------------------
 update_enemy_ships
