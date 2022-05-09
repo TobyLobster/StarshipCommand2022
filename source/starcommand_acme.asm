@@ -366,7 +366,7 @@ systemVIAInterruptEnableRegister        = $fe6e         ; Interrupt enable regis
 systemVIAOutA_NH                        = $fe4f         ; Output A (no handshake)
 
 !if elk=1 {
-oswrch                                  = $de2d         ; we know the precise ROM address
+oswrch                                  = fastwrch
 } else {
 oswrch                                  = $ffcb         ; nvwrch avoids an indirection
 }
@@ -5781,8 +5781,6 @@ escape_capsule_launch_direction
 
 ; ----------------------------------------------------------------------------------
 initialise_game_screen
-    jsr disable_cursor                                                ;
-    jsr set_foreground_colour_to_black                                ;
     jsr initialise_starship_explosion_pieces                          ;
     jsr plot_starship                                                 ;
     ldx #regular_string_index_energy_string                           ;
@@ -5798,7 +5796,7 @@ initialise_game_screen
     ldx #$c7                                                          ; draw full
     jsr skip_swapping_start_and_end                                   ; energy bars
     jsr initialise_joystick_and_cursor_keys                           ;
-    jmp set_foreground_colour_to_white                                ;
+    jmp screen_on
 
 ; ----------------------------------------------------------------------------------
 launch_escape_capsule_port
@@ -7740,10 +7738,6 @@ prepare_starship_for_next_command
     ; fill enemy ship cache
     jsr fill_enemy_cache                                              ;
 
-    ; clear screen
-    lda #$0c                                                          ;
-    jsr oswrch                                                        ;
-
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
@@ -8921,25 +8915,21 @@ return28
 
 ; ----------------------------------------------------------------------------------
 instructions_screen
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
-    jsr set_foreground_colour_to_black                                ;
+    jsr screen_off                                                         ;
     jsr plot_instructions                                             ;
-    jsr set_foreground_colour_to_white                                ;
+    jsr screen_on                                ;
     jmp wait_for_return                                               ;
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
-    jsr set_foreground_colour_to_black                                ;
+    jsr screen_off                                                         ;
 
     ldx #combat_preparation_string                                    ;
     jsr print_compressed_string                                       ;
 
 finished_plotting_combat_preparations
     jsr plot_underscores_at_0_3
-    jsr set_foreground_colour_to_white                                ;
+    jsr screen_on                                ;
 plot_selected_options
     ldx #3                                                            ;
     ldy #13                                                            ;
@@ -8996,19 +8986,60 @@ not_f1
     sta (temp0_low),y                                                 ;
     jmp plot_selected_options
 
-
-; ----------------------------------------------------------------------------------
-mode4
-    lda #$16                                                          ;
-    jsr oswrch                                                        ;
-    lda #4                                                            ;
-    jmp oswrch                                                        ;
-
+!if (elk=0) {
+screen_off
+    lda #$f0
+    jsr writeR8
+    lda #12
+    jmp oswrch
+screen_on_with_cursor
+    lda #0
+    !byte $2c
+screen_on
+    lda #$c0
+writeR8
+    pha
+    lda #19
+    jsr osbyte
+    ldx #8
+    pla
+    ora $291
+    sei
+    stx $fe00
+    sta $fe01
+    cli
+    rts
+} else {
+screen_off
+    lda #$ff
+    ldx #$10
+    jsr writepal
+    jmp $cb9d
+screen_on_with_cursor
+    ldx #0
+    !byte $2c
+screen_on
+    ldx #$10
+    lda #$11
+writepal
+    stx $d0
+    sta $804
+    sta $805
+    jsr $e7ae
+    jmp $cbea
+fastwrch
+    stx xtmp2+1
+    sty ytmp2+1
+    jsr $c433
+xtmp2
+    ldx #0
+ytmp2
+    ldy #0
+    rts    
+}
 ; ----------------------------------------------------------------------------------
 starfleet_records_screen
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
-
+    jsr screen_off
     ldx #starfleet_records_string                                     ;
     jsr print_compressed_string                                       ;
 
@@ -9077,6 +9108,7 @@ plot_name_loop
 
 leave_after_plotting_underscores
     jsr plot_underscores_at_0_3
+    jsr screen_on
     jmp wait_for_return                                               ;
 
 plot_underscores_at_0_3
@@ -9159,9 +9191,10 @@ move_records_down_a_slot_loop
     jmp move_records_down_a_slot_loop                                 ;
 
 finished_moving_records
-    jsr mode4                                                         ;
+    jsr screen_off
     ldx #enter_your_name_string                                       ;
     jsr print_compressed_string                                       ;
+    jsr screen_on_with_cursor                                                         ;
 
     ldx #<(input_osword_block)                                        ;
     ldy #>(input_osword_block)                                        ;
@@ -9220,8 +9253,7 @@ return30
 
 ; ----------------------------------------------------------------------------------
 start_game
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
+    jsr screen_off
     lda #0                                                            ;
     sta previous_score_as_bcd                                         ;
     sta previous_score_as_bcd + 1                                     ;
@@ -9267,11 +9299,9 @@ end_of_command
     sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
-    jsr set_foreground_colour_to_black                                ;
+    jsr screen_off                                                         ;
     jsr plot_debriefing                                               ;
-    jsr set_foreground_colour_to_white                                ;
+    jsr screen_on                                ;
     jsr wait_for_return                                               ;
     lda allowed_another_command                                       ;
     bne start_next_command                                            ;
@@ -9305,8 +9335,7 @@ skip_change_of_probability
     adc #change_in_number_of_stars_per_command                        ;
     sta maximum_number_of_stars                                       ;
 skip_change_of_stars
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
+    jsr screen_off                                                         ;
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
 
@@ -9341,9 +9370,11 @@ start
     jsr initialise_frontier_stars                                     ;
 
     jsr initialise_joystick_and_cursor_keys                           ;
-
-    jsr mode4                                                         ;
-    jsr disable_cursor                                                ;
+    lda #22
+    jsr oswrch
+    lda #4
+    jsr oswrch
+    jsr screen_off                                                         ;
     jsr plot_underscores_at_0_3
 
     ; display string
@@ -9351,7 +9382,7 @@ start
     jsr print_compressed_string                                       ;
     ldx #the_frontiers_string2                                        ;
     jsr print_compressed_string                                       ;
-
+    jsr screen_on
     lda #osbyte_flush_buffer_class                                    ;
     ldx #1                                                            ;
     ldy #0                                                            ;
