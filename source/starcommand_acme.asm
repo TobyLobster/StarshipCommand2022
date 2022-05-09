@@ -9264,6 +9264,7 @@ end_of_command
 +
     lda #0                                                            ; turn static off
     sta scanner_failure_duration                                      ;
+    sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
     jsr mode4                                                         ;
