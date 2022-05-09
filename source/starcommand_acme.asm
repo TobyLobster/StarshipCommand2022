@@ -5203,13 +5203,14 @@ skip_sound_for_exploding_enemy_ship
     jmp play_escape_capsule_sound                                     ;
 
 escape_capsule_not_launched
-    ;; lda sound_needed_for_low_energy                                   ;
-    ;; beq play_starship_engine_sound                                    ;
-    ;; dec sound_needed_for_low_energy                                   ;
-    ;; ldx #<(sound_9)                                                   ;
-    ;; ldy #>(sound_9)                                                   ;
-    ;; jsr do_osword_sound                                               ;
-    ;; jmp consider_torpedo_sound                                        ;
+    lda sound_needed_for_low_energy                                   ;
+    beq play_starship_engine_sound                                    ;
+    dec sound_needed_for_low_energy                                   ;
+    jsr disable_engine_sound
+    ldx #<(sound_9)                                                   ;
+    ldy #>(sound_9)                                                   ;
+    jsr do_osword_sound                                               ;
+    jmp consider_torpedo_sound                                        ;
 
 ; ----------------------------------------------------------------------------------
 play_starship_engine_sound
@@ -5238,11 +5239,19 @@ skip_ceiling
     ldx #<(sound_10)                                                  ;
     ldy #>(sound_10)                                                  ;
     jsr do_osword_sound                                               ;
+    lda #$a0                                                          ; Enable timer 2
+    sta userVIAInterruptEnableRegister                                ; Interrupt enable register
 }
     jmp consider_torpedo_sound                                        ;
 
+disable_engine_sound
+    lda #$20                                                          ; disable timer 2
+    sta userVIAInterruptEnableRegister                                ; Interrupt enable register
+    rts
+
 ; ----------------------------------------------------------------------------------
 play_sound_for_exploding_starship
+    jsr disable_engine_sound
     lda starship_explosion_countdown                                  ;
     sec                                                               ;
     sbc #frame_of_starship_explosion_after_which_no_sound             ;
@@ -5299,6 +5308,7 @@ set_volume
     lda #$ff                                                          ;
 set_volume_high
     sta sound_8_volume_high                                           ;
+    jsr disable_engine_sound
     ldx #<(sound_8)                                                   ;
     ldy #>(sound_8)                                                   ;
     jsr do_osword_sound                                               ;
@@ -10007,11 +10017,11 @@ done
     ; enable timer 1 in free run mode (on the User VIA)
     lda #0                                                            ; Disable all interrupts on the User VIA
     sta userVIAInterruptEnableRegister                                ;
-    lda #$e0                                                          ; Enable timer 1 and 2
+    lda #$c0                                                          ; Enable timer 1
     sta userVIAInterruptEnableRegister                                ; Interrupt enable register
     lda #$40                                                          ; Enable free run mode for timer 1
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
-    sta userVIATimer2CounterHigh
+    sta userVIATimer2CounterHigh                                      ; poke timer 2
     lda #$99
     sta engine_sound_shifter
 }
