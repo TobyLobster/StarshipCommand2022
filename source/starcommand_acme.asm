@@ -10288,10 +10288,13 @@ blank_string_end
 ; ----------------------------------------------------------------------------------
 escape_capsule_launched_string
     !byte escape_capsule_launched_string_end - escape_capsule_launched_string
-    !byte $1f, 32, 23                                                 ; TAB(32, 23); "ESCAPE"
-    !text "ESCAPE"                                                    ; TAB(32, 24); "CAPSULE"
-    !byte $1f, 32, 24                                                 ; TAB(32, 25); "LAUNCHED"
+    !byte $1f, 33, 23                                                 ; TAB(33, 23); "ESCAPE"
+    !text "ESCAPE"                                                    ; TAB(32.5,24);"CAPSULE"
+    !byte $1f, 34, 24                                                 ; TAB(32, 25); "LAUNCHED"
+    !text "    "
+    !byte 5,25,4,$10,4,$ff,0
     !text "CAPSULE"                                                   ;
+    !byte 4
     !byte $1f, 32, 25                                                 ;
     !text "LAUNCHED"                                                  ;
 escape_capsule_launched_string_end
