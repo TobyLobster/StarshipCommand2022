@@ -5885,28 +5885,24 @@ mark_escape_capsule_as_off_screen
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule
     ldx escape_capsule_x_pixels                                       ;
-    ldy escape_capsule_y_pixels                                       ;    4
-    sty y_pixels                                                      ;    3
-    jsr eor_play_area_pixel                                           ;  65012
+    ldy escape_capsule_y_pixels                                       ;    6
+    sty y_pixels                                                      ;    5
+    jsr eor_play_area_pixel                                           ;  34012
     inx                                                               ;    7
-    jsr eor_play_area_pixel                                           ;    8
-    inx                                                               ;
+    jsr eor_two_play_area_pixels_same_y                               ;    8
+    dex
+    dex
+    dex
+    jsr eor_two_play_area_pixels_same_y
+    inx
+    inx
+    inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
-    dex                                                               ;
-    dex
     jsr eor_play_area_pixel                                           ;
-    inc y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex                                                               ;
-    dec y_pixels                                                      ;
-    dec y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
-    dex
-    jsr eor_play_area_pixel                                           ;
-    inx                                                               ;
-    inx                                                               ;
-    dec y_pixels                                                      ;
+    ldy escape_capsule_y_pixels                                       ;
+    dey
+    sty y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
     jmp eor_play_area_pixel                                           ;
