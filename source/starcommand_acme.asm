@@ -4989,26 +4989,6 @@ return16a
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-set_foreground_colour_to_white
-    ldx #regular_string_index_set_foreground_colour_to_white          ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-set_foreground_colour_to_black
-    ldx #regular_string_index_set_foreground_colour_to_black          ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-enable_cursor
-    ldx #regular_string_index_enable_cursor                           ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
-disable_cursor
-    ldx #regular_string_index_disable_cursor                          ;
-    jmp print_regular_string                                          ;
-
-; ----------------------------------------------------------------------------------
 check_for_keypresses
     ldy escape_capsule_launched                                       ;
     bne return16a                                                     ;
@@ -7761,7 +7741,7 @@ plot_command_number
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    tax                                                               ;
+    pha                                                               ;
     beq single_digit_command_number_for_move                          ;
     ldy #$63                                                          ; adjusted position for command number (two digits)
 single_digit_command_number_for_move
@@ -7769,20 +7749,16 @@ single_digit_command_number_for_move
 
     ldx #regular_string_index_command_move                            ;
     jsr print_regular_string                                          ;
-    txa                                                               ;
+    pla                                                               ;
     beq single_digit_command_number                                   ;
-    clc                                                               ;
-    adc #$30                                                          ;
+    ora #'0'                                                          ;
     jsr oswrch                                                        ;
 single_digit_command_number
     lda command_number                                                ;
     and #$0f                                                          ;
-    clc                                                               ;
-    adc #$30                                                          ;
-    jsr oswrch                                                        ;
-    lda #4                                                            ;
-    jsr oswrch                                                        ;
-    rts                                                               ;
+    ora #'0'                                                          ;
+    ldy #4                                                            ;
+    jmp oswrch_ay                                                     ;
 
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule_launched
@@ -8084,10 +8060,8 @@ debug_show_rotation_value_text
     tya
     clc
     adc #'0'
-    jsr oswrch
-
-    lda #' '
-    jmp oswrch
+    ldy #' '
+    jmp oswrch_ay
 
 key
     !byte 0
@@ -8379,14 +8353,12 @@ print_command_number
     lsr                                                               ;
     lsr                                                               ;
     beq single_digit_command_number1                                  ;
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
     jsr oswrch                                                        ;
 single_digit_command_number1
     lda command_number                                                ;
     and #$0f                                                          ;
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
@@ -8402,8 +8374,7 @@ plot_score_in_debriefing_loop
     beq skip_leading_zeros                                            ; only skip leading zeros
     lda #0                                                            ; print non-leading zero
 non_zero_digit1
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
     jsr oswrch                                                        ;
     inx                                                               ; digit printed
 skip_leading_zeros
@@ -8414,16 +8385,14 @@ skip_leading_zeros
 ; ----------------------------------------------------------------------------------
 print_quoted_emotion
     ; print quote, emotion, quote
-    lda #'"'                                                          ;
-    jsr oswrch                                                        ;
-
+    jsr print_quote
     tya                                                               ;
     clc                                                               ;
     adc #emotions_1 - 1                                               ;
     tax                                                               ;
     jsr print_compressed_string                                       ;
-
-    lda #'"'                                                          ;
+print_quote
+    lda #'"'                                                          ;"
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
@@ -8481,9 +8450,8 @@ end_of_calculation
 plot_debriefing
     jsr plot_starship_heading                                         ;
 
-    ldx #0                                                            ;
-    ldy #0                                                            ;
-    jsr tab_to_x_y                                                    ;
+    lda #30                                                           ;
+    jsr oswrch                                                        ;
     jsr plot_line_of_underscores_raw                                  ;
 
     ; Print heading
@@ -8493,9 +8461,8 @@ plot_debriefing
     ; Print command number
     jsr print_command_number                                          ;
     lda #$0d                                                          ;
-    jsr oswrch                                                        ;
-    lda #$0a                                                          ;
-    jsr oswrch                                                        ;
+    ldy #$0a                                                          ;
+    jsr oswrch_ay                                                     ;
     jsr plot_line_of_underscores_raw                                  ;
 
     ldx #3                                                            ;
@@ -8778,8 +8745,10 @@ done_award
 ; ----------------------------------------------------------------------------------
 tab_to_x_y
     lda #$1f                                                          ;
+oswrch_axy
     jsr oswrch                                                        ;
     txa                                                               ;
+oswrch_ay
     jsr oswrch                                                        ;
     tya                                                               ;
     jmp oswrch                                                        ;
@@ -8811,7 +8780,7 @@ has_non_zero_ones
     ldx #0                                                            ;
     clc                                                               ;
     adc #'0'                                                          ;
-    jsr oswrch                                                        ;
+    jmp oswrch                                                        ;
 skip_leading_zeroes_again
     rts                                                               ;
 
@@ -9371,9 +9340,8 @@ start
 
     jsr initialise_joystick_and_cursor_keys                           ;
     lda #22
-    jsr oswrch
-    lda #4
-    jsr oswrch
+    ldy #4
+    jsr oswrch_ay
     jsr screen_off                                                         ;
     jsr plot_underscores_at_0_3
 
@@ -9679,37 +9647,13 @@ ytmp
 ; On Entry:
 ;   X is the index of the string to print
 print_regular_string
-    lda #<shield_state_string1                                        ;
-    sta lookup_low                                                    ;
-    lda #>shield_state_string1                                        ;
-    sta lookup_high                                                   ;
-    ldy #0                                                            ;
+    ldy regular_strings_table,X
+    dey
 -
-    dex                                                               ;
-    bmi ++                                                            ;
-    lda (lookup_low),y                                                ;
-    clc                                                               ;
-    adc lookup_low                                                    ;
-    sta lookup_low                                                    ;
-    bcc +                                                             ;
-    inc lookup_high                                                   ;
-+
-    jmp -                                                             ;
-++
-
-    ; print string
-    lda (lookup_low),y                                                ; X =  length of string
-    tax                                                               ;
-    dex                                                               ;
-    iny                                                               ;
--
-    lda (lookup_low),y                                                ;
+    lda regular_strings_table+1,X
     jsr oswrch                                                        ;
-    inc lookup_low                                                    ;
-    bne +                                                             ;
-    inc lookup_high                                                   ;
-+
-    dex                                                               ;
+    inx                                                               ;
+    dey
     bne -                                                             ;
     rts                                                               ;
 
@@ -10265,24 +10209,22 @@ xtwobits_table_template
     !byte $c0, $60, $30, $18, $0c, $06, $03, $00
 }
 ; ----------------------------------------------------------------------------------
-regular_string_index_shield_state_on                = 0
-regular_string_index_shield_state_off               = 1
-regular_string_index_shield_state_auto              = 2
-regular_string_index_set_foreground_colour_to_white = 3
-regular_string_index_set_foreground_colour_to_black = 4
-regular_string_index_energy_string                  = 5
-regular_string_index_shields_on                     = 6
-regular_string_index_shields_off                    = 7
-regular_string_index_enable_cursor                  = 8
-regular_string_index_disable_cursor                 = 9
-regular_string_index_escape_capsule_launched        = 10
-regular_string_index_command                        = 11
-regular_string_index_command_move                   = 12
+regular_string_index_shield_state_on                = shield_state_string1 - regular_strings_table
+regular_string_index_shield_state_off               = shield_state_string2 - regular_strings_table
+regular_string_index_shield_state_auto              = shield_state_string3 - regular_strings_table
+regular_string_index_energy_string                  = energy_string - regular_strings_table
+regular_string_index_shields_on                     = shields_string - regular_strings_table
+regular_string_index_shields_off                    = blank_string - regular_strings_table
+regular_string_index_escape_capsule_launched        = escape_capsule_launched_string - regular_strings_table
+
+regular_string_index_command                        = command_string - regular_strings_table
+regular_string_index_command_move                   = command_move_string - regular_strings_table
 
 ; ----------------------------------------------------------------------------------
 
 !macro m_regular_strings {
 
+regular_strings_table
 shield_state_string1
     !byte shield_state_string1_end - shield_state_string1             ;
     !byte $1f, $22, $18                                               ;
@@ -10302,18 +10244,6 @@ shield_state_string3
     !byte $1f, $22, $18                                               ;
     !text "AUTO"                                                      ;
 shield_state_string3_end
-
-; ----------------------------------------------------------------------------------
-set_foreground_colour_to_white_string
-    !byte set_foreground_colour_to_white_string_end - set_foreground_colour_to_white_string
-    !byte 19, 1, 7, 0, 0, 0                                           ; VDU 19,1,7,0,0,0
-set_foreground_colour_to_white_string_end
-
-; ----------------------------------------------------------------------------------
-set_foreground_colour_to_black_string
-    !byte set_foreground_colour_to_black_string_end - set_foreground_colour_to_black_string
-    !byte 19, 1, 0, 0, 0, 0                                           ; VDU 19,1,0,0,0,0
-set_foreground_colour_to_black_string_end
 
 ; ----------------------------------------------------------------------------------
 energy_string
@@ -10354,26 +10284,6 @@ blank_string
     !byte $1f, 35, 5                                                  ; TAB(35, 5)
     !text "  "                                                        ;
 blank_string_end
-
-; ----------------------------------------------------------------------------------
-enable_cursor_string
-    !byte enable_cursor_string_end - enable_cursor_string
-!if elk=1 {
-    !byte 23, 1, 1, 0, 0, 0, 0, 0, 0, 0
-} else {
-    !byte $17, 0, 10, $60, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &60
-}
-enable_cursor_string_end
-
-; ----------------------------------------------------------------------------------
-disable_cursor_string
-    !byte disable_cursor_string_end - disable_cursor_string
-!if elk=1 {
-    !byte 23, 1, 0, 0, 0, 0, 0, 0, 0, 0
-} else {
-    !byte $17, 0, 10, $3c, 0, 0, 0, 0, 0, 0                           ; set CRTC register 10 to &3c
-}
-disable_cursor_string_end
 
 ; ----------------------------------------------------------------------------------
 escape_capsule_launched_string
