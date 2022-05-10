@@ -5000,58 +5000,57 @@ check_for_keypresses
     jsr get_joystick_input                                            ;
     jmp check_for_additional_keys                                     ;
 
+!macro do_key .inkey_value, .row, .col, .skip, .invert {
+!if elk {
+.rom_address   = $bfff - (1<<.row)
+.bitmask       = 1<<.col
+    lda .rom_address
+    and #.bitmask
+!if .invert {
+    bne .skip
+} else {
+    beq .skip
+}
+} else {
+    ldx #.inkey_value
+    jsr check_key_x
+!if .invert {
+    beq .skip
+} else {
+    bne .skip
+}
+}
+}
+
 ; ----------------------------------------------------------------------------------
 use_keyboard_input
-    ldx #inkey_z                                                      ;
-    jsr check_key_x                                                   ; 'Z'
-    bne +                                                             ;
+    +do_key inkey_z, 12, 3, +, 0
     dec rotation_delta                                                ;
 +
-    ldx #inkey_x                                                      ;
-    jsr check_key_x                                                   ; 'X'
-    bne +                                                             ;
+    +do_key inkey_x, 11, 3, +, 0
     inc rotation_delta                                                ;
 +
-    ldx #inkey_m                                                      ;
-    jsr check_key_x                                                   ; 'M'
-    beq speed_up                                                      ;
-    ldx #inkey_colon                                                  ;
-    jsr check_key_x                                                   ; ':'
-    bne +                                                             ;
+    +do_key inkey_m, 6, 3, speed_up, 1
+    +do_key inkey_colon, 2, 2, +, 0                                                  ;
 speed_up
     inc velocity_delta                                                ;
-
 +
-    ldx #inkey_comma                                                  ;
-    jsr check_key_x                                                   ; ','
-    beq slow_down                                                     ;
-
-    ldx #inkey_slash                                                  ;
-    jsr check_key_x                                                   ; '/'
-    bne +                                                             ;
+    +do_key inkey_comma, 5, 3, slow_down, 1                                                  ;
+    +do_key inkey_slash, 3, 3, +, 0                                                ;
 slow_down
     dec velocity_delta                                                ;
 +
-    ldx #inkey_n                                                      ;
-    jsr check_key_x                                                   ; 'N'
-    beq fire                                                          ;
-    ldx #inkey_return                                                 ;
-    jsr check_key_x                                                   ; 'RETURN'
-    bne check_for_additional_keys                                     ;
+    +do_key inkey_n, 7, 3, fire, 1                                                      ;
+    +do_key inkey_return, 1, 2, check_for_additional_keys, 0
 fire
     inc fire_pressed                                                  ;
 
 check_for_additional_keys
-    ldx #inkey_g                                                      ;
-    jsr check_key_x                                                   ; 'G'
-    bne +                                                             ;
+    +do_key inkey_g, 8, 2, +, 0
     jmp launch_escape_capsule_starboard                               ;
 +
-    ldx #inkey_f                                                      ;
-    jsr check_key_x                                                   ; 'F'
-    bne +                                                             ;
+    +do_key inkey_f, 9, 2, +, 0
     jmp launch_escape_capsule_port                                    ;
-
 +
     lda keyboard_or_joystick                                          ;
     beq is_keyboard                                                   ;
@@ -5060,69 +5059,50 @@ is_keyboard
     lda rotation_delta                                                ;
     ora velocity_delta                                                ;
     bne return17                                                      ; dampers only work when not accelerating / turning
-    ldx #inkey_f0                                                     ;
-    jsr check_key_x                                                   ; 'f0'
-    bne +                                                             ;
+    +do_key inkey_f0, 12, 0, +, 0 ; 1 on electron
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on
 return17
     rts                                                               ;
 
 +
-    ldx #inkey_f1                                                     ;
-    jsr check_key_x                                                   ; 'f1'
-    bne +                                                             ;
+    +do_key inkey_f1, 11, 0, +, 0 ; 2 on electron
     lda #1                                                            ;
     sta velocity_damper                                               ; velocity dampers on
     rts                                                               ;
 
 +
-    ldx #inkey_2                                                      ;
-    jsr check_key_x                                                   ; '2'
-    bne +                                                             ;
+    +do_key inkey_2, 12, 1, +, 0 ; q on electron
     lda #0                                                            ;
     sta rotation_damper                                               ; rotation dampers off
     rts                                                               ;
 
 +
-    ldx #inkey_3                                                      ;
-    jsr check_key_x                                                   ; '3'
-    bne skip_damper_keys                                              ;
+    +do_key inkey_3, 11, 1, skip_damper_keys, 0 ; w on electron
     lda #0                                                            ;
     sta velocity_damper                                               ; velocity dampers off
     rts                                                               ;
 
 skip_damper_keys
-    ldx #inkey_v                                                      ;
-    jsr check_key_x                                                   ; 'V'
-    bne +                                                             ;
+    +do_key inkey_v, 9, 3, +, 0
     inc shields_state_delta                                           ; enable shields
     rts                                                               ;
 
 +
-    ldx #inkey_b                                                      ;
-    jsr check_key_x                                                   ; 'B'
-    bne +                                                             ;
+    +do_key inkey_b, 8, 3, +, 0
     dec shields_state_delta                                           ; disable shields
     rts                                                               ;
 
 +
-    ldx #inkey_c                                                      ;
-    jsr check_key_x                                                   ; 'C'
-    bne +                                                             ;
+    +do_key inkey_c, 10, 3, +, 0
     lda #1                                                            ;
     sta starship_automatic_shields                                    ; automatic shields
     rts                                                               ;
 ;-------------------------
 +
-    ldx #inkey_p                                                      ;
-    jsr check_key_x                                                   ;
-    bne return18                                                      ;
-
+    +do_key inkey_p, 3, 1, return18, 0
 pause_game
-    ldx #inkey_space                                                  ;
-    jsr check_key_x                                                   ;
-    bne pause_game                                                    ;
+    +do_key inkey_space, 0, 3, pause_game, 0
 return18
     rts                                                               ;
 
@@ -7695,6 +7675,9 @@ prepare_starship_for_next_command
     sta previous_starship_automatic_shields                           ;
     sta sound_needed_for_low_energy                                   ;
     sta energy_flash_timer                                            ;
+!if elk {
+    sta $242 ; disable keyboard interrupt
+}
     lda #4                                                            ;
     sta starship_velocity_high                                        ;
     lda #0                                                            ;
@@ -7716,7 +7699,6 @@ prepare_starship_for_next_command
 
     ; fill enemy ship cache
     jsr fill_enemy_cache                                              ;
-
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
@@ -9267,6 +9249,9 @@ end_of_command
     sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
+!if elk {
+    sta $242 ; enable keyboard interrupt
+}
     jsr screen_off                                                         ;
     jsr plot_debriefing                                               ;
     jsr screen_on                                ;
@@ -10018,6 +10003,11 @@ done
     sei                                                               ;
 }
 
+!if elk {
+    ; page in keyboard ROM
+    lda #8
+    jsr $e3a0
+}
 !if elk=0 {
     ; enable timer 1 in free run mode (on the User VIA)
     lda #0                                                            ; Disable all interrupts on the User VIA
