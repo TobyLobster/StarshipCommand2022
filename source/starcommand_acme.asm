@@ -3346,8 +3346,11 @@ plot_horizontal_line_xy
     sty y_pixels                                                      ;
 plot_horizontal_line
     sta temp3                                                         ;
-plot_horizontal_line_loop
     jsr eor_pixel                                                     ;
+    jmp +
+plot_horizontal_line_loop
+    jsr eor_pixel_with_screen_address                                 ;
++
     inc x_pixels                                                      ;
     dec temp3                                                         ;
     bne plot_horizontal_line_loop                                     ;
