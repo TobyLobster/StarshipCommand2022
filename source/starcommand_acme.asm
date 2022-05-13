@@ -370,6 +370,7 @@ oswrch                                  = fastwrch
 } else {
 oswrch                                  = $ffcb         ; nvwrch avoids an indirection
 }
+osnewl                                  = $ffe7
 osword                                  = $fff1
 osbyte                                  = $fff4
 bytev                                   = $20a
@@ -492,13 +493,6 @@ score_delta_high                        = $a7
 score_as_bcd                            = $a8
 score_as_bcd_mid                        = $a9
 score_as_bcd_high                       = $aa
-
-score_as_digits                         = $ab
-score_as_digits1                        = $ac
-score_as_digits2                        = $ad
-score_as_digits3                        = $ae
-score_as_digits4                        = $af
-score_as_digits5                        = $b0
 
 num_frontier_star_updates               = $b1
 rotation_damper                         = $b2
@@ -5761,6 +5755,7 @@ initialise_game_screen
     ldx #$c7                                                          ; draw full
     jsr skip_swapping_start_and_end                                   ; energy bars
     jsr initialise_joystick_and_cursor_keys                           ;
+    jsr plot_score
     jmp screen_on
 
 ; ----------------------------------------------------------------------------------
@@ -6725,6 +6720,7 @@ convert_offset_to_score
     sta score_delta_high                                              ;
     cld                                                               ; BCD off
     cli                                                               ;
+return32
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -6756,61 +6752,18 @@ set_score_delta_to_zero
     sta score_delta_high                                              ;
 
     ; calculate the characters to display the score, then display them
-convert_score_as_bcd_to_score_as_digits
-    lda score_as_bcd + 2                                              ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    sta score_as_digits + 5                                           ;
-    lda score_as_bcd + 2                                              ;
-    and #$0f                                                          ;
-    sta score_as_digits + 4                                           ;
-
-    lda score_as_bcd + 1                                              ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    sta score_as_digits + 3                                           ;
-    lda score_as_bcd + 1                                              ;
-    and #$0f                                                          ;
-    sta score_as_digits + 2                                           ;
-
-    lda score_as_bcd                                                  ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    sta score_as_digits + 1                                           ;
-    lda score_as_bcd                                                  ;
-    and #$0f                                                          ;
-    sta score_as_digits                                               ;
-
-    ; TAB(33,30):
+plot_score
     ldx #33                                                           ;
     ldy #30                                                           ;
     jsr tab_to_x_y                                                    ;
-
-    ; display the characters for the score
-    ldy #5                                                            ;
-    ldx #' '                                                          ; plot score with leading " "s
-print_score_loop
-    lda score_as_digits,y                                             ;
-    bne non_zero_digit                                                ;
-    txa                                                               ;
-    jmp leading_zero                                                  ;
-
-non_zero_digit
-    clc                                                               ;
-    adc #'0'                                                          ;
-    ldx #'0'                                                          ;
-leading_zero
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl print_score_loop                                              ;
-return32
-    rts                                                               ;
+print_score
+    lda score_as_bcd + 2                                     ;
+    jsr plot_two_bcd_digits_with_leading_spaces
+print_score2
+    lda score_as_bcd + 1                                     ;
+    jsr plot_two_bcd_digits
+    lda score_as_bcd                                         ;
+    jmp plot_two_bcd_digits
 
 ; ----------------------------------------------------------------------------------
 plot_scanner_grid
@@ -7720,11 +7673,8 @@ plot_command_number
 
     ldy #$73                                                          ; normal position for command number (single digit)
     lda command_number                                                ; print digits
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    pha                                                               ;
+    pha
+    and #$f0
     beq single_digit_command_number_for_move                          ;
     ldy #$63                                                          ; adjusted position for command number (two digits)
 single_digit_command_number_for_move
@@ -7733,15 +7683,9 @@ single_digit_command_number_for_move
     ldx #regular_string_index_command_move                            ;
     jsr print_regular_string                                          ;
     pla                                                               ;
-    beq single_digit_command_number                                   ;
-    ora #'0'                                                          ;
-    jsr oswrch                                                        ;
-single_digit_command_number
-    lda command_number                                                ;
-    and #$0f                                                          ;
-    ora #'0'                                                          ;
-    ldy #4                                                            ;
-    jmp oswrch_ay                                                     ;
+    jsr plot_two_bcd_digits_with_no_spaces
+    lda #4                                                            ;
+    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 plot_escape_capsule_launched
@@ -7780,8 +7724,7 @@ not_joystick
     jsr osbyte                                                        ;
     ldx #1                                                            ;
     lda #osbyte_set_cursor_editing                                    ;
-    jsr osbyte                                                        ;
-    jmp convert_score_as_bcd_to_score_as_digits                       ;
+    jmp osbyte                                                        ;
 
 ; ----------------------------------------------------------------------------------
 update_enemy_ships
@@ -8326,46 +8269,6 @@ score_threshold_table
     !byte 2, 3, 4, 7, 13, 20, 30                                      ;
 
 ; ----------------------------------------------------------------------------------
-print_command_number
-    ldy #5                                                            ;
-    ldx #28                                                           ;
-    jsr tab_to_x_y                                                    ;
-    lda command_number                                                ; print digits
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    beq single_digit_command_number1                                  ;
-    ora #'0'                                                          ;
-    jsr oswrch                                                        ;
-single_digit_command_number1
-    lda command_number                                                ;
-    and #$0f                                                          ;
-    ora #'0'                                                          ;
-    jmp oswrch                                                        ;
-
-; ----------------------------------------------------------------------------------
-plot_score_in_debriefing
-    ldy #5                                                            ; loop counter
-    ldx #0                                                            ; 0 = no digit printed yet
-plot_score_in_debriefing_loop
-    lda score_as_digits,y                                             ; score digit 0-9
-    bne non_zero_digit1                                               ; if (not zero) then branch
-    tya                                                               ;
-    beq non_zero_digit1                                               ; don't skip final digit, even if it is zero
-    txa                                                               ;
-    beq skip_leading_zeros                                            ; only skip leading zeros
-    lda #0                                                            ; print non-leading zero
-non_zero_digit1
-    ora #'0'                                                          ;
-    jsr oswrch                                                        ;
-    inx                                                               ; digit printed
-skip_leading_zeros
-    dey                                                               ;
-    bpl plot_score_in_debriefing_loop                                 ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 print_quoted_emotion
     ; print quote, emotion, quote
     jsr print_quote
@@ -8442,10 +8345,9 @@ plot_debriefing
     jsr print_compressed_string                                       ;
 
     ; Print command number
-    jsr print_command_number                                          ;
-    lda #$0d                                                          ;
-    ldy #$0a                                                          ;
-    jsr oswrch_ay                                                     ;
+    lda command_number
+    jsr plot_two_bcd_digits_with_no_spaces
+    jsr osnewl
     jsr plot_line_of_underscores_raw                                  ;
 
     ldx #3                                                            ;
@@ -8478,7 +8380,13 @@ print_experience
     ldx #combat_experience_rating_string                              ;
     jsr print_compressed_string                                       ;
 
-    jsr plot_score_in_debriefing                                      ;
+    ; print score with no leading spaces
+    lda score_as_bcd + 2
+    jsr plot_two_bcd_digits_with_no_spaces
+    lda score_as_bcd + 1
+    jsr plot_two_bcd_digits_with_no_spaces
+    lda score_as_bcd
+    jsr plot_final_two_digits
 
     ; subtract the previous total score from the current total score, to get the amount gained in the last command
     lda score_as_bcd                                                  ;
@@ -8508,17 +8416,12 @@ print_experience
     jsr print_compressed_string                                       ;
 
     ; print previous score
-    ldx #1                                                            ;
     lda previous_score_as_bcd + 2                                     ;
-    jsr plot_bcd_number_as_two_digits                                 ;
+    jsr plot_two_bcd_digits_with_no_spaces
     lda previous_score_as_bcd + 1                                     ;
-    jsr plot_bcd_number_as_two_digits                                 ;
+    jsr plot_two_bcd_digits
     lda previous_score_as_bcd                                         ;
-    jsr plot_bcd_number_as_two_digits                                 ;
-    txa                                                               ;
-    beq skip_previous_command_score                                   ;
-    lda #'0'                                                          ;
-    jsr oswrch                                                        ;
+    jsr plot_final_two_digits
 
 skip_previous_command_score
     lda #'.'                                                          ; End with full stop
@@ -8567,7 +8470,7 @@ player_retired
 
 leave_after_plotting_line_of_underscores
     ldy #29                                                           ;
-    jmp plot_line_of_underscores_at_y                                 ;
+    bne plot_line_of_underscores_at_y                                 ;
 
 ; ----------------------------------------------------------------------------------
 plot_underscores_at_0_3
@@ -9039,13 +8942,12 @@ plot_name_loop
     jsr print_three_spaces
 
     ; print score
-    ldy #' '                                                          ; leading spaces
     lda $0000 + high_score_table - 16,x                               ; }
-    jsr plot_two_digit_high_score                                     ; }
+    jsr plot_two_bcd_digits_with_leading_spaces
     lda $0000 + high_score_table - 15,x                               ; } using $0000 to ensure full 16 bit addressing
-    jsr plot_two_digit_high_score                                     ; }
+    jsr plot_two_bcd_digits
     lda $0000 + high_score_table - 14,x                               ; }
-    jsr plot_two_digit_high_score                                     ; }
+    jsr plot_two_bcd_digits
 
     ; loop over all entries
     dec temp8                                                         ;
@@ -9066,21 +8968,38 @@ print_three_spaces
     rts
 
 ; ----------------------------------------------------------------------------------
-plot_two_digit_high_score
-    sta temp7                                                         ; print digits
+plot_final_two_digits
+    ; print two digits, but ensure that at least one zero is printed
+    ; this is only ever called with null padding character so we don't need to backspace
+    pha
+    jsr plot_two_bcd_digits
+    pla
+    bne +
+    cpy #'0'
+    bne print_final_zero ; padding still in place?
++
+    rts
+plot_two_bcd_digits_with_no_spaces
+    ldy #0 ; null padding. printing this is a no-op
+    !byte $2c
+plot_two_bcd_digits_with_leading_spaces
+    ldy #' '
+plot_two_bcd_digits
+    pha
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    jsr plot_one_digit_high_score                                     ;
-    lda temp7                                                         ;
+    jsr plot_one_digit
+    pla
     and #$0f                                                          ;
-plot_one_digit_high_score
+plot_one_digit
     bne not_zero                                                      ;
     tya                                                               ;
-    bne leading_zero2                                                 ;
+    bpl leading_zero2                                                 ; always
 not_zero
     ldy #'0'                                                          ;
+print_final_zero
     ora #'0'                                                          ;
 leading_zero2
     jmp oswrch                                                        ;
@@ -9190,12 +9109,10 @@ return29
 plot_auto_shields_string
     lda previous_starship_automatic_shields                           ;
     cmp starship_automatic_shields                                    ;
-    bpl return30                                                      ;
+    bpl return29                                                      ;
     ldx #regular_string_index_shield_state_auto                       ;
 plot_shields_string
     jmp print_regular_string                                          ;
-return30
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 start_game
