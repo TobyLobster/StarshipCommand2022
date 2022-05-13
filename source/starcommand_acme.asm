@@ -1128,6 +1128,8 @@ returna
 ; version with variable start address (screen_start_high)
 ; ----------------------------------------------------------------------------------
 eor_pixel
+    ldx x_pixels                                                      ;
+eor_pixel_xcoord_in_x
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
     clc                                                               ;
@@ -1136,7 +1138,6 @@ eor_pixel
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
 eor_pixel_with_screen_address
-    ldx x_pixels                                                      ;
     ldy xandf8,x                                                      ;
     lda xbit_table,x                                                  ;
     eor (screen_address_low),y                                        ;
@@ -1968,8 +1969,22 @@ plot_expiring_torpedo
     inx
     jmp eor_play_area_pixel_same_y
 
+!if >eor_frontier_pixel != >eor_play_area_pixel {
+    !error "alignment error: ", >eor_frontier_pixel, "!=", >eor_play_area_pixel;
+}
+!if <eor_frontier_pixel == 0 {
+    !error "alignment error";
+}
 ; ----------------------------------------------------------------------------------
+plot_frontier_stars
+    dec num_frontier_star_updates ; plot performs a rotation
+    lda #<eor_frontier_pixel
+    bne plot_stars_with_function_address ; always
 plot_stars
+    lda #<eor_play_area_pixel
+plot_stars_with_function_address
+    sta maybe_unplot_star+1
+    sta plot_star+1
     lda #$2c ; BIT abs
     sta maybe_unplot_star ; skip unplotting
     jsr update_stars
@@ -1997,6 +2012,7 @@ maybe_unplot_star
     ldy #3                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
+plot_star
     jsr eor_play_area_pixel                                           ; plot
     lda temp0_low                                                     ;
     clc                                                               ;
@@ -2012,38 +2028,31 @@ skip5
 ; ----------------------------------------------------------------------------------
 update_frontier_stars
     ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
-    inc num_frontier_star_updates                                     ;
-    lda num_frontier_star_updates                                     ;
-    cmp #162                                                          ;
-    bne +                                                             ;
-    jmp initialise_frontier_stars                                     ;
-+
+    dec num_frontier_star_updates                                     ;
+    bne update_stars
+
+; ----------------------------------------------------------------------------------
+initialise_frontier_stars
     lda #<star_table                                                  ;
     sta temp0_low                                                     ;
     lda #>star_table                                                  ;
     sta temp0_high                                                    ;
-    lda maximum_number_of_stars                                       ;
-    sta stars_still_to_consider                                       ;
-update_frontier_stars_loop
     ldy #0                                                            ;
-    jsr update_object_position_for_starship_rotation_and_speed        ;
-    jsr eor_frontier_pixel                                            ; unplot
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
-    ldy #3                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
-    jsr eor_frontier_pixel                                            ; plot
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc +                                                             ;
+    ldx #0                                                            ;
+initialise_stars_loop
+    lda #$80                                                          ;
+    sta (temp0_low),y                                                 ;
+    iny                                                               ;
+    lda frontier_star_positions,x                                     ;
+    sta (temp0_low),y                                                 ;
+    iny                                                               ;
+    bne skip                                                          ;
     inc temp0_high                                                    ;
-+
-    dec stars_still_to_consider                                       ;
-    bne update_frontier_stars_loop                                    ;
+skip
+    inx                                                               ;
+    bne initialise_stars_loop                                         ;
+    lda #162                                                          ;
+    sta num_frontier_star_updates                                     ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3284,6 +3293,7 @@ finished_calculating_pixel_position_in_bar
     inc screen_start_high                                             ;
 plot_energy_change_loop
     lda #5                                                            ;
+    ldx x_pixels
     jsr plot_vertical_line                                            ;
     dec x_pixels                                                      ;
     lda y_pixels                                                      ;
@@ -3333,12 +3343,11 @@ return13
 
 ; ----------------------------------------------------------------------------------
 plot_vertical_line_xy
-    stx x_pixels                                                      ;
     sty y_pixels                                                      ;
 plot_vertical_line
     sta temp3                                                         ; length of line in pixels (loop counter)
 plot_vertical_line_loop
-    jsr eor_pixel                                                     ;
+    jsr eor_pixel_xcoord_in_x                                         ;
     inc y_pixels                                                      ;
     dec temp3                                                         ;
     bne plot_vertical_line_loop                                       ;
@@ -3346,16 +3355,15 @@ plot_vertical_line_loop
 
 ; ----------------------------------------------------------------------------------
 plot_horizontal_line_xy
-    stx x_pixels                                                      ;
     sty y_pixels                                                      ;
 plot_horizontal_line
     sta temp3                                                         ;
-    jsr eor_pixel                                                     ;
+    jsr eor_pixel_xcoord_in_x                                         ;
     jmp +
 plot_horizontal_line_loop
     jsr eor_pixel_with_screen_address                                 ;
 +
-    inc x_pixels                                                      ;
+    inx
     dec temp3                                                         ;
     bne plot_horizontal_line_loop                                     ;
     rts                                                               ;
@@ -4084,33 +4092,6 @@ enemy_explosion_piece_ageing_table
     !byte 15, 17, 19, 21                                              ;
 starship_explosion_piece_ageing_table
     !byte 5, 6, 7, 8, 9, 10, 11, 12                                   ;
-
-; ----------------------------------------------------------------------------------
-plot_frontier_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-    lda maximum_number_of_stars                                       ;
-    sta stars_still_to_consider                                       ;
-plot_frontier_stars_loop
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
-    ldy #3                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
-    jsr eor_frontier_pixel                                            ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc +                                                             ;
-    inc temp0_high                                                    ;
-+
-    dec stars_still_to_consider                                       ;
-    bne plot_frontier_stars_loop                                      ;
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 initialise_stars_at_random_positions
@@ -4952,8 +4933,7 @@ plot_energy_bar_edges
     sta temp8                                                         ;
     inc screen_start_high                                             ;
 plot_energy_bar_edges_loop
-    lda #$0d                                                          ;
-    sta x_pixels                                                      ;
+    ldx #$0d                                                          ;
     lda #$32                                                          ;
     jsr plot_horizontal_line                                          ;
     lda y_pixels                                                      ;
@@ -6814,16 +6794,20 @@ plot_gauge_edges
     lda #$2b                                                          ;
     jsr plot_horizontal_line_xy                                       ;
 
+    ldx #$30
+    ldy #$77
     lda #7                                                            ;
-    jsr plot_vertical_line                                            ;
+    jsr plot_vertical_line_xy                                         ;
 
     ldx #5                                                            ;
     ldy #$78                                                          ;
     lda #6                                                            ;
     jsr plot_vertical_line_xy                                         ;
 
+    ldx #5                                                            ;
+    ldy #$7e                                                          ;
     lda #$2c                                                          ;
-    jsr plot_horizontal_line                                          ;
+    jsr plot_horizontal_line_xy                                       ;
 
     ldx #0                                                            ;
     ldy #$83                                                          ;
@@ -9187,31 +9171,6 @@ skip_change_of_stars
     jsr screen_off                                                         ;
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
-
-; ----------------------------------------------------------------------------------
-initialise_frontier_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-
-    ldy #0                                                            ;
-    ldx #0                                                            ;
-initialise_stars_loop
-    lda #$80                                                          ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    lda frontier_star_positions,x                                     ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    bne skip                                                          ;
-    inc temp0_high                                                    ;
-skip
-    inx                                                               ;
-    bne initialise_stars_loop                                         ;
-
-    stx num_frontier_star_updates                                     ; zero
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 post_reloc
