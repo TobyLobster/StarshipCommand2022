@@ -1969,6 +1969,15 @@ plot_expiring_torpedo
     jmp eor_play_area_pixel_same_y
 
 ; ----------------------------------------------------------------------------------
+plot_stars
+    lda #$2c ; BIT abs
+    sta maybe_unplot_star ; skip unplotting
+    jsr update_stars
+    lda #$20 ; JSR abs
+    sta maybe_unplot_star
+    rts
+
+; ----------------------------------------------------------------------------------
 update_stars
     lda #<star_table                                                  ;
     sta temp0_low                                                     ;
@@ -1980,14 +1989,15 @@ update_stars_loop
     ldy #0                                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
     ldx x_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
+maybe_unplot_star
+    jsr eor_play_area_pixel                                           ; unplot
     ldy #1                                                            ;
     lda (temp0_low),y                                                 ;
     tax                                                               ;
     ldy #3                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
+    jsr eor_play_area_pixel                                           ; plot
     lda temp0_low                                                     ;
     clc                                                               ;
     adc #4                                                            ;
@@ -4074,33 +4084,6 @@ enemy_explosion_piece_ageing_table
     !byte 15, 17, 19, 21                                              ;
 starship_explosion_piece_ageing_table
     !byte 5, 6, 7, 8, 9, 10, 11, 12                                   ;
-
-; ----------------------------------------------------------------------------------
-plot_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-    lda maximum_number_of_stars                                       ;
-    sta stars_still_to_consider                                       ;
-plot_stars_loop
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
-    ldy #3                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
-    jsr eor_pixel                                                     ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip17                                                        ;
-    inc temp0_high                                                    ;
-skip17
-    dec stars_still_to_consider                                       ;
-    bne plot_stars_loop                                               ;
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_frontier_stars
