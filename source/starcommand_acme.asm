@@ -8570,10 +8570,17 @@ leave_after_plotting_line_of_underscores
     jmp plot_line_of_underscores_at_y                                 ;
 
 ; ----------------------------------------------------------------------------------
+plot_underscores_at_0_3
+    ldy #0                                                            ;
+    jsr plot_line_of_underscores_at_y                                 ;
+    ldy #3                                                            ;
+plot_line_of_underscores_at_y
+    ldx #0                                                            ;
+    jsr tab_to_x_y                                                    ;
 plot_line_of_underscores_raw
     ldy #$28                                                          ; loop counter
 plot_line_of_underscores_loop
-    lda #$5f                                                          ; underscore
+    lda #'_'                                                          ; underscore
     jsr oswrch                                                        ;
     dey                                                               ;
     bne plot_line_of_underscores_loop                                 ;
@@ -8750,8 +8757,7 @@ plot_bcd_number_as_two_digits
     bne skip_leading_zeroes                                           ;
 has_non_zero_tens
     ldx #0                                                            ;
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
     jsr oswrch                                                        ;
 skip_leading_zeroes
     tya                                                               ;
@@ -8761,8 +8767,7 @@ skip_leading_zeroes
     bne skip_leading_zeroes_again                                     ;
 has_non_zero_ones
     ldx #0                                                            ;
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
     jmp oswrch                                                        ;
 skip_leading_zeroes_again
     rts                                                               ;
@@ -8776,12 +8781,6 @@ plot_instructions
 
     jsr plot_underscores_at_0_3
     jmp leave_after_plotting_line_of_underscores                      ;
-
-; ----------------------------------------------------------------------------------
-plot_line_of_underscores_at_y
-    ldx #0                                                            ;
-    jsr tab_to_x_y                                                    ;
-    jmp plot_line_of_underscores_raw                                  ;
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen_key_table
@@ -9057,12 +9056,6 @@ leave_after_plotting_underscores
     jsr screen_on
     jmp wait_for_return                                               ;
 
-plot_underscores_at_0_3
-    ldy #0                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #3                                                            ;
-    jmp plot_line_of_underscores_at_y                                 ;
-
 print_three_spaces
     ldy #3
 -
@@ -9180,8 +9173,7 @@ pad_name_loop
     iny                                                               ;
     bne pad_name_loop                                                 ;
 finished_padding_name
-    jsr starfleet_records_screen                                      ;
-    rts                                                               ;
+    jmp starfleet_records_screen                                      ;
 
 ; ----------------------------------------------------------------------------------
 plot_shields_string_and_something
