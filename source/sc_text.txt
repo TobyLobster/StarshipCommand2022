@@ -1,10 +1,10 @@
 
 ; ----------------------------------------------------------------------------------
 combat_experience_heading_string
-    !byte $1f, $0b, 5                                                 ;
-    !text "STARSHIP COMMAND"                                          ;
     !byte $1f, 13, 31                                                 ;
     !text "Press <RETURN>"                                            ;
+    !byte $1f, $0b, 5                                                 ;
+    !text "STARSHIP COMMAND "                                         ;
 
 ; ----------------------------------------------------------------------------------
 an_string
