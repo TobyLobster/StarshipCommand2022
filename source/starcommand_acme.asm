@@ -1148,15 +1148,11 @@ eor_pixel_with_screen_address
 ; version for the frontiers screen, offset stars by $0780
 ; ----------------------------------------------------------------------------------
 eor_frontier_pixel
-    ldy y_pixels                                                      ;
-    lda row_table_low,y                                               ;
-    clc                                                               ;
-    adc #$80                                                          ;
-    sta screen_address_low                                            ;
-    lda play_area_row_table_high,y                                    ;
-    adc #$07                                                          ;
-    sta screen_address_high                                           ;
-    bne eor_pixel_with_screen_address                                 ; always
+    lda y_pixels                                                      ;
+    clc
+    adc #48
+    tay
+    bne eor_play_area_pixel_ycoord_in_y
 
 ; ----------------------------------------------------------------------------------
 ; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
