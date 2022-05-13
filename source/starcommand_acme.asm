@@ -8980,6 +8980,7 @@ writepal
     jsr $e7ae
     jmp $cbea
 fastwrch
+    ; we deliberately don't save A here as it's rarely required
     stx xtmp2+1
     sty ytmp2+1
     jsr $c433
@@ -9022,10 +9023,7 @@ plot_high_scores_loop
     clc                                                               ;
     adc #'1'                                                          ; high score index 1-8
     jsr oswrch                                                        ;
-    lda #' '                                                          ; three spaces
-    jsr oswrch                                                        ;
-    jsr oswrch                                                        ;
-    jsr oswrch                                                        ;
+    jsr print_three_spaces
     inx                                                               ;
     inx                                                               ;
     inx                                                               ;
@@ -9039,11 +9037,7 @@ plot_name_loop
     dey                                                               ;
     bne plot_name_loop                                                ;
 
-    ; three spaces
-    lda #' '                                                          ;
-    jsr oswrch                                                        ;
-    jsr oswrch                                                        ;
-    jsr oswrch                                                        ;
+    jsr print_three_spaces
 
     ; print score
     ldy #' '                                                          ; leading spaces
@@ -9069,6 +9063,15 @@ plot_underscores_at_0_3
     ldy #3                                                            ;
     jmp plot_line_of_underscores_at_y                                 ;
 
+print_three_spaces
+    ldy #3
+-
+    lda #9                                                            ;
+    jsr oswrch                                                        ;
+    dey
+    bpl -
+    rts
+
 ; ----------------------------------------------------------------------------------
 plot_two_digit_high_score
     sta temp7                                                         ; print digits
@@ -9085,8 +9088,7 @@ plot_one_digit_high_score
     bne leading_zero2                                                 ;
 not_zero
     ldy #'0'                                                          ;
-    clc                                                               ;
-    adc #'0'                                                          ;
+    ora #'0'                                                          ;
 leading_zero2
     jmp oswrch                                                        ;
 
