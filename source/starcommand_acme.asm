@@ -3273,25 +3273,22 @@ finished_calculating_pixel_position_in_bar
     asl                                                               ;
     clc                                                               ;
     adc #$95                                                          ;
-    sta y_pixels                                                      ;
+    tay
+    ldx x_pixels
+    sty energy_y+1
 plot_energy_change_loop
     lda #5                                                            ;
-    ldx x_pixels
-    jsr plot_vertical_line                                            ;
-    dec x_pixels                                                      ;
-    lda y_pixels                                                      ;
-    sec                                                               ;
-    sbc #5                                                            ;
-    sta y_pixels                                                      ;
-    lda #$0c                                                          ;
-    cmp x_pixels                                                      ;
-    bcc skip_moving_to_next_bar                                       ;
-    lda y_pixels                                                      ;
-    clc                                                               ;
-    adc #8                                                            ;
-    sta y_pixels                                                      ;
-    lda #$3e                                                          ;
-    sta x_pixels                                                      ;
+    jsr plot_vertical_line_xy                                         ;
+    dex
+energy_y
+    ldy #0
+    cpx #$0d                                                          ;
+    bcs skip_moving_to_next_bar                                       ;
+    tya
+    adc #8 ; C is clear
+    tay
+    sty energy_y+1
+    ldx #$3e                                                          ;
 skip_moving_to_next_bar
     dec output_fraction                                               ;
     lda output_fraction                                               ;
