@@ -9320,14 +9320,15 @@ skip
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+post_reloc
+    lda #22
+    ldy #4
+    jsr oswrch_ay
 start
     ; initialise stars for frontiers rotating globe
     jsr initialise_frontier_stars                                     ;
 
     jsr initialise_joystick_and_cursor_keys                           ;
-    lda #22
-    ldy #4
-    jsr oswrch_ay
     jsr screen_off                                                         ;
     jsr plot_underscores_at_0_3
 
@@ -10087,7 +10088,7 @@ set_rdchv
     lda #$1
     sta $266
 
-    jmp start                                                         ;
+    jmp post_reloc
 
 osbyte_zeroxy
     ldx #0
