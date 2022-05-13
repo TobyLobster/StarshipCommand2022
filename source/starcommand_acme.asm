@@ -473,7 +473,6 @@ input_pixels                            = $97   ; }
 
 segment_angle                           = $98   ; } same location
 input_screens                           = $98   ; }
-screen_start_high                       = $99
 x_pixels                                = $9a
 y_pixels                                = $9b
 
@@ -1080,8 +1079,10 @@ eor_play_area_pixel
 eor_play_area_pixel_ycoord_in_y
     lda play_area_row_table_high,y                                    ;
     sta screen_address_high                                           ;
+eor_pixel_entry
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
+eor_pixel_same_y
 eor_play_area_pixel_same_y
     ldy xandf8,x                                                      ;
     lda xbit_table,x                                                  ;
@@ -1125,24 +1126,16 @@ returna
     rts
 
 ; ----------------------------------------------------------------------------------
-; version with variable start address (screen_start_high)
+; version that plots to scanner area
 ; ----------------------------------------------------------------------------------
 eor_pixel
     ldx x_pixels                                                      ;
 eor_pixel_xcoord_in_x
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
-    clc                                                               ;
-    adc screen_start_high                                             ;
     sta screen_address_high                                           ;
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_pixel_with_screen_address
-    ldy xandf8,x                                                      ;
-    lda xbit_table,x                                                  ;
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-    rts                                                               ;
+    inc screen_address_high                                           ;
+    bne eor_pixel_entry
 
 ; ----------------------------------------------------------------------------------
 ; version for the frontiers screen, offset stars by $0780
@@ -2063,9 +2056,7 @@ unplot_long_range_scanner_if_shields_inactive
     sty x_pixels                                                      ;
     iny                                                               ;
     sty y_pixels                                                      ;
-    inc screen_start_high                                             ; draw to scanner
     jsr unset_pixel                                                   ;
-    dec screen_start_high                                             ; draw to play area
     ldx #regular_string_index_shields_on                              ;
     jmp print_regular_string                                          ;
 
@@ -2081,8 +2072,6 @@ plot_top_and_right_edge_of_long_range_scanner_with_blank_text
 
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_without_text
-    inc screen_start_high                                             ; draw to scanner
-
     ldx #0                                                            ;
     ldy #0                                                            ;
     lda #$3f                                                          ;
@@ -2092,7 +2081,6 @@ plot_top_and_right_edge_of_long_range_scanner_without_text
     lda #$40                                                          ;
     jsr plot_vertical_line_xy                                         ;
 
-    dec screen_start_high                                             ; draw to play area
 return5
     rts                                                               ;
 
@@ -3286,7 +3274,6 @@ finished_calculating_pixel_position_in_bar
     clc                                                               ;
     adc #$95                                                          ;
     sta y_pixels                                                      ;
-    inc screen_start_high                                             ;
 plot_energy_change_loop
     lda #5                                                            ;
     ldx x_pixels
@@ -3310,7 +3297,6 @@ skip_moving_to_next_bar
     lda output_fraction                                               ;
     cmp output_pixels                                                 ;
     bne plot_energy_change_loop                                       ;
-    dec screen_start_high                                             ;
 return12
     rts                                                               ;
 
@@ -3357,7 +3343,7 @@ plot_horizontal_line
     jsr eor_pixel_xcoord_in_x                                         ;
     jmp +
 plot_horizontal_line_loop
-    jsr eor_pixel_with_screen_address                                 ;
+    jsr eor_pixel_same_y                                 ;
 +
     inx
     dec temp3                                                         ;
@@ -4927,7 +4913,6 @@ plot_energy_bar_edges
     sta y_pixels                                                      ;
     lda #5                                                            ;
     sta temp8                                                         ;
-    inc screen_start_high                                             ;
 plot_energy_bar_edges_loop
     ldx #$0d                                                          ;
     lda #$32                                                          ;
@@ -4942,7 +4927,6 @@ plot_energy_bar_edges_loop
     ldx #$0c                                                          ;
     lda #$21                                                          ;
     jsr plot_vertical_line_xy                                         ;
-    dec screen_start_high                                             ;
 return16a
     rts                                                               ;
 
@@ -6726,7 +6710,6 @@ print_score2
 
 ; ----------------------------------------------------------------------------------
 plot_scanner_grid
-    inc screen_start_high                                             ;
     lda #9                                                            ;
     sta x_pixels                                                      ;
     lda #5                                                            ;
@@ -6769,12 +6752,10 @@ plot_horizontal_lines_inner_loop
     sta y_pixels                                                      ;
     dec output_fraction                                               ;
     bne plot_horizontal_lines_outer_loop                              ;
-    dec screen_start_high                                             ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_gauge_edges
-    inc screen_start_high                                             ;
     ldx #$35                                                          ;
     ldy #$41                                                          ;
     lda #$42                                                          ;
@@ -6841,14 +6822,10 @@ plot_gauge_edges
     ldx #0                                                            ;
     ldy #$e7                                                          ;
     lda #$3f                                                          ;
-    jsr plot_horizontal_line_xy                                       ;
-
-    dec screen_start_high                                             ;
-    rts                                                               ;
+    jmp plot_horizontal_line_xy                                       ;
 
 ; ----------------------------------------------------------------------------------
 plot_starship_velocity_and_rotation_on_gauges
-    inc screen_start_high                                             ;
 
     ; velocity gauge
     lda starship_velocity_low                                         ;
@@ -6955,7 +6932,6 @@ plot_rotation_gauge_set_loop
     dec temp11                                                        ;
     bne plot_rotation_gauge_set_loop                                  ;
 skip_rotation_gauge
-    dec screen_start_high                                             ;
 return33
     rts                                                               ;
 
@@ -7042,7 +7018,6 @@ plot_or_unplot_enemy_on_scanner
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships_on_scanners
-    inc screen_start_high                                             ;
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
@@ -7104,10 +7079,7 @@ continue3
     sty x_pixels                                                      ;
     iny                                                               ;
     sty y_pixels                                                      ;
-    jsr set_pixel                                                     ; plot pixel in middle of long range scanner
-    dec screen_start_high                                             ;
-return25
-    rts                                                               ;
+    jmp set_pixel                                                     ; plot pixel in middle of long range scanner
 
 ; ----------------------------------------------------------------------------------
 handle_scanner_failure
@@ -7135,6 +7107,7 @@ skip_unplotting_scanners
     lda rnd_1                                                         ;
     ora #$42                                                          ;
     sta scanner_failure_duration                                      ;
+return25
     rts
 
 ; ----------------------------------------------------------------------------------
@@ -7626,10 +7599,8 @@ prepare_starship_for_next_command
 plot_command_number
     ldy #$d4                                                          ;
     ldx #0                                                            ;
-    inc screen_start_high                                             ;
     lda #$3f                                                          ;
     jsr plot_horizontal_line_xy                                       ;
-    dec screen_start_high                                             ;
 
     ldx #regular_string_index_command                                 ;
     jsr print_regular_string                                          ;
@@ -7658,10 +7629,8 @@ plot_escape_capsule_launched
     ldy #$c8                                                          ;
     ldx #$3f                                                          ;
 
-    inc screen_start_high                                             ;
     lda #8                                                            ;
     jsr plot_vertical_line_xy                                         ;
-    dec screen_start_high                                             ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9208,7 +9177,6 @@ start
     sta starship_rotation_sine_magnitude                              ;
     jsr init_self_modifying_bytes_for_starship_rotation               ;
     lda #$0a                                                          ; number of pages to offset drawing from start of screen memory
-    sta screen_start_high                                             ;
     jsr plot_frontier_stars                                           ;
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
@@ -9219,9 +9187,6 @@ wait_for_return_in_frontiers_loop
     bne wait_for_return_in_frontiers_loop                             ;
 
 return_pressed
-    lda #0                                                            ;
-    sta screen_start_high                                             ; regular start to drawing
-
     lda rnd_1                                                         ;
     eor #$cd                                                          ;
     sta rnd_2                                                         ;
