@@ -10078,14 +10078,22 @@ set_rdchv
     sta $210
     lda #>our_rdch
     sta $211
-    ; set beep sound to sound_7 why not
-    lda #$13
+    ; set beep sound to sound_6 why not
+    ; hopefully players will have learned to avoid doing
+    ; things that make this sound :) 
+    lda #$12
     sta $263
-    lda #$08
+    lda #$18
     sta $264
-    lda #$6c
+    lda #$bc
     sta $265
+    ; because bit 4 of channel is not respected we need to set duration as short as possible,
+    ; except on the electron, where this cuts off the sound prematurely.
+!if elk {
+    lda #$3
+} else {
     lda #$1
+}
     sta $266
 
     jmp post_reloc
