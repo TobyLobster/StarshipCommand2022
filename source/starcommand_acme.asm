@@ -2411,10 +2411,9 @@ plot_enemy_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ;
 enemy_torpedo_type_instruction
-    rts                                                               ; self modifying code
-    ; ... actually NOP if (option_enemy_torpedoes == 1)
+    jmp eor_play_area_pixel                                           ; self modifying code
+    ; ... actually JSR if (option_enemy_torpedoes == 1)
     inx                                                               ;
     jsr eor_play_area_pixel_same_y                                           ;
     inc y_pixels                                                      ;
@@ -8648,8 +8647,8 @@ options_values_to_write
     !byte 1                                                           ;
     !byte 0                                                           ;
     !byte 1                                                           ;
-    !byte $60                                                         ;
-    !byte $ea                                                         ;
+    !byte $4c                                                         ;
+    !byte $20                                                         ;
     !byte 0                                                           ;
     !byte 1                                                           ;
 option_address_low_table
