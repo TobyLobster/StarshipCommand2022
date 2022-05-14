@@ -11,31 +11,32 @@ python3 tools/text_compression.py --input source/sc_text.txt --output build/sc_t
 
 function prepare_disk {
     local elk=$1
-    local ssdname=$2
-    acme --symbollist build/$2.symbols.txt -r build/$2.report.txt -Delk=$elk -o build/disk/STAR source/starcommand_acme.asm
+    local filename=$2
+    acme --symbollist build/$2.symbols.txt -r build/$2.report.txt -Delk=$elk -o build/disk/$2 source/starcommand_acme.asm
     sort -o build/symbols.txt build/$2.symbols.txt
 
     # Find entry point in symbols
     entry_point=$(grep build/$2.symbols.txt -e '.*entry_point' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
 
-    # Create !BOOT file
-    printf "*BASIC\rPAGE=&1900\r*FX21\rCLOSE#0:*RUN STAR\r" >build/disk/\!BOOT
+    # Create INF file
+    echo "$.$2     FFFF1E00 FFFF$entry_point" >build/disk/$2.inf
 
-    # Create INF file for !BOOT
-    echo "$.!BOOT     FFFF1900 FFFF1900" >build/disk/\!BOOT.inf
-
-    # Create INF file for STAR
-    echo "$.STAR     FFFF1E00 FFFF$entry_point" >build/disk/STAR.inf
-
-    # Create new SSD file with the appropriate files
-    cp templates/EMPTY.ssd $ssdname.ssd
-    cd build/disk
-    python3 ../../tools/image.py -d ../../$ssdname.ssd -i !BOOT -i STAR
-    cd ../..
 }
 
-prepare_disk 0 STAR2022
-prepare_disk 1 STAR_ELK
+# Build !BOOT image
+acme -o build/disk/\!BOOT source/boot.asm
+
+# Create INF file for !BOOT
+echo "$.!BOOT     FFFF0180 FFFF0180" >build/disk/\!BOOT.inf
+
+prepare_disk 0 STAR
+prepare_disk 1 STARELK
+
+# Create new SSD file with the appropriate files
+cp templates/EMPTY.ssd STAR2022.ssd
+cd build/disk
+python3 ../../tools/image.py -d ../../STAR2022.ssd -i !BOOT -i STAR -i STARELK
+cd ../..
 
 if [ $USER == "tobynelson" ];
 then
