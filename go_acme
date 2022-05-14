@@ -25,7 +25,7 @@ function prepare_disk {
     echo "$.!BOOT     FFFF1900 FFFF1900" >build/disk/\!BOOT.inf
 
     # Create INF file for STAR
-    echo "$.STAR     FFFF1F00 FFFF$entry_point" >build/disk/STAR.inf
+    echo "$.STAR     FFFF1E00 FFFF$entry_point" >build/disk/STAR.inf
 
     # Create new SSD file with the appropriate files
     cp templates/EMPTY.ssd $ssdname.ssd

@@ -568,6 +568,32 @@ squares1_high                           = $0b00  ; } (1k total)
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
 squares2_high                           = $1000  ; } (1k total)
+row_table_low                           = $1200
+play_area_row_table_high                = $1300
+; 1.375K of enemy definition cache
+enemy_cache_a                           = $1400
+    ; (x, y, start_angle, length) = 4 bytes
+    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
+enemy_cache_b                           = $1680
+    ; (x, y, start_angle, length) = 4 bytes
+    ; 4 bytes * 6 arcs * 32 angles = 768 bytes
+
+    ; table to hold the star data while in game
+    ; and also on the frontiers screen (which is larger,
+    ; so we overwrite the following tables)
+star_table                              = $1980
+
+starship_explosion_table                = star_table + maximum_number_of_stars_in_game * 4
+     ; randomised when needed
+     ; also used for updating stars in "frontiers" screen
+
+enemy_explosion_tables                  = starship_explosion_table + 192
+
+enemy_torpedoes_table                   = enemy_explosion_tables + 512
+
+end_of_tables = enemy_torpedoes_table + 144
+;!warn "end of tables: ", end_of_tables
+starship_torpedoes_table                = $373 ; 108 bytes spare from $373 to $3df
 
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
@@ -581,19 +607,7 @@ ShortTimerValue  = 16*64 - 2
 ; code and data
 ; ----------------------------------------------------------------------------------
 
-* = $1f00
-
-!pseudopc $1200 {
-
-; for speed these arrays of data should be page aligned
-row_table_low
-    !for i, 0, 255 {
-        !byte <((i & 7) + (i/8) * $0140)
-    }
-play_area_row_table_high
-    !for i, 0, 255 {
-        !byte >($5800 + (i & 7) + (i/8) * $0140)
-    }
+* = $1e00
 
 ; ----------------------------------------------------------------------------------
 !if ((* & 255) != 0) {
@@ -3756,15 +3770,6 @@ enemy5
     !byte  3, -3,11, 3
 
 ; Enemy definitions for the current command
-
-; 1.375K of enemy definition cache
-enemy_cache_a
-    ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*5*32        ; bytes * arcs * angles = 640 bytes
-
-enemy_cache_b
-    ; (x, y, start_angle, length) = 4 bytes
-    !skip 4*6*32        ; bytes * arcs * angles = 768 bytes
 
 ; The centre_array holds (dx,dy) from the centre of the circle to each pixel on the
 ; perimeter of the circle. 32 entries, with the tables overlapping.
@@ -9709,28 +9714,8 @@ frontier_star_positions
     !byte $D5, $88
     !byte $D6, $80
 
-star_table
-    !fill maximum_number_of_stars_in_game * 4,0                       ; table to hold the star data while in game
-                                                                      ; and also on the frontiers screen (which is larger,
-                                                                      ; so we overwrite the following tables)
-
-starship_explosion_table
-    !fill 192,0                                                       ; randomised when needed
-                                                                      ; also used for updating stars in "frontiers" screen
-
-enemy_explosion_tables
-    !fill 512,0                                                       ;
-
-starship_torpedoes_table = $373 ; 108 bytes spare from $373 to $3df
-;starship_torpedoes_table
-;    !fill 108,0                                                       ;
-
-enemy_torpedoes_table
-    !fill 144,0                                                       ;
-}
-
-!if (* >= $6500) {
-    !error "code overflowed by ",*-$6500, " bytes"
+!if (* >= $5800) {
+    !error "code overflowed by ",*-$5800, " bytes"
 }
 
 ; ----------------------------------------------------------------------------------
@@ -9759,35 +9744,6 @@ entry_point
     ldx #1                                                            ; (we can't do this unconditionally
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
-    lda #0                                                            ;
-    tay                                                               ;
-    sta $80                                                           ;
-    lda #$12                                                          ; dest = $1200
-    sta $81                                                           ;
-    lda #0                                                            ;
-    sta $82                                                           ;
-    lda #$1f                                                          ; source = $1f00
-    sta $83                                                           ;
-relocate_loop
-    lda ($82),y                                                       ;
-    sta ($80),y                                                       ;
-    ldx $83                                                           ; }
-    cpx #>entry_point                                                 ; }
-    bne not_done                                                      ; } check if we have reached the end point
-    ldx $82                                                           ; }
-    cpx #<entry_point                                                 ; }
-    beq done                                                          ; }
-not_done
-    inc $82                                                           ;
-    bne +                                                             ;
-    inc $83                                                           ;
-+
-    inc $80                                                           ;
-    bne +                                                             ;
-    inc $81                                                           ;
-+
-    jmp relocate_loop                                                 ;
-
 done
     jsr initialise_envelopes                                          ;
     jsr create_square_tables                                          ;
@@ -9954,12 +9910,6 @@ envelope4
     !byte 4, 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64
 
 ; ----------------------------------------------------------------------------------
-delta
-    !byte 0,0,0
-sq
-    !byte 0,0,0
-
-; ----------------------------------------------------------------------------------
 ; routine to create tables of squares
 ; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
 ; ----------------------------------------------------------------------------------
@@ -10051,7 +10001,49 @@ create_other_tables
     inx
     bne -
 }
-    rts
+
+    ; make row tables:
+    ; row_table_low
+    ;     !for i, 0, 255 {
+    ;         !byte <((i & 7) + (i/8) * $0140)
+    ;     }
+    ; play_area_row_table_high
+    ;     !for i, 0, 255 {
+    ;         !byte >($5800 + (i & 7) + (i/8) * $0140)
+    ;     }
+
+    ldy #0
+    lda #$58
+row_table_loop2
+    ldx #7
+row_table_loop
+    sty row_table_low
+    sta play_area_row_table_high
+    iny
+    inc row_table_loop+1
+    inc row_table_loop+4
+    dex
+    bpl row_table_loop
+    pha
+    tya
+    clc
+    adc #$38
+    tay
+    pla
+    adc #1
+    bpl row_table_loop2
+
+;;     ; zero tables that need zeroing
+;;     lda #0
+;;     tax
+;; zero_loop
+;; !for i, >uninitialized_data_start, >uninitialized_data_end+1 {
+;;     sta i, x
+;; }
+;;     inx
+;;     bne zero_loop
+
+     rts
 !if (elk=0) {
 xtwobits_table_template
     !byte $c0, $60, $30, $18, $0c, $06, $03, $00
