@@ -5046,17 +5046,10 @@ play_starship_engine_sound
     sta sound_10_pitch                                                ;
     cmp #$0a                                                          ; Pitch = (velocity_high * 2) + rotation_magnitude
     bcc skip_ceiling                                                  ;
-    lda #9                                                            ;
-    clc                                                               ;
+    lda #9                                                            ; volume = -min(pitch, 9) + 1
 skip_ceiling
-    eor #$ff                                                          ;
-    adc #1                                                            ;
-    sta sound_10_volume_low                                           ;
-    lda #$ff                                                          ;
-    adc #0                                                            ;
-    sta sound_10_volume_high                                          ; volume = -min(pitch, 9) + 1
     ldx #<(sound_10)                                                  ;
-    jsr do_osword_sound                                               ;
+    jsr sound_with_volume                                             ;
     lda #$a0                                                          ; enable engine interrupt
     sta userVIAInterruptEnableRegister                                ; on timer 2
 }
@@ -5086,18 +5079,11 @@ skip_pitch_bend
     cmp #$10                                                          ;
     bcc skip_ceiling1                                                 ;
     lda #$0f                                                          ;
-    clc                                                               ;
 skip_ceiling1
-    eor #$ff                                                          ;
-    adc #1                                                            ;
-    sta sound_2_volume_low                                            ;
-    lda #$ff                                                          ;
-    adc #0                                                            ;
-    sta sound_2_volume_high                                           ;
+    ldx #<(sound_2)                                                   ;
+    jsr sound_with_volume                                             ;
     ldx #<(sound_1)                                                   ; } no sound output here (volume is 0), but it
     jsr do_osword_sound                                               ; } sets the pitch for the white noise of sound_2 to follow...
-    ldx #<(sound_2)                                                   ;
-    jsr do_osword_sound                                               ;
 skip_starship_explosion_sound
     lda escape_capsule_sound_channel                                  ;
     beq consider_torpedo_sound                                        ;
@@ -5107,27 +5093,19 @@ skip_starship_explosion_sound
 play_escape_capsule_sound
     ora #$10                                                          ; flush channel; play sound immediately
     sta sound_8                                                       ;
-    lda self_destruct_countdown                                       ;
-    and #1                                                            ;
-    beq set_volume                                                    ;
-    lda self_destruct_countdown                                       ;
-    lsr                                                               ;
-    lsr                                                               ;
-    eor #$ff                                                          ;
-    clc                                                               ;
-    adc #1                                                            ;
-set_volume
-    sta sound_8_volume_low                                            ;
-    beq set_volume_high                                               ;
-    lda #$ff                                                          ;
-set_volume_high
-    sta sound_8_volume_high                                           ;
 !if elk=0 {
     lda #$20                                                          ; disable engine interrupt
     sta userVIAInterruptEnableRegister                                ; on timer 2
 }
+    lda self_destruct_countdown                                       ;
+    and #1                                                            ;
+    beq silent                                                        ;
+    lda self_destruct_countdown                                       ;
+    lsr                                                               ;
+    lsr                                                               ;
+silent
     ldx #<(sound_8)                                                   ;
-    jsr do_osword_sound                                               ;
+    jsr sound_with_volume                                               ;
     lda escape_capsule_sound_channel                                  ;
     cmp #3                                                            ; has the starship exploded?
     beq return20                                                      ;
@@ -5141,6 +5119,18 @@ skip_starship_torpedo_sound
     lda enemy_ships_collided_with_each_other                          ;
     beq return20                                                     ;
     ldx #<(sound_7)
+    bne do_osword_sound ; always
+
+sound_with_volume
+    ; negate and sign-extend the volume
+    eor #$ff                                                          ;
+    clc                                                               ;
+    adc #1                                                            ;
+    sta sounds+2, X ; volume low byte
+    beq set_volume_high                                               ;
+    lda #$ff                                                          ;
+set_volume_high
+    sta sounds+3, X ; volume high byte
 do_osword_sound
     ldy #>(sound_1) ; all sounds in the same page
     lda #osword_sound                                                 ;
@@ -5713,6 +5703,7 @@ sound_11
 !if >sound_1 != >sound_11 {
     !error "alignment error", sound_1, sound_11;
 }
+sounds = sound_1 & 0xff00
 
 ; ----------------------------------------------------------------------------------
 initialise_game_screen
