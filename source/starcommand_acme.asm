@@ -4523,7 +4523,44 @@ loop_initialise_explosion
     sta (temp5),y                                                     ; random between 104 to 167
     dey                                                               ;
     bpl loop_initialise_explosion                                     ;
-    jmp score_points_for_destroying_enemy_ship                        ;
+
+; ----------------------------------------------------------------------------------
+score_points_for_destroying_enemy_ship
+    lda #1                                                            ;
+    sta enemy_ships_previous_on_screen,x                              ;
+    lda how_enemy_ship_was_damaged                                    ;
+    asl                                                               ;
+    tay                                                               ;
+    iny                                                               ;
+    lda enemy_ships_type,x                                            ;
+    cmp #4                                                            ;
+    bcs not_cloaked                                                   ;
+    cmp #1                                                            ;
+    beq not_cloaked                                                   ;
+    dey                                                               ;
+not_cloaked
+    tya                                                               ;
+    bpl convert_offset_to_score                                       ;
+    and #7                                                            ;
+    tay                                                               ;
+    lda starship_collided_with_enemy_ship                             ;
+    beq convert_offset_to_score                                       ;
+    dec starship_collided_with_enemy_ship                             ;
+    iny                                                               ;
+    iny                                                               ;
+convert_offset_to_score
+    lda scores_for_destroying_enemy_ships,y                           ;
+    clc                                                               ;
+    sei                                                               ;
+    sed                                                               ; BCD on
+    adc score_delta_low                                               ;
+    sta score_delta_low                                               ;
+    lda score_delta_high                                              ;
+    adc #0                                                            ;
+    sta score_delta_high                                              ;
+    cld                                                               ; BCD off
+    cli                                                               ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 update_enemy_explosion_pieces
@@ -6630,45 +6667,6 @@ scores_for_destroying_enemy_ships
     !byte $03   ; second ship type / cloaked ship, collision with starship
 
 ; ----------------------------------------------------------------------------------
-score_points_for_destroying_enemy_ship
-    lda #1                                                            ;
-    sta enemy_ships_previous_on_screen,x                              ;
-    lda how_enemy_ship_was_damaged                                    ;
-    asl                                                               ;
-    tay                                                               ;
-    iny                                                               ;
-    lda enemy_ships_type,x                                            ;
-    cmp #4                                                            ;
-    bcs not_cloaked                                                   ;
-    cmp #1                                                            ;
-    beq not_cloaked                                                   ;
-    dey                                                               ;
-not_cloaked
-    tya                                                               ;
-    bpl convert_offset_to_score                                       ;
-    and #7                                                            ;
-    tay                                                               ;
-    lda starship_collided_with_enemy_ship                             ;
-    beq convert_offset_to_score                                       ;
-    dec starship_collided_with_enemy_ship                             ;
-    iny                                                               ;
-    iny                                                               ;
-convert_offset_to_score
-    lda scores_for_destroying_enemy_ships,y                           ;
-    clc                                                               ;
-    sei                                                               ;
-    sed                                                               ; BCD on
-    adc score_delta_low                                               ;
-    sta score_delta_low                                               ;
-    lda score_delta_high                                              ;
-    adc #0                                                            ;
-    sta score_delta_high                                              ;
-    cld                                                               ; BCD off
-    cli                                                               ;
-return32
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 ; add to score (in binary coded decimal)
 ; ----------------------------------------------------------------------------------
 apply_delta_to_score
@@ -6754,6 +6752,7 @@ plot_horizontal_lines_inner_loop
     sta y_pixels                                                      ;
     dec output_fraction                                               ;
     bne plot_horizontal_lines_outer_loop                              ;
+return32
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
