@@ -5713,7 +5713,8 @@ launch_escape_capsule
     sty escape_capsule_launch_direction                               ;
     lda #$3f                                                          ;
     sta self_destruct_countdown                                       ;
-    jsr plot_escape_capsule_launched                                  ;
+    ldx #regular_string_index_escape_capsule_launched                 ;
+    jsr print_regular_string                                          ;
     lda #$7f                                                          ;
     sta escape_capsule_x_pixels                                       ;
     sta escape_capsule_y_pixels                                       ;
@@ -7623,18 +7624,6 @@ single_digit_command_number_for_move
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
-plot_escape_capsule_launched
-    ldx #regular_string_index_escape_capsule_launched                 ;
-    jsr print_regular_string                                          ;
-
-    ldy #$c8                                                          ;
-    ldx #$3f                                                          ;
-
-    lda #8                                                            ;
-    jsr plot_vertical_line_xy                                         ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 initialise_enemy_ships
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
@@ -9177,7 +9166,6 @@ start
     lda #$0a                                                          ;
     sta starship_rotation_sine_magnitude                              ;
     jsr init_self_modifying_bytes_for_starship_rotation               ;
-    lda #$0a                                                          ; number of pages to offset drawing from start of screen memory
     jsr plot_frontier_stars                                           ;
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
@@ -10134,9 +10122,9 @@ escape_capsule_launched_string
     !text "    "
     !byte 5,25,4,$10,4,$ff,0
     !text "CAPSULE"                                                   ;
-    !byte 4
-    !byte $1f, 32, 25                                                 ;
+    !byte 25,4,0,4,$df,0
     !text "LAUNCHED"                                                  ;
+    !byte 4
 escape_capsule_launched_string_end
 
 ; ----------------------------------------------------------------------------------
