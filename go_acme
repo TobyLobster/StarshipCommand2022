@@ -18,8 +18,11 @@ function prepare_disk {
     # Find entry point in symbols
     entry_point=$(grep build/$2.symbols.txt -e '.*entry_point' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
 
+    # and load address
+    load_addr=$(grep build/$2.symbols.txt -e '.*load_addr' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
+
     # Create INF file
-    echo "$.$2     FFFF1E00 FFFF$entry_point" >build/disk/$2.inf
+    echo "$.$2     FFFF$load_addr FFFF$entry_point" >build/disk/$2.inf
 
 }
 

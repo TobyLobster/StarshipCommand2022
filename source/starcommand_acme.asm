@@ -607,13 +607,11 @@ ShortTimerValue  = 16*64 - 2
 ; code and data
 ; ----------------------------------------------------------------------------------
 
-* = $1e00
+* = end_of_tables
+
+load_addr
 
 ; ----------------------------------------------------------------------------------
-!if ((* & 255) != 0) {
-    !error "plus_angle0 must be page aligned"
-}
-
 plus_angle0
     inx                                                               ;
     jsr eor_play_area_pixel_same_y                                    ;
@@ -762,6 +760,11 @@ plus_angle41
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
 plus_angle42
+
+!if >plus_angle0 != >plus_angle42 {
+    !error "alignment error", plus_angle0, plus_angle42
+}
+plus_angle = plus_angle0 & 0xff00
 
 ; ----------------------------------------------------------------------------------
 starship_angle_fraction
@@ -1975,7 +1978,7 @@ plot_expiring_torpedo
 !if >eor_frontier_pixel != >eor_play_area_pixel {
     !error "alignment error: ", >eor_frontier_pixel, "!=", >eor_play_area_pixel;
 }
-!if <eor_frontier_pixel == 0 {
+!if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
 ; ----------------------------------------------------------------------------------
@@ -2965,18 +2968,18 @@ plot_segment_unrolled
     clc                                                               ;
     adc segment_length                                                ; add the segment length
     tax                                                               ;
-    lda plot_table_offset2,x                                           ;
+    lda plot_table_offset2,x                                          ;
     tax                                                               ;
     stx remember_x                                                    ; remember the address (low) to finish at
     lda #$4C                                                          ; opcode for JMP
-    sta plus_angle0,x                                                 ;
+    sta plus_angle,x                                                  ;
     ldx x_pixels                                                      ;
     jsr eor_play_area_pixel                                           ; first point
 jump_address = * + 1
-    jsr plus_angle0                                                   ;
+    jsr plus_angle                                                    ;
     ldx remember_x                                                    ; recall the address (low)
     lda #$20                                                          ; opcode for JSR
-    sta plus_angle0,x                                                 ;
+    sta plus_angle,x                                                  ;
     rts                                                               ;
 
 
