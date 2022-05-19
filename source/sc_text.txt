@@ -2,7 +2,7 @@
 ; ----------------------------------------------------------------------------------
 combat_experience_heading_string
     !byte $1f, 13, 31                                                 ;
-    !text "Press <RETURN>"                                            ;
+    !text "P",141                                                         ;
     !byte $1f, $0b, 5                                                 ;
     !text "STARSHIP COMMAND "                                         ;
 
@@ -16,35 +16,34 @@ no_string
 
 ; ----------------------------------------------------------------------------------
 escape_capsule_was_launched_string
-    !text " escape capsule was launched "                             ;
+    !text " ",137," was launched"                             ;
 
 ; ----------------------------------------------------------------------------------
 before_the_starship_exploded_string
-    !text "before the starship exploded."                             ;
+    !text 140,"before",143,142," exploded."                             ;
 
 ; ----------------------------------------------------------------------------------
 and_returned_safely_string
-    !text "and    returned safely from the combat zone."              ;
+    !text 144,"    returned safely from",143,"combat zone."              ;
 
 ; ----------------------------------------------------------------------------------
 but_collided_string
-    !text "but    collided with an enemy ship."                       ;
+    !text 145,"    collided with an enemy ship."                       ;
 
 ; ----------------------------------------------------------------------------------
 combat_experience_rating_string
-    !text 140,140,140, "   Your official combat experience",140       ;
-    !text " rating is now recorded as "                               ;
+    !text 140,140,140, "  Your official combat experience",140        ;
+    !text "rating is now recorded as "                                ;
 
 ; ----------------------------------------------------------------------------------
 having_just_gained_string
-    !text ", having",140," just gained "                              ;
-
+    !text ", having",8,140,"just gained " ; backspace to avoid new line for 5-digit scores
+    ; (if you get a six-digit score, congrats, you broke the wrapping)
 ; ----------------------------------------------------------------------------------
 after_your_performance_string
-    !text 140,140,140
-    !text "   After your performance on this ",140,
-    !text " command the",134,"authorities",140,
-    !text " are said to be \"" ;
+    !text 148,146,"r performance on this",140,
+    !text "command the",134,"authorities",140,
+    !text "are said to be \"" ;
 
 ; ----------------------------------------------------------------------------------
 emotions_1
@@ -65,42 +64,34 @@ emotions_8
     !text "delighted"                                                 ; >=600
 
 ; ----------------------------------------------------------------------------------
-and_string
-    !text " and"                                                      ;
-
-; ----------------------------------------------------------------------------------
-but_string
-    !text " but"                                                      ;
-
-; ----------------------------------------------------------------------------------
 they_allow_string
-    !text " they",140," allow you the command of another",140," starship."         ;
+    !text " they",140,"allow",146,143,"command of another",140,142,"."         ;
 
 ; ----------------------------------------------------------------------------------
 and_they_retire_you_string
-    !text " and they", 140," retire you from active service."         ;
+    !text 144," they",140,"retire",146," from active service."         ;
 
 ; ----------------------------------------------------------------------------------
 award_review_string
-    !text 140,140,140,"   After reviewing your "
+    !text 148," reviewing",146,"r "
 
 award_adjective_1
-    !text "all-too-brief",140,133
+    !text "all-too-brief",133
 award_adjective_2
-    !text "short",140,133
+    !text "short",133
 award_adjective_3
-    !text "fairly short",140,133
+    !text "fairly short",133
 award_adjective_4
-    !text "fairly long",140,133
+    !text "fairly long",133
 award_adjective_5
-    !text "long",140,133
+    !text "long",133
 award_adjective_6
-    !text "distinguished",140,133
+    !text "distinguished",133
 
 award_outcome_die_1
-    !text "list your name on",140," the Pluto monument"
+    !text "list",146,"r name on",140,"the Pluto monument"
 award_outcome_die_2
-    !text "mention you in a",140," tri-vi broadcast"
+    !text "mention",146," in a",140,"tri-vi broadcast"
 award_outcome_die_3
     !text 128, "Badger"
 award_outcome_die_4
@@ -110,24 +101,24 @@ award_outcome_die_5
 award_outcome_die_6
     !text 128, 129, 130, 132
 award_outcome_die_7
-    !text 128, 129, 130, 132, " and Crossed Blasters"
+    !text 128, 129, 130, 132, 144," Crossed Blasters"
 award_outcome_die_8
-    !text "put your face on",140," recruiting posters"
+    !text "put",146,"r face on",140,"recruiting posters"
 award_outcome_die_9
-    !text "build a statue of you on Mars"
+    !text "build a statue of",140,"you on Mars"
 award_outcome_die_10
-    !text "rename the Academy",140," after you"
+    !text "rename",143,"Academy",140,"after",146
 
 award_outcome_escape_1
-    !text "court-martial you",140," for cowardice"
+    !text "court-martial",146,140,"for cowardice"
 award_outcome_escape_2
-    !text "demote you to worker grade"
+    !text "demote",146," to worker grade"
 award_outcome_escape_3
-    !text "retrain you as a",140," gardener"
+    !text "retrain",146," as a",140,"gardener"
 award_outcome_escape_4
-    !text "assign you to",140," planning staff"
+    !text "assign",146," to",140,"planning staff"
 award_outcome_escape_5
-    !text "grant you a full",140," pension"
+    !text "grant",146," a full",140,"pension"
 award_outcome_escape_6
     !text 131,"Commodore"
 award_outcome_escape_7
@@ -137,14 +128,14 @@ award_outcome_escape_8
 award_outcome_escape_9
     !text 131,"Grand ",136
 award_outcome_escape_10
-    !text "elect you President",140," of the Solar Federation"
+    !text "elect",146," President",140,"of",143,"Solar Federation"
 
 
 
 ; ----------------------------------------------------------------------------------
 instructions_string1
-    !byte $1f, 6  , 2                                                 ;
-    !text "**** STARSHIP CONTROLS ****"                               ;
+    !byte $1f, 5  , 2                                                 ;
+    !text 147,"STARSHIP CONTROLS",147                                 ;
     !byte 31, 13  , 5                                                 ;
     !text "Z  -  Rotate left"                                         ;
     !byte 31, 13  , 6                                                 ;
@@ -160,9 +151,9 @@ instructions_string1
     !byte $1f, 3  , 12                                                ;
     !text "G  -  Launch starboard ",137                               ;
     !byte $1f, 0  , 14                                                ;
-    !text "All the above may operate simultaneously"                  ;
-    !text "Alternatively, ONE of the following may "                  ;
-    !text "be depressed...."                                          ;
+    !text "All",143,"above may operate simultaneously"                  ;
+    !text "Alternatively, ONE of",143,"following may "                  ;
+    !text "be depressed:"                                          ;
 instructions_string2
     !byte $1f, 3  , 18                                                ;
     !text "B  -  Shields ON / Scanners OFF"                           ;
@@ -183,14 +174,14 @@ instructions_string2
     !byte $1f, 9  , 28                                                ;
     !text   "Space  -  Resume"                                        ;
     !byte $1f, $0d, 31                                                ;
-    !text "Press <RETURN>"                                            ;
+    !text "P",141
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_string
-    !byte $1f, 6 , 2                                                  ; TAB(6 , 3)
-    !text "**** COMBAT PREPARATION ****"                              ;
+    !byte $1f, 5 , 2                                                  ; TAB(6 , 3)
+    !text 147,"COMBAT PREPARATION",147                                ;
     !byte $1f, 6 , 6                                                  ; TAB(6 , 7)
-    !text "f0  View starship controls"                                ;
+    !text "f0  View ",142," controls"                                 ;
     !byte $1f, 6 , 8                                                  ; TAB(6 , 9)
     !text "f1  View",134,"records"                                    ;
     !byte $1f, 6 , 10                                                 ; TAB(6 , 11)
@@ -202,7 +193,7 @@ combat_preparation_string
     !byte $1f, 6 , 14                                                 ; TAB(6 , 15)
     !text "f4  Small"                                                 ;
     !byte $1f, 17, 15                                                 ; TAB(17, 16)
-    !text "}starship ", 139                                           ;
+    !text "}",142," ", 139                                            ;
     !byte $1f,  6, 16                                                 ; TAB( 6, 17)
     !text "f5  Large"                                                 ;
     !byte $1f,  6, 18                                                 ; TAB( 6, 19)
@@ -216,22 +207,22 @@ combat_preparation_string
     !byte $1f,  6, 24                                                 ; TAB( 6, 25)
     !text "f9  Joystick"                                              ;
     !byte $1f, 13, 29                                                 ; TAB(13, 30)
-    !text "Press <RETURN>"                                            ;
+    !text "P",141
 
 ; ----------------------------------------------------------------------------------
 starfleet_records_string
-    !byte $1f, 6  , 2                                                 ;
-    !text "**** STAR-FLEET RECORDS ****"                              ;
+    !byte $1f, 5  , 2                                                 ;
+    !text 147,"STAR-FLEET RECORDS",147                                ;
     !byte $1f, 3  , 6                                                 ;
-    !text    "Below is a list of the most highly",140                 ;
-    !text " rated of Star-Fleet's past commanders."                   ;
+    !text    "Below is a list of",143,"most highly",140               ;
+    !text "rated of Star-Fleet's past commanders."                    ;
     !byte $1f, 13, 30                                                 ;
-    !text "Press <RETURN>"                                            ;
+    !text "P",141
 
 ; ----------------------------------------------------------------------------------
 enter_your_name_string
     !byte $1f,  0, 10                                                 ;
-    !text "Enter your name for",134,"records."                        ;
+    !text "Enter",146,"r name for",134,"records."                        ;
     !byte $1f, 13, 16                                                 ;
     !text "-------------"                                             ;
     !byte $1f, 13, 15                                                 ;
@@ -241,9 +232,9 @@ the_frontiers_string1
     !byte $1f, 3, 5                                                   ; TAB
     !text    "The frontiers of space are frequently"                  ;
     !text "penetrated by hostile alien ships. These"                  ;
-    !text "are tackled by battle starships, the",140                  ;
+    !text "are tackled by battle ",142,"s,",143,13,10                 ;
     !text "command of which is given to deserving  "                  ;
-    !text "captains from the Star-Fleet."                             ;
+    !text "captains from",143,"Star-Fleet."                             ;
 
 ; ----------------------------------------------------------------------------------
 the_frontiers_string2
@@ -252,9 +243,9 @@ the_frontiers_string2
     !byte $1f,  6, 31                                                 ; TAB
     !text "2022 Edition by TobyLobster"                               ;
     !byte $1f,  6, 11                                                 ; TAB
-    !text "To begin your first command,"                              ;
+    !text "To begin",146,"r first command,"                              ;
     !byte $1f, 12, 12                                                 ; TAB
-    !text "press <RETURN>"                                            ;
+    !text "p",141
 
 
 ; ----------------------------------------------------------------------------------
@@ -262,7 +253,7 @@ the_frontiers_string2
 ; ----------------------------------------------------------------------------------
 ; 128
 award_you_the_order_of_the
-    !text "award you the Order",140," of the "
+    !text "award",146,143,"Order",140,"of",143
 
 ; 129
 award_lion
@@ -274,15 +265,15 @@ first_class
 
 ; 131
 promote_you_to
-    !text "promote you to ",140," "
+    !text "promote",146," to ",140
 
 ; 132
 award_oak_leaves
-    !text ", with Oak",140," Leaves"
+    !text ", with Oak",140,"Leaves"
 
 ; 133
 award_career
-    !text " career,",134
+    !text 140,"career,",134
 
 ; 134
 award_star_fleet
@@ -309,5 +300,37 @@ torpedoes
     !text "torpedoes"
 
 ; 140
-newline
-    !text 13,10
+newline_and_space
+    !text 13,10,9
+
+; 141
+ress_return
+    !text "ress <RETURN>"                                            ;
+
+; 142
+text_starship
+    !text "starship"
+
+; 143
+text_the_
+    !text " the "
+
+; 144
+and_string
+    !text " and"                                                      ;
+
+; 145
+but_string
+    !text " but"                                                      ;
+
+; 146
+you_string
+    !text " you"                                                      ;
+
+; 147
+four_asterisks
+    !text " **** "
+
+; 148
+after_string
+    !text 140,140,140,"  After"
