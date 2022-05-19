@@ -4,6 +4,9 @@ set -e
 # Make disk directory
 mkdir -p build/disk
 
+# And tape
+mkdir -p build/tape
+
 #python starcommand.py -a >build/temp.asm
 #python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
@@ -24,6 +27,10 @@ function prepare_disk {
     # Create INF file
     echo "$.$2     FFFF$load_addr FFFF$entry_point" >build/disk/$2.inf
 
+    # Create crunched version
+    exomizer301 level -q build/disk/$2@0x$load_addr -o build/tape/$2.exo
+
+    acme --symbollist build/tape.$2.symbols.txt -r build/tape.$2.report.txt -Delk=$1 -Dgo=\$$entry_point -o build/tape/loader.$2 source/exo.asm
 }
 
 # Build !BOOT image
@@ -40,6 +47,12 @@ cp templates/EMPTY.ssd STAR2022.ssd
 cd build/disk
 python3 ../../tools/image.py -d ../../STAR2022.ssd -i !BOOT -i STAR -i STARELK
 cd ../..
+
+# prepare tape versions
+mkdir -p build/tape
+
+perl tools/maketape.pl build/tape/loader.STAR build/tape/STAR.exo >STAR2022.uef
+perl tools/maketape.pl build/tape/loader.STARELK build/tape/STARELK.exo >STARELK.uef
 
 if [ $USER == "tobynelson" ];
 then
