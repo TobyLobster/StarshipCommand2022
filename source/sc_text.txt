@@ -1,18 +1,9 @@
-
 ; ----------------------------------------------------------------------------------
 combat_experience_heading_string
     !byte $1f, 13, 31                                                 ;
     !text "P",141                                                         ;
     !byte $1f, $0b, 5                                                 ;
-    !text "STARSHIP COMMAND "                                         ;
-
-; ----------------------------------------------------------------------------------
-an_string
-    !text "An"
-
-; ----------------------------------------------------------------------------------
-no_string
-    !text "No"
+    !text 149,150                                                     ;
 
 ; ----------------------------------------------------------------------------------
 escape_capsule_was_launched_string
@@ -135,7 +126,7 @@ award_outcome_escape_10
 ; ----------------------------------------------------------------------------------
 instructions_string1
     !byte $1f, 5  , 2                                                 ;
-    !text 147,"STARSHIP CONTROLS",147                                 ;
+    !text 147,149,"CONTROLS",147                                 ;
     !byte 31, 13  , 5                                                 ;
     !text "Z  -  Rotate left"                                         ;
     !byte 31, 13  , 6                                                 ;
@@ -160,15 +151,15 @@ instructions_string2
     !byte $1f, 3  , 19                                                ;
     !text "V  -  Scanners ON / Shields OFF"                           ;
     !byte $1f, 3  , 20                                                ;
-    !text "C  -  \"Auto-Changeover\" ON"                              ;
+    !text "C  -  Auto-Changeover ON"                                  ;
     !byte $1f, 3  , 22                                                ;
-    !text "f0 -  \"Rotation ",138,"\" ON"                             ;
+    !text "f0 -  Rotation ",138," ON"                                 ;
     !byte $1f, 3  , 23                                                ;
-    !text "2  -  \"Rotation ",138,"\" OFF"                            ;
+    !text "2  -  Rotation ",138," OFF"                                ;
     !byte $1f, 3  , 24                                                ;
-    !text "f1 -  \"Velocity ",138,"\" ON"                             ;
+    !text "f1 -  Velocity ",138," ON"                                 ;
     !byte $1f, 3  , 25                                                ;
-    !text "3  -  \"Velocity ",138,"\" OFF"                            ;
+    !text "3  -  Velocity ",138," OFF"                                ;
     !byte $1f, 13 , 27                                                ;
     !text       "P  -  Pause"                                         ;
     !byte $1f, 9  , 28                                                ;
@@ -215,7 +206,7 @@ starfleet_records_string
     !text 147,"STAR-FLEET RECORDS",147                                ;
     !byte $1f, 3  , 6                                                 ;
     !text    "Below is a list of",143,"most highly",140               ;
-    !text "rated of Star-Fleet's past commanders."                    ;
+    !text "rated of",134,8,"'s past commanders."                    ;
     !byte $1f, 13, 30                                                 ;
     !text "P",141
 
@@ -234,19 +225,18 @@ the_frontiers_string1
     !text "penetrated by hostile alien ships. These"                  ;
     !text "are tackled by battle ",142,"s,",143,13,10                 ;
     !text "command of which is given to deserving  "                  ;
-    !text "captains from",143,"Star-Fleet."                             ;
+    !text "captains from",143,8,134,8,"."                             ;
 
 ; ----------------------------------------------------------------------------------
 the_frontiers_string2
     !byte $1f, 11,  2                                                 ; TAB
-    !text "STARSHIP  COMMAND"                                         ;
+    !text 149," ",150                                                 ;
     !byte $1f,  6, 31                                                 ; TAB
     !text "2022 Edition by TobyLobster"                               ;
     !byte $1f,  6, 11                                                 ; TAB
     !text "To begin",146,"r first command,"                              ;
     !byte $1f, 12, 12                                                 ; TAB
     !text "p",141
-
 
 ; ----------------------------------------------------------------------------------
 ; Shortcut phrases
@@ -288,15 +278,15 @@ admiral
     !text "Admiral"
 
 ; 137
-escape_capsule
+escape_capsule_string
     !text "escape capsule"
 
 ; 138
-dampers
+dampers_string
     !text "Dampers"
 
 ; 139
-torpedoes
+torpedoes_string
     !text "torpedoes"
 
 ; 140
@@ -304,15 +294,15 @@ newline_and_space
     !text 13,10,9
 
 ; 141
-ress_return
+ress_return_string
     !text "ress <RETURN>"                                            ;
 
 ; 142
-text_starship
+starship_string
     !text "starship"
 
 ; 143
-text_the_
+the_string
     !text " the "
 
 ; 144
@@ -334,3 +324,11 @@ four_asterisks
 ; 148
 after_string
     !text 140,140,140,"  After"
+
+; 149
+STARSHIP_string
+    !text "STARSHIP "
+
+; 150
+COMMAND_string
+    !text "COMMAND "

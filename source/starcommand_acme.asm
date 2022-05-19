@@ -8194,34 +8194,25 @@ score_threshold_table
     ; ----------------------------+-----------------------------------
     !byte 2, 3, 4, 7, 13, 20, 30                                      ;
 
-; ----------------------------------------------------------------------------------
-print_quoted_emotion
-    ; print quote, emotion, quote
-    jsr print_quote
-    tya                                                               ;
-    clc                                                               ;
-    adc #emotions_1 - 1                                               ;
-    tax                                                               ;
-    jsr print_compressed_string                                       ;
-print_quote
-    lda #'"'                                                          ;"
-    jmp oswrch                                                        ;
+print_escape_capsule_launched_with_qualifier
+    jsr oswrch_ay
+    ; Print " escape capsule was launched "
+    ldx #escape_capsule_was_launched_string                           ;
+    jmp print_compressed_string                                       ;
 
 ; ----------------------------------------------------------------------------------
 no_escape_capsule
-    ldx #no_string                                                    ;
-    jsr print_compressed_string                                       ;
-
-    ; Print " escape capsule was launched "
-    ldx #escape_capsule_was_launched_string                           ;
-    jsr print_compressed_string                                       ;
+    ; Print "No escape capsule was launched "
+    lda #'N'
+    ldy #'o'
+    jsr print_escape_capsule_launched_with_qualifier
 
     ; Print "before the starship exploded."
     ldx #before_the_starship_exploded_string                          ;
     jsr print_compressed_string                                       ;
     jmp print_experience                                              ;
 
-calculate_emotion
+calculate_and_print_emotion
     ; add random amount $00-$3f to BCD version of score.
     ; Implementation seems odd, mixing a regular number with BCD number.
     lda rnd_2                                                         ; add random &00 - &3f to score
@@ -8256,7 +8247,16 @@ check_threshold_loop
 
 end_of_calculation
     sty y_pixels                                                      ; to find authorities' emotion
-    rts                                                               ;
+print_quoted_emotion
+    ; print emotion, quote
+    tya                                                               ;
+    clc                                                               ;
+    adc #emotions_1 - 1                                               ;
+    tax                                                               ;
+    jsr print_compressed_string                                       ;
+print_quote
+    lda #'"'                                                          ;"
+    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 plot_debriefing
@@ -8283,13 +8283,10 @@ plot_debriefing
     lda escape_capsule_launched                                       ;
     beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
 
-    ; Print "An"
-    ldx #an_string                                                    ;
-    jsr print_compressed_string                                       ;
-
-    ; Print " escape capsule was launched "
-    ldx #escape_capsule_was_launched_string                           ;
-    jsr print_compressed_string                                       ;
+    ; Print "An escape capsule was launched "
+    lda #'A'
+    ldy #'n'
+    jsr print_escape_capsule_launched_with_qualifier
 
     ; Print one of:
     ;   "and returned safely from the combat zone."
@@ -8362,21 +8359,17 @@ plot_after_your_performance
     jsr print_compressed_string                                       ;
 
 judge_player
-    jsr calculate_emotion                                             ;
-    jsr print_quoted_emotion                                          ;
+    jsr calculate_and_print_emotion                                             ;
 
+    ldx #and_string                                                   ;
     ; check for retired
     lda y_pixels                                                      ; emotion
     cmp #4                                                            ;
     bcc player_retired                                                ; if (retired) then branch
 
     ; print "and" / "but"
-    ldx #and_string                                                   ;
-    lda y_pixels                                                      ; emotion
-    cmp #4                                                            ;
     bne do_and
-do_but
-    ldx #but_string                                                   ;
+    inx
 do_and
     jsr print_compressed_string                                       ;
 
@@ -9505,6 +9498,7 @@ get_x_bits
     dex                                                               ;
     bne -                                                             ;
     lda result                                                        ;
+return4
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9534,44 +9528,45 @@ print_compressed_loop
     ldx #5                                                            ;
     jsr get_x_bits                                                    ;
     cmp #30                                                           ;
-    beq extended                                                      ;
+    beq token                                                      ;
     bcs return4                                                       ; found terminator value 31
+    cmp #28                                                           ;
+    beq extended1                                                      ;
+    bcs extended2                                                       ; found terminator value 31
     tax                                                               ;
     lda text_header_data,x                                            ;
 output_character
-    cmp #128                                                          ;
-    bcs special_case                                                  ;
     jsr oswrch                                                        ;
     jmp print_compressed_loop                                         ;
-return4
-    rts                                                               ;
 
-extended
-    ldx #8                                                            ;
+extended1
+    ldx #7
+    !byte $2c
+extended2
+    ldx #5
     jsr get_x_bits                                                    ;
-    jmp output_character                                              ;
+    jmp output_character
 
-special_case
+token
+    ldx #5                                                            ;
+    jsr get_x_bits                                                    ;
     sec                                                               ;
-    sbc #$80 - award_you_the_order_of_the                             ;
+    sbc #$100 - award_you_the_order_of_the                            ;
     tax                                                               ;
-    lda lookup_low                                                    ;
-    pha                                                               ;
-    lda lookup_high                                                   ;
-    pha                                                               ;
-    lda lookup_byte                                                   ;
-    pha                                                               ;
-    lda lookup_bit                                                    ;
-    pha                                                               ;
+    ldy #3
+-
+    lda lookup_low,Y                                                    ;
+    pha
+    dey
+    bpl -
     jsr print_compressed_string                                       ;
+    ldy #0
+-    
     pla                                                               ;
-    sta lookup_bit                                                    ;
-    pla                                                               ;
-    sta lookup_byte                                                   ;
-    pla                                                               ;
-    sta lookup_high                                                   ;
-    pla                                                               ;
-    sta lookup_low                                                    ;
+    sta lookup_low,Y                                                  ;
+    iny
+    cpy #4
+    bne -
     jmp print_compressed_loop                                         ;
 
 ; ----------------------------------------------------------------------------------
