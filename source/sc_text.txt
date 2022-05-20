@@ -219,7 +219,7 @@ enter_your_name_string
     !byte $1f, 13, 15                                                 ;
 
 ; ----------------------------------------------------------------------------------
-the_frontiers_string1
+the_frontiers_string
     !byte $1f, 3, 5                                                   ; TAB
     !text    "The frontiers of space are frequently"                  ;
     !text "penetrated by hostile alien ships. These"                  ;
@@ -227,8 +227,6 @@ the_frontiers_string1
     !text "command of which is given to deserving  "                  ;
     !text "captains from",143,8,134,8,"."                             ;
 
-; ----------------------------------------------------------------------------------
-the_frontiers_string2
     !byte $1f, 11,  2                                                 ; TAB
     !text 149," ",150                                                 ;
     !byte $1f,  6, 31                                                 ; TAB

@@ -421,7 +421,7 @@ plot_enemy_progress                     = $1a
 lookup_low                              = $1b
 lookup_high                             = $1c
 lookup_byte                             = $1d
-lookup_bit                              = $1e
+bytes_left                              = $1e
 result                                  = $1f
 end_low                                 = $20
 end_high                                = $21
@@ -822,7 +822,7 @@ starship_rotation_sine_table
 
 ; ----------------------------------------------------------------------------------
 ; Align to page boundary for speed
-!align 255, 0
+;!align 255, 0
 
 cosine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ; overlaps with sine table
@@ -1007,6 +1007,127 @@ rotated_y_correction_fraction
 rotated_y_correction_pixels
     !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
 
+!if >cosine_table != >* {
+    !error "alignment error", cosine_table, *;
+}
+
+!align 255, 0
+; ----------------------------------------------------------------------------------
+; Exploding starship 1
+; ----------------------------------------------------------------------------------
+sound_1
+    !byte $11, 0                                                      ; channel 1
+    !byte 0, 0                                                        ; volume 0 (silent)
+sound_1_pitch
+    !byte 0, 0                                                        ; pitch for the white noise of sound_2
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Exploding starship 2
+; ----------------------------------------------------------------------------------
+sound_2
+    !byte $10, 0                                                      ; channel 0 (white noise)
+sound_2_volume_low
+    !byte 0                                                           ; volume
+sound_2_volume_high
+    !byte 0
+    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_3
+    !byte $13, 0                                                      ; channel 3
+    !byte 1, 0                                                        ; envelope 1
+    !byte $80, 0                                                      ; pitch 128
+    !byte 4, 0                                                        ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Enemy ship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_4
+    !byte $12, 0                                                      ; channel 2
+    !byte 2, 0                                                        ; envelope 2
+    !byte $c0, 0                                                      ; pitch 192
+    !byte $1f, 0                                                      ; duration 31
+
+; ----------------------------------------------------------------------------------
+; Enemy ship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_5
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $40, 0                                                      ; pitch 64
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_6
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $be, 0                                                      ; pitch 190
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Enemy ships collided with each other
+; ----------------------------------------------------------------------------------
+sound_7
+    !byte $13, 0                                                      ; channel 3
+    !byte 2, 0                                                        ; envelope 2
+    !byte $6c, 0                                                      ; pitch 108
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Escape capsule launched
+; ----------------------------------------------------------------------------------
+sound_8
+    !byte $13, 0                                                      ; channel 3
+sound_8_volume_low
+    !byte 0                                                           ; volume
+sound_8_volume_high
+    !byte 0                                                           ;
+    !byte $64, 0                                                      ; pitch 100
+    !byte 4  , 0                                                      ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Low energy warning
+; ----------------------------------------------------------------------------------
+sound_9
+    !byte $11, 0                                                      ; channel 1
+    !byte $f1, $ff                                                    ; volume 15
+    !byte $c8, 0                                                      ; duration 200
+    !byte 2, 0                                                        ; duration 2
+
+!if elk=0 {
+; ----------------------------------------------------------------------------------
+; Starship engine
+; ----------------------------------------------------------------------------------
+sound_10
+    !byte $11, 0                                                      ; channel 1
+sound_10_volume_low
+    !byte 0                                                           ; volume
+sound_10_volume_high
+    !byte 0                                                           ;
+sound_10_pitch
+    !byte 0, 0                                                        ; pitch
+    !byte 4, 0                                                        ; duration 4
+}
+
+; ----------------------------------------------------------------------------------
+; Exploding enemy ship
+; ----------------------------------------------------------------------------------
+sound_11
+    !byte $10, 0                                                      ; channel 0 (white noise)
+    !byte 3, 0                                                        ; envelope 3
+    !byte 7, 0                                                        ; pitch 7
+    !byte $1e, 0                                                      ; duration 30
+
+!if >sound_1 != >sound_11 {
+    !error "alignment error", sound_1, sound_11;
+}
+sounds = sound_1 & 0xff00
 
 !src "build/sc_text.a"
 
@@ -5831,123 +5952,6 @@ dont_add_any_more_torpedoes_to_cluster
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; Exploding starship 1
-; ----------------------------------------------------------------------------------
-sound_1
-    !byte $11, 0                                                      ; channel 1
-    !byte 0, 0                                                        ; volume 0 (silent)
-sound_1_pitch
-    !byte 0, 0                                                        ; pitch for the white noise of sound_2
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Exploding starship 2
-; ----------------------------------------------------------------------------------
-sound_2
-    !byte $10, 0                                                      ; channel 0 (white noise)
-sound_2_volume_low
-    !byte 0                                                           ; volume
-sound_2_volume_high
-    !byte 0
-    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_3
-    !byte $13, 0                                                      ; channel 3
-    !byte 1, 0                                                        ; envelope 1
-    !byte $80, 0                                                      ; pitch 128
-    !byte 4, 0                                                        ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Enemy ship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_4
-    !byte $12, 0                                                      ; channel 2
-    !byte 2, 0                                                        ; envelope 2
-    !byte $c0, 0                                                      ; pitch 192
-    !byte $1f, 0                                                      ; duration 31
-
-; ----------------------------------------------------------------------------------
-; Enemy ship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_5
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $40, 0                                                      ; pitch 64
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_6
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $be, 0                                                      ; pitch 190
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Enemy ships collided with each other
-; ----------------------------------------------------------------------------------
-sound_7
-    !byte $13, 0                                                      ; channel 3
-    !byte 2, 0                                                        ; envelope 2
-    !byte $6c, 0                                                      ; pitch 108
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Escape capsule launched
-; ----------------------------------------------------------------------------------
-sound_8
-    !byte $13, 0                                                      ; channel 3
-sound_8_volume_low
-    !byte 0                                                           ; volume
-sound_8_volume_high
-    !byte 0                                                           ;
-    !byte $64, 0                                                      ; pitch 100
-    !byte 4  , 0                                                      ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Low energy warning
-; ----------------------------------------------------------------------------------
-sound_9
-    !byte $11, 0                                                      ; channel 1
-    !byte $f1, $ff                                                    ; volume 15
-    !byte $c8, 0                                                      ; duration 200
-    !byte 2, 0                                                        ; duration 2
-
-!if elk=0 {
-; ----------------------------------------------------------------------------------
-; Starship engine
-; ----------------------------------------------------------------------------------
-sound_10
-    !byte $11, 0                                                      ; channel 1
-sound_10_volume_low
-    !byte 0                                                           ; volume
-sound_10_volume_high
-    !byte 0                                                           ;
-sound_10_pitch
-    !byte 0, 0                                                        ; pitch
-    !byte 4, 0                                                        ; duration 4
-}
-
-; ----------------------------------------------------------------------------------
-; Exploding enemy ship
-; ----------------------------------------------------------------------------------
-sound_11
-    !byte $10, 0                                                      ; channel 0 (white noise)
-    !byte 3, 0                                                        ; envelope 3
-    !byte 7, 0                                                        ; pitch 7
-    !byte $1e, 0                                                      ; duration 30
-
-!if >sound_1 != >sound_11 {
-    !error "alignment error", sound_1, sound_11;
-}
-sounds = sound_1 & 0xff00
-
-; ----------------------------------------------------------------------------------
 angle_to_action_table
     !byte 0, 0, 1, 3, 7, 5, 2, 2                                      ;
 
@@ -9138,9 +9142,7 @@ start
     jsr plot_underscores_at_0_3
 
     ; display string
-    ldx #the_frontiers_string1                                        ;
-    jsr print_compressed_string                                       ;
-    ldx #the_frontiers_string2                                        ;
+    ldx #the_frontiers_string                                         ;
     jsr print_compressed_string                                       ;
     jsr screen_on
     lda #osbyte_flush_buffer_class                                    ;
@@ -9464,41 +9466,35 @@ print_regular_string
 
 ; ----------------------------------------------------------------------------------
 move_to_next_byte
-    lda #8                                                            ;
-    sta lookup_bit                                                    ;
     inc lookup_low                                                    ;
     bne +                                                             ;
     inc lookup_high                                                   ;
 +
-    ldy #0                                                            ;
+    dec bytes_left
+    bne get_byte
+    pla ; done with this string
+    pla
+    rts
+get_byte
     lda (lookup_low),y                                                ;
-    sta lookup_byte                                                   ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-get_bit
-    lsr lookup_byte                                                   ; get result
-    php                                                               ; push result
-
-    ; move on to the next bit
-    dec lookup_bit                                                    ;
-    bne +                                                             ;
-    jsr move_to_next_byte                                             ;
-+
-    plp
-    rts                                                               ;
+    sec ; set MSB
+    ror
+    bne resume_getting_bits ; always
 
 ; ----------------------------------------------------------------------------------
 get_x_bits
     lda #0                                                            ;
     sta result                                                        ;
+    lda lookup_byte
 -
-    jsr get_bit                                                       ;
+    lsr                                                   ; get result
+    beq move_to_next_byte                                         
+resume_getting_bits
     rol result                                                        ;
     dex                                                               ;
     bne -                                                             ;
+    sta lookup_byte
     lda result                                                        ;
-return4
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9509,11 +9505,11 @@ print_compressed_string
     sta lookup_low                                                    ;
     lda #>text_data                                                   ;
     sta lookup_high                                                   ;
+    ldy #0                                                            ;
 -
+    lda (lookup_low),y                                                ;
     dex                                                               ;
     bmi ++                                                            ;
-    ldy #0                                                            ;
-    lda (lookup_low),y                                                ;
     clc                                                               ;
     adc lookup_low                                                    ;
     sta lookup_low                                                    ;
@@ -9523,16 +9519,16 @@ print_compressed_string
     bne -                                                             ;
 
 ++
-    jsr move_to_next_byte                                             ;
+    sta bytes_left
+    sty lookup_byte ; 0
 print_compressed_loop
     ldx #5                                                            ;
     jsr get_x_bits                                                    ;
-    cmp #30                                                           ;
-    beq token                                                      ;
-    bcs return4                                                       ; found terminator value 31
-    cmp #28                                                           ;
-    beq extended1                                                      ;
-    bcs extended2                                                       ; found terminator value 31
+    cmp #31                                                           ;
+    beq token                                                         ;
+    cmp #29                                                           ;
+    beq extended1                                                     ;
+    bcs extended2                                                     ;
     tax                                                               ;
     lda text_header_data,x                                            ;
 output_character
@@ -9567,6 +9563,7 @@ token
     iny
     cpy #4
     bne -
+    ldy #0                                                            ;
     jmp print_compressed_loop                                         ;
 
 ; ----------------------------------------------------------------------------------
