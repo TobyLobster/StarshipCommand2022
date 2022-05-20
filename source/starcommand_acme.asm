@@ -531,6 +531,7 @@ award                                   = enemy_ships_flags_or_explosion_timer
 ; High score table.
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
 high_score_table                        = $0100
+input_buffer                            = $0180
 
 ; enemy data $0400-$04ff
 enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $0400
@@ -8610,6 +8611,7 @@ plot_instructions
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen_key_table
+!if elk=0 {
     !byte $df                                                         ;
     !byte $8e                                                         ;
     !byte $8d                                                         ;
@@ -8620,7 +8622,18 @@ combat_preparation_screen_key_table
     !byte $e9                                                         ;
     !byte $89                                                         ;
     !byte $88                                                         ;
-
+} else {
+    !byte $cf
+    !byte $ce
+    !byte $ee
+    !byte $ed
+    !byte $ec
+    !byte $cb
+    !byte $db
+    !byte $ea
+    !byte $d9
+    !byte $d8
+}
 ; ----------------------------------------------------------------------------------
 game_options
 option_sound
@@ -8928,9 +8941,6 @@ leading_zero2
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
-input_buffer
-    !text "             "                                             ; 13 characters
-    !byte $0d                                                         ; terminator ($0d)
 input_osword_block
     !word input_buffer                                                ;
     !byte 13                                                          ; buffer length
@@ -9216,7 +9226,7 @@ skip_floor1
     bcc decrease_velocity                                             ;
 increase_velocity
     inc velocity_delta                                                ;
-    jmp consider_rotation                                             ;
+    bcs consider_rotation ; always
 
 decrease_velocity
     dec velocity_delta                                                ;
@@ -9241,7 +9251,7 @@ skip_subtraction
     bcs rotate_clockwise                                              ;
 rotate_anticlockwise
     dec rotation_delta                                                ;
-    jmp return31                                                      ;
+    bcc return31 ; always
 
 rotate_clockwise
     inc rotation_delta                                                ;
@@ -9564,7 +9574,7 @@ token
     cpy #4
     bne -
     ldy #0                                                            ;
-    jmp print_compressed_loop                                         ;
+    beq print_compressed_loop ; always
 
 ; ----------------------------------------------------------------------------------
 frontier_star_positions
@@ -9704,6 +9714,8 @@ frontier_star_positions
 
 ; ----------------------------------------------------------------------------------
 entry_point
+    ldx #$ff  ; we want all the stack
+    txs
     lda #140                                                          ; *TAPE
     jsr osbyte_zeroxy                                                 ;
     lda #225                                                          ; Function keys are
