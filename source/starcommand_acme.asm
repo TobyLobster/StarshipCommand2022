@@ -5185,9 +5185,10 @@ play_starship_engine_sound
     rol                                                               ;
     adc starship_rotation_magnitude                                   ;
     sta sound_10_pitch                                                ;
-    cmp #$0a                                                          ; Pitch = (velocity_high * 2) + rotation_magnitude
+    adc #2
+    cmp #$0d                                                          ; Pitch = (velocity_high * 2) + rotation_magnitude
     bcc skip_ceiling                                                  ;
-    lda #9                                                            ; volume = -min(pitch, 9) + 1
+    lda #12                                                           ; volume = -min(pitch, 9) + 1
 skip_ceiling
     ldx #<(sound_10)                                                  ;
     jsr sound_with_volume                                             ;
@@ -5223,8 +5224,10 @@ skip_pitch_bend
 skip_ceiling1
     ldx #<(sound_2)                                                   ;
     jsr sound_with_volume                                             ;
+!if elk=0 {
     ldx #<(sound_1)                                                   ; } no sound output here (volume is 0), but it
     jsr do_osword_sound                                               ; } sets the pitch for the white noise of sound_2 to follow...
+}
 skip_starship_explosion_sound
     lda escape_capsule_sound_channel                                  ;
     beq consider_torpedo_sound                                        ;
