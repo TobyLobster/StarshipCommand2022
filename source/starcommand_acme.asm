@@ -9285,23 +9285,20 @@ our_rdch
 irq_routine
     ; check master IRQ
     lda $fe00
-    and #1
-    beq call_old_irq
+    lsr
+    bcc call_old_irq
 
     ; check DisplayEnd interrupt (vsync)
-    lda $fe00
-    and #4
-    beq check_rtc
+    lsr
+    lsr
+    bcc check_rtc
     lsr irq_counter ; 0 indicates electron beam is in upper half of screen
     jmp every_vsync
-    bcc call_old_irq ; jump always
 
 check_rtc
     ; check RTC interrupt (at 100th scanline)
-    lda $fe00
-    and #8
-    beq call_old_irq
-    sec
+    lsr
+    bcc call_old_irq
     rol irq_counter ; 1 indicates electron beam is in lower half of screen
     ; fall through to call_old_irq
 
