@@ -5195,6 +5195,7 @@ skip_ceiling
     lda #$a0                                                          ; enable engine interrupt
     sta userVIAInterruptEnableRegister                                ; on timer 2
 }
+return19
     rts
 
 ; ----------------------------------------------------------------------------------
@@ -5252,7 +5253,7 @@ silent
     jsr sound_with_volume                                               ;
     lda escape_capsule_sound_channel                                  ;
     cmp #3                                                            ; has the starship exploded?
-    beq return20                                                      ;
+    beq return19                                                      ;
 consider_torpedo_sound
     lda starship_fired_torpedo                                        ;
     beq skip_starship_torpedo_sound                                   ;
@@ -5261,7 +5262,7 @@ consider_torpedo_sound
 
 skip_starship_torpedo_sound
     lda enemy_ships_collided_with_each_other                          ;
-    beq return20                                                     ;
+    beq return19                                                     ;
     ldx #<(sound_7)
     bne do_osword_sound ; always
 
@@ -5300,7 +5301,7 @@ flash_energy_when_low
     bne energy_is_already_low                                         ;
     lda starship_energy_divided_by_sixteen                            ;
     cmp #$32                                                          ;
-    bcs return20                                        ;
+    bcs return20                                                      ;
     lda #12                                                           ;
     sta energy_flash_timer                                            ;
 consider_warning_sound
@@ -5323,11 +5324,24 @@ consider_warning_sound
 
 ; ----------------------------------------------------------------------------------
 invert_energy_text
-    ldy #$2f                                                          ;
+    ldy #7                                                            ;
 invert_energy_text_loop
-    lda energy_screen_address,y                                       ;
+    lda energy_screen_address,y                                       ; E
     eor #$ff                                                          ;
     sta energy_screen_address,y                                       ;
+    sta energy_screen_address+16,y                                    ; second E
+    lda energy_screen_address+8,y                                     ; N
+    eor #$ff                                                          ;
+    sta energy_screen_address+8,y                                     ;
+    lda energy_screen_address+24,y                                    ; R
+    eor #$ff                                                          ;
+    sta energy_screen_address+24,y                                    ;
+    lda energy_screen_address+32,y                                    ; G
+    eor #$ff                                                          ;
+    sta energy_screen_address+32,y                                    ;
+    lda energy_screen_address+40,y                                    ; Y
+    eor #$ff                                                          ;
+    sta energy_screen_address+40,y                                    ;
     dey                                                               ;
     bpl invert_energy_text_loop                                       ;
 return20
