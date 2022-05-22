@@ -27,6 +27,7 @@ $raw = <F>;
 chunk(0x100,$header.$data);
 chunk(0x110,pack"v",20); # carrier
 chunk(0x100,$data2.$raw);
+chunk(0x110,pack"v",500); # carrier
 
 sub chunk {
     my ($id,$data)=@_;
