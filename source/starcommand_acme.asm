@@ -5164,6 +5164,7 @@ play_starship_engine_sound
     rol                                                               ;
     adc starship_rotation_magnitude                                   ;
     sta sound_10_pitch                                                ;
+    beq skip_ceiling
     adc #2
     cmp #$0d                                                          ; Pitch = (velocity_high * 2) + rotation_magnitude
     bcc skip_ceiling                                                  ;
