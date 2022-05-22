@@ -1051,8 +1051,12 @@ sound_4
     !byte $12, 0                                                      ; channel 2
     !byte 2, 0                                                        ; envelope 2
     !byte $c0, 0                                                      ; pitch 192
+!if elk {
+    ; echo effect is totally wasted on electron
+    !byte $4, 0                                                      ; duration 4
+} else {
     !byte $1f, 0                                                      ; duration 31
-
+}
 ; ----------------------------------------------------------------------------------
 ; Enemy ship hit by torpedo
 ; ----------------------------------------------------------------------------------
