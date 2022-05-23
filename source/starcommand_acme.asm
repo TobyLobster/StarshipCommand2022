@@ -494,7 +494,8 @@ score_delta_high                        = $a7
 score_as_bcd                            = $a8
 score_as_bcd_mid                        = $a9
 score_as_bcd_high                       = $aa
-
+codeptr_low                             = $ab
+codeptr_high                            = $ac
 num_frontier_star_updates               = $b1
 rotation_damper                         = $b2
 set_pixel_flag                          = $b3
@@ -614,42 +615,96 @@ ShortTimerValue  = 16*64 - 2
 
 load_addr
 
-    ; macros for object drawing
+; macros for object drawing
+; A holds the current screen modification byte
+; X and Y are between 0 and 7
 !macro left {
     dex
-    jsr eor_play_area_pixel_same_y
+    bpl +
+    jsr leftfix
++
+    eor xbit_table,X
 }
+
 !macro right {
     inx
-    jsr eor_play_area_pixel_same_y
+    cpx #8
+    bne +
+    jsr rightfix
++
+    eor xbit_table,X
 }
 !macro up {
-    dec y_pixels
-    jsr eor_play_area_pixel
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    dey
+    bpl +
+    jsr upfix
++
+    lda xbit_table,X
 }
 !macro down {
-    inc y_pixels
-    jsr eor_play_area_pixel
-}
-!macro upleft {
-    dex
-    dec y_pixels
-    jsr eor_play_area_pixel
-}
-!macro upright {
-    inx
-    dec y_pixels
-    jsr eor_play_area_pixel
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    iny
+    cpy #8
+    bne +
+    jsr downfix
++
+    lda xbit_table,X
 }
 !macro downleft {
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    iny
     dex
-    inc y_pixels
-    jsr eor_play_area_pixel
+    bmi .nope
+    cpy #8
+    bne .ok
+.nope
+    jsr downleftfix
+.ok
+    lda xbit_table,X
 }
 !macro downright {
+    eor (screen_address_low),y
+    sta (screen_address_low),y
     inx
-    inc y_pixels
-    jsr eor_play_area_pixel
+    iny
+    cpx #8
+    beq .nope
+    cpy #8
+    bne .ok
+.nope
+    jsr downrightfix
+.ok
+    lda xbit_table,X
+}
+!macro upleft {
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    dex
+    dey
+    bmi .nope
+    cpx #$ff
+    bne .ok
+.nope
+    jsr upleftfix
+.ok
+    lda xbit_table,X
+}
+!macro upright {
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    inx
+    dey
+    bmi .nope
+    cpx #8
+    bne .ok
+.nope
+    jsr uprightfix
+.ok
+    lda xbit_table,X
 }
 
 ; ----------------------------------------------------------------------------------
@@ -739,10 +794,10 @@ plus_angle41
     +downleft
 plus_angle42
 
-!if >plus_angle0 != >plus_angle42 {
-    !error "alignment error", plus_angle0, plus_angle42
-}
-plus_angle = plus_angle0 & 0xff00
+;!if >plus_angle0 != >plus_angle42 {
+;    !error "alignment error", plus_angle0, plus_angle42
+;}
+;plus_angle = plus_angle0 ; & 0xff00
 
 ; ----------------------------------------------------------------------------------
 starship_angle_fraction
@@ -798,7 +853,7 @@ starship_rotation_sine_table
 
 ; ----------------------------------------------------------------------------------
 ; Align to page boundary for speed
-;!align 255, 0
+!align 255, 0
 
 cosine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ; overlaps with sine table
@@ -851,49 +906,51 @@ plot_table_offset
     !byte <plus_angle39
     !byte <plus_angle40
     !byte <plus_angle41
-plot_table_offset2 = *-2 ; 0,1 are unused
-    !byte <plus_angle1-3
-    !byte <plus_angle2-3
-    !byte <plus_angle3-3
-    !byte <plus_angle4-3
-    !byte <plus_angle5-3
-    !byte <plus_angle6-3
-    !byte <plus_angle7-3
-    !byte <plus_angle8-3
-    !byte <plus_angle9-3
-    !byte <plus_angle10-3
-    !byte <plus_angle11-3
-    !byte <plus_angle12-3
-    !byte <plus_angle13-3
-    !byte <plus_angle14-3
-    !byte <plus_angle15-3
-    !byte <plus_angle16-3
-    !byte <plus_angle17-3
-    !byte <plus_angle18-3
-    !byte <plus_angle19-3
-    !byte <plus_angle20-3
-    !byte <plus_angle21-3
-    !byte <plus_angle22-3
-    !byte <plus_angle23-3
-    !byte <plus_angle24-3
-    !byte <plus_angle25-3
-    !byte <plus_angle26-3
-    !byte <plus_angle27-3
-    !byte <plus_angle28-3
-    !byte <plus_angle29-3
-    !byte <plus_angle30-3
-    !byte <plus_angle31-3
-    !byte <plus_angle32-3
-    !byte <plus_angle33-3
-    !byte <plus_angle34-3
-    !byte <plus_angle35-3
-    !byte <plus_angle36-3
-    !byte <plus_angle37-3
-    !byte <plus_angle38-3
-    !byte <plus_angle39-3
-    !byte <plus_angle40-3
-    !byte <plus_angle41-3
-    !byte <plus_angle42-3
+    !byte <plus_angle42
+plot_table_offset2
+    !byte >plus_angle0
+    !byte >plus_angle1
+    !byte >plus_angle2
+    !byte >plus_angle3
+    !byte >plus_angle4
+    !byte >plus_angle5
+    !byte >plus_angle6
+    !byte >plus_angle7
+    !byte >plus_angle8
+    !byte >plus_angle9
+    !byte >plus_angle10
+    !byte >plus_angle11
+    !byte >plus_angle12
+    !byte >plus_angle13
+    !byte >plus_angle14
+    !byte >plus_angle15
+    !byte >plus_angle16
+    !byte >plus_angle17
+    !byte >plus_angle18
+    !byte >plus_angle19
+    !byte >plus_angle20
+    !byte >plus_angle21
+    !byte >plus_angle22
+    !byte >plus_angle23
+    !byte >plus_angle24
+    !byte >plus_angle25
+    !byte >plus_angle26
+    !byte >plus_angle27
+    !byte >plus_angle28
+    !byte >plus_angle29
+    !byte >plus_angle30
+    !byte >plus_angle31
+    !byte >plus_angle32
+    !byte >plus_angle33
+    !byte >plus_angle34
+    !byte >plus_angle35
+    !byte >plus_angle36
+    !byte >plus_angle37
+    !byte >plus_angle38
+    !byte >plus_angle39
+    !byte >plus_angle40
+    !byte >plus_angle41
+    !byte >plus_angle42
 
 segment_angle_to_x_deltas_table
     !byte $1     ; 0   x+ y0
@@ -3069,23 +3126,146 @@ plot_segment_unrolled
     ldx segment_angle                                                 ; based on start angle,
     lda plot_table_offset,x                                           ; look up in a table
     sta jump_address                                                  ; the address we jump to (low byte)
+    lda plot_table_offset2,x                                           ; look up in a table
+    sta jump_address+1                                                  ; the address we jump to (high byte)
     txa                                                               ;
     clc                                                               ;
     adc segment_length                                                ; add the segment length
     tax                                                               ;
-    lda plot_table_offset2,x                                          ;
-    tax                                                               ;
-    stx remember_x                                                    ; remember the address (low) to finish at
-    lda #$4C                                                          ; opcode for JMP
-    sta plus_angle,x                                                  ;
+    lda plot_table_offset-1,x                                           ;
+    sta codeptr_low
+    lda plot_table_offset2-1,x                                          ;
+    sta codeptr_high
+    ldy #0
+    lda (codeptr_low),Y
+    sta remember_x                                                    ; save the opcode
+    lda #$60                                                          ; opcode for RTS
+    sta (codeptr_low),Y
     ldx x_pixels                                                      ;
-    jsr eor_play_area_pixel                                           ; first point
+    ldy y_pixels
+    jsr init_object_play_area
 jump_address = * + 1
-    jsr plus_angle                                                    ;
-    ldx remember_x                                                    ; recall the address (low)
-    lda #$20                                                          ; opcode for JSR
-    sta plus_angle,x                                                  ;
+    jsr $0000
+finish_object
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+    lda remember_x                                                    ; recall opcode
+    ldy #0
+    sta (codeptr_low),Y
     rts                                                               ;
+
+init_object_play_area
+    lda row_table_low,y                                               ;
+    and #$f8
+    clc
+    adc xandf8,x
+    sta screen_address_low                                            ;
+    lda play_area_row_table_high,y                                    ;
+    adc #0
+    sta screen_address_high                                           ;
+    txa
+    and #7
+    tax
+    tya
+    and #7
+    tay
+    lda xbit_table,X
+    rts
+
+leftfix
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+leftfix2
+    lda screen_address_low
+    sec
+    sbc #8
+    sta screen_address_low
+    bcs +
+    dec screen_address_high
++
+    ldx #7
+    lda #0
+    rts
+
+rightfix
+    eor (screen_address_low),y
+    sta (screen_address_low),y
+rightfix2
+    lda screen_address_low
+    clc
+    adc #8
+    sta screen_address_low
+    bcc +
+    inc screen_address_high
++
+    ldx #0
+    lda #0
+    rts
+
+downfix
+    lda #$40
+downfix_with_offset
+    clc
+    adc screen_address_low
+    sta screen_address_low
+    inc screen_address_high
+    bcc +
+    inc screen_address_high
++
+    ldy #0
+    rts
+
+downrightfix
+    cpx #8
+    bne downfix ; right doesn't need fixing
+    ; so it must be down that does
+    ; (we know *something* does)
+    cpy #8 ; right needs fixing. does down need fixing too?
+    bne rightfix2 ; no. only fix right
+    ldx #0 ; fix both
+    lda #$48
+    bne downfix_with_offset
+
+
+downleftfix
+    cpx #$ff
+    bne downfix
+    cpy #8
+    bne leftfix2
+    ldx #7
+    lda #$38
+    bne downfix_with_offset
+
+upfix
+    lda #$100-$40
+upfix_with_offset
+    clc
+    adc screen_address_low
+    sta screen_address_low
+    dec screen_address_high
+    bcs +
+    dec screen_address_high
++
+    ldy #7
+    rts
+
+upleftfix
+    cpx #$ff
+    bne upfix
+    cpy #$ff
+    bne leftfix2
+    ldx #7
+    lda #$100-$40-$8
+    bne upfix_with_offset
+
+uprightfix
+    cpx #8
+    bne upfix ; right doesn't need fixing
+    ldx #0 ; fix right. does down need fixing too?
+    cpy #$ff
+    bne rightfix2 ; no. only fix right
+    lda #$100-$40+$8
+    bne upfix_with_offset
 
 
 ; ----------------------------------------------------------------------------------
