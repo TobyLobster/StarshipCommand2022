@@ -9692,12 +9692,12 @@ extended1
     ldx #7
     !byte $2c
 extended2
-    jsr get_5_bits                                                    ;
+    ldx #5
+    jsr get_x_bits                                                    ;
     jmp output_character
 
 token
-    ldx #5                                                            ;
-    jsr get_x_bits                                                    ;
+    jsr get_5_bits                                                    ;
     sec                                                               ;
     sbc #$100 - award_you_the_order_of_the                            ;
     tax                                                               ;
