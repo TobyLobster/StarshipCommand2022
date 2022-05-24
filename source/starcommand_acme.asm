@@ -9308,7 +9308,6 @@ start
     ; display string
     ldx #the_frontiers_string                                         ;
     jsr print_compressed_string                                       ;
-    jsr screen_on
     lda #osbyte_flush_buffer_class                                    ;
     ldx #1                                                            ;
     ldy #0                                                            ;
@@ -9330,6 +9329,7 @@ start
     sta starship_rotation_sine_magnitude                              ;
     jsr init_self_modifying_bytes_for_starship_rotation               ;
     jsr plot_frontier_stars                                           ;
+    jsr screen_on
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
     jsr update_frontier_stars                                         ;
