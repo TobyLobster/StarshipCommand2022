@@ -2997,6 +2997,7 @@ no_collision
     dex                                                               ;
     stx torpedoes_still_to_consider                                   ;
     bne check_for_collisions_between_enemy_ships                      ;
+return9
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3067,9 +3068,6 @@ consider_next_enemy_ship
     dec enemy_ships_still_to_consider                                 ;
     beq return9                                                       ;
     jmp check_for_starship_collision_with_enemy_ships_loop            ;
-
-return9
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_segment
@@ -3458,7 +3456,7 @@ player_isnt_firing
     jsr activate_shields_when_enemy_ship_enters_main_square           ;
 skip_shield_activation
     lda shields_state_delta                                           ;
-    beq return10                                                      ;
+    beq return11                                                      ;
     ldx #regular_string_index_shield_state_on                         ;
     stx starship_automatic_shields                                    ;
     stx previous_starship_automatic_shields                           ;
@@ -3471,9 +3469,6 @@ skip_shield_activation
 plot_shields_on_and_consider_activation
     jsr plot_shields_string_and_something                             ;
     jmp unplot_long_range_scanner_if_shields_inactive                 ;
-
-return10
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 incur_damage
@@ -3640,9 +3635,6 @@ enemy_ship_is_on_screen
     beq return13                                                      ;
     jmp unplot_long_range_scanner_if_shields_inactive                 ;
 
-return13
-    rts                                                               ;
-
 ; ----------------------------------------------------------------------------------
 plot_vertical_line_xy
     sty y_pixels                                                      ;
@@ -3653,6 +3645,7 @@ plot_vertical_line_loop
     inc y_pixels                                                      ;
     dec temp3                                                         ;
     bne plot_vertical_line_loop                                       ;
+return13
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3668,6 +3661,7 @@ plot_horizontal_line_loop
     inx
     dec temp3                                                         ;
     bne plot_horizontal_line_loop                                     ;
+return14
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3681,9 +3675,7 @@ damage_enemy_ship
 skip16
     sta enemy_ships_energy,x                                          ;
     bne return14                                                      ;
-    jsr explode_enemy_ship                                            ;
-return14
-    rts                                                               ;
+    jmp explode_enemy_ship                                            ;
 
 ; ----------------------------------------------------------------------------------
 ; On Exit:
@@ -5114,6 +5106,7 @@ random_number_generator
     sta rnd_1                                                         ; x ^= x >> 9 and the low part of x ^= x << 7 done
     eor rnd_2                                                         ;
     sta rnd_2                                                         ; x ^= x << 8 done
+return16a
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -5135,9 +5128,7 @@ plot_energy_bar_edges_loop
     ldy #$93                                                          ;
     ldx #$0c                                                          ;
     lda #$21                                                          ;
-    jsr plot_vertical_line_xy                                         ;
-return16a
-    rts                                                               ;
+    jmp plot_vertical_line_xy                                         ;
 
 ; ----------------------------------------------------------------------------------
 check_for_keypresses
@@ -7702,10 +7693,10 @@ prepare_starship_for_next_command
     cld                                                               ; BCD off
     cli                                                               ;
     sta command_number                                                ;
+    tax
 
     ; set velocity of enemy ships, based on command number
     lda #enemy_full_speed                                             ; full speed
-    ldx command_number                                                ;
     cpx #3                                                            ;
     bcs +                                                             ;
     lda initial_enemy_speed_per_command - 1,x                         ; lower speeds for lower commands
@@ -9643,6 +9634,8 @@ get_byte
     bne resume_getting_bits ; always
 
 ; ----------------------------------------------------------------------------------
+get_5_bits
+    ldx #5                                                            ;
 get_x_bits
     lda #0                                                            ;
     sta result                                                        ;
@@ -9683,8 +9676,7 @@ print_compressed_string
     sta bytes_left
     sty lookup_byte ; 0
 print_compressed_loop
-    ldx #5                                                            ;
-    jsr get_x_bits                                                    ;
+    jsr get_5_bits                                                    ;
     cmp #31                                                           ;
     beq token                                                         ;
     cmp #29                                                           ;
@@ -9700,8 +9692,7 @@ extended1
     ldx #7
     !byte $2c
 extended2
-    ldx #5
-    jsr get_x_bits                                                    ;
+    jsr get_5_bits                                                    ;
     jmp output_character
 
 token
