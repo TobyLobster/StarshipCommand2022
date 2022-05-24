@@ -501,6 +501,59 @@ starship_energy_low                     = $a9
 starship_energy_high                    = $aa
 desired_velocity_for_intact_enemy_ships = $ab
 
+starship_angle_fraction                 = $ac
+starship_angle_delta                    = $ad
+value_used_for_enemy_torpedo_time_to_live = $ae
+maximum_number_of_stars                 = $af
+starship_shields_active                 = $b0
+starship_torpedo_cooldown               = $b1
+fire_pressed                            = $b2
+damage_high                             = $b3
+damage_low                              = $b4
+starship_destroyed                      = $b5
+starship_energy_divided_by_sixteen      = $b6
+starship_energy_regeneration            = $b7
+starship_automatic_shields              = $b8
+value_of_x_when_incur_damage_called     = $b9
+shields_state_delta                     = $ba
+rotation_delta                          = $bb
+starship_rotation_fraction              = $bc
+velocity_delta                          = $bd
+velocity_damper                         = $be
+enemy_ship_type                         = $bf
+starship_torpedo_counter                = $c0
+previous_starship_automatic_shields     = $c1
+starship_has_exploded                   = $c2
+starship_explosion_countdown            = $c3
+create_new_enemy_explosion_piece_after_one_dies = $c4
+keyboard_or_joystick                    = $c5
+escape_capsule_launched                 = $c6
+escape_capsule_sound_channel            = $c7
+enemy_ship_fired_torpedo                = $c8
+enemy_ships_collided_with_each_other    = $c9
+enemy_torpedo_hits_against_starship     = $ca
+enemy_ship_was_hit                      = $cb
+damage_to_enemy_ship_from_other_collision = $cc
+enemy_ships_collision_x_difference      = $cd
+enemy_ships_collision_y_difference      = $ce
+timer_for_low_energy_warning_sound      = $cf
+
+zp_end                                  = $d0
+
+sound_needed_for_low_energy             = $e2
+energy_flash_timer                      = $e3
+starship_collided_with_enemy_ship       = $e4
+velocity_gauge_position                 = $e5
+rotation_gauge_position                 = $f5
+enemy_ship_desired_angle_divided_by_eight = $f6 
+number_of_live_starship_torpedoes       = $f7
+starship_fired_torpedo                  = $f8
+scanner_failure_duration                = $f9
+starship_shields_active_before_failure  = $fd
+starship_torpedo_type                   = $fe
+
+
+
 
 ; reuse zero page variables when filling in enemy cache
 enemy_x                                 = enemy_ships_flags_or_explosion_timer
@@ -516,6 +569,11 @@ award                                   = enemy_ships_flags_or_explosion_timer
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
+
+; OS sound suppression flag
+; reusing this flag makes the OS not beep during high score entry
+; when we have sound disabled
+sound_enabled = $262
 
 ; High score table.
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
@@ -788,6 +846,7 @@ plus_angle42
 ;plus_angle = plus_angle0 ; & 0xff00
 
 ; ----------------------------------------------------------------------------------
+!if 0 {
 starship_angle_fraction
     !byte $c4                                                         ;
 starship_angle_delta
@@ -833,6 +892,7 @@ starship_torpedo_counter
     !byte 0                                                           ;
 previous_starship_automatic_shields
     !byte 0                                                           ;
+}
 
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
@@ -4275,34 +4335,6 @@ convert_enemy_8to31
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-starship_has_exploded
-    !byte 0                                                           ;
-starship_explosion_countdown
-    !byte 0                                                           ;
-create_new_enemy_explosion_piece_after_one_dies
-    !byte 0                                                           ;
-keyboard_or_joystick
-    !byte 0                                                           ;
-; OS sound suppression flag
-; reusing this flag makes the OS not beep during high score entry
-; when we have sound disabled
-sound_enabled = $262
-escape_capsule_launched
-    !byte 0                                                           ;
-escape_capsule_sound_channel
-    !byte 0                                                           ;
-enemy_ship_fired_torpedo
-    !byte 0                                                           ;
-enemy_ships_collided_with_each_other
-    !byte 0                                                           ;
-enemy_torpedo_hits_against_starship
-    !byte 0                                                           ;
-enemy_ship_was_hit
-    !byte 0                                                           ;
-damage_to_enemy_ship_from_other_collision
-    !byte $ea                                                         ;
-
-; ----------------------------------------------------------------------------------
 enemy_explosion_address_low_table
     !byte <(enemy_explosion_tables + $0000)                           ;
     !byte <(enemy_explosion_tables + $0040)                           ;
@@ -5404,20 +5436,6 @@ do_osword_sound
     jmp (wordv)                                                       ;
 
 ; ----------------------------------------------------------------------------------
-enemy_ships_collision_x_difference
-    !byte 6                                                           ;
-enemy_ships_collision_y_difference
-    !byte 5                                                           ;
-timer_for_low_energy_warning_sound
-    !byte 0                                                           ;
-sound_needed_for_low_energy
-    !byte 0                                                           ;
-energy_flash_timer
-    !byte 0                                                           ;
-starship_collided_with_enemy_ship
-    !byte 0                                                           ;
-
-; ----------------------------------------------------------------------------------
 flash_energy_when_low
     lda energy_flash_timer                                            ;
     bne energy_is_already_low                                         ;
@@ -5486,6 +5504,7 @@ nobeep
     sta sound_needed_for_low_energy                                   ;
     jmp play_starship_engine_sound
 
+!if 0 {
 ; ----------------------------------------------------------------------------------
 enemy_ship_desired_angle_divided_by_eight
     !byte 0                                                           ;
@@ -5499,7 +5518,7 @@ starship_shields_active_before_failure
     !byte $ea                                                         ;
 starship_torpedo_type
     !byte 0                                                           ;
-
+}
 ; ----------------------------------------------------------------------------------
 handle_enemy_ships_cloaking
     lda #maximum_number_of_enemy_ships                                ;
@@ -6798,10 +6817,6 @@ starship_sprite_11
 
 
 ; ----------------------------------------------------------------------------------
-velocity_gauge_position
-    !byte 0                                                           ;
-rotation_gauge_position
-    !byte 0                                                           ;
 scores_for_destroying_enemy_ships
     ; BCD scores
     !byte $08   ; first ship type, starship torpedo                           ; how_enemy_ship_was_damaged = 0
@@ -9881,10 +9896,25 @@ done
     jsr create_square_tables                                          ;
     jsr create_other_tables                                           ;
 
+    ; clear zp vars
+    lda #0
+    ldx #zp_end
+-
+    sta $ff,x ; yes! this wraps
+    dex
+    bne -
+    ; and any other zp oddballs
+    sta sound_needed_for_low_energy
+    sta energy_flash_timer
+    sta starship_torpedo_type
+
     lda #$ca                                                          ;
     sta rnd_1                                                         ; seed random numbers
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
+    sta starship_shields_active ; for some reason this needs initializing
+    lda #$ff
+    sta starship_energy_divided_by_sixteen ; disable low energy flashing
 
     ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
     ldx #regular_strings_end - regular_strings_start
