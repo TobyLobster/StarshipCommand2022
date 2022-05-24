@@ -299,6 +299,8 @@ base_regeneration_rate_for_starship                                 = 12
 base_damage_to_enemy_ship_from_other_collision                      = 20
 change_in_number_of_stars_per_command                               = -2
 
+danger_height                           = 8
+
 ; ----------------------------------------------------------------------------------
 ; OS constants
 ; ----------------------------------------------------------------------------------
@@ -388,130 +390,116 @@ c                                       = $01
 prod_low                                = $02
 t                                       = $03
 
-unused04                                = $04
-unused05                                = $05
-unused06                                = $06
-unused07                                = $07
+how_enemy_ship_was_damaged              = $04
 
-how_enemy_ship_was_damaged              = $08
+starship_velocity_high                  = $05
+starship_velocity_low                   = $06
+starship_rotation                       = $07
+starship_rotation_magnitude             = $08
+starship_rotation_cosine                = $09
+starship_rotation_sine_magnitude        = $0a
 
-starship_velocity_high                  = $09
-starship_velocity_low                   = $0a
-starship_rotation                       = $0b
-starship_rotation_magnitude             = $0c
-starship_rotation_cosine                = $0d
-starship_rotation_sine_magnitude        = $0e
+stars_still_to_consider                 = $0b   ; }
+explosion_bits_still_to_consider        = $0b   ; } same location
+enemy_ships_still_to_consider           = $0b   ; }
 
-stars_still_to_consider                 = $0f   ; }
-explosion_bits_still_to_consider        = $0f   ; } same location
-enemy_ships_still_to_consider           = $0f   ; }
+torpedoes_still_to_consider             = $0c
+enemy_ship_was_previously_on_screen     = $0d
+enemy_ship_was_on_screen                = $0e
+remember_x                              = $0f
+old_timing_counter                      = $10
+timing_counter                          = $11
 
-torpedoes_still_to_consider             = $10
-enemy_ship_was_previously_on_screen     = $11
-enemy_ship_was_on_screen                = $12
-remember_x                              = $13
-old_timing_counter                      = $14
-timing_counter                          = $15
+engine_sound_shifter                    = $12
+irqtmp                                  = $13   ; IRQ-safe temporary
+enemy_low                               = $14
+enemy_high                              = $15
+plot_enemy_progress                     = $16
+lookup_low                              = $17
+lookup_high                             = $18
+lookup_byte                             = $19
+bytes_left                              = $1a
+result                                  = $1b
+end_low                                 = $1c
+end_high                                = $1d
+starship_low                            = $1e   ; }
+cache_start_low                         = $1e   ; } same location
 
-engine_sound_shifter                    = $16
-irqtmp                                  = $17   ; IRQ-safe temporary
-enemy_low                               = $18
-enemy_high                              = $19
-plot_enemy_progress                     = $1a
-lookup_low                              = $1b
-lookup_high                             = $1c
-lookup_byte                             = $1d
-bytes_left                              = $1e
-result                                  = $1f
-end_low                                 = $20
-end_high                                = $21
-starship_low                            = $22   ; }
-cache_start_low                         = $22   ; } same location
+starship_high                           = $1f   ; }
+cache_start_high                        = $1f   ; } same location
 
-starship_high                           = $23   ; }
-cache_start_high                        = $23   ; } same location
+enemy_number                            = $20   ; Enemy definition 0-5
+enemy_stride                            = $21   ; offset in bytes to get from one enemy angle definition to the next
 
-enemy_number                            = $24   ; Enemy definition 0-5
-enemy_stride                            = $25   ; offset in bytes to get from one enemy angle definition to the next
+irq_counter                             = $22   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
+temp_x                                  = $23   ;
+temp_y                                  = $24   ;
 
-irq_counter                             = $26   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
-danger_height                           = $27   ;
-temp_x                                  = $28   ;
-temp_y                                  = $29   ;
+object_x_fraction                       = $25   ;
+object_x_pixels                         = $26   ;
+object_y_fraction                       = $27   ;
+object_y_pixels                         = $28   ;
 
-object_x_fraction                       = $2a   ;
-object_x_pixels                         = $2b   ;
-object_y_fraction                       = $2c   ;
-object_y_pixels                         = $2d   ;
+enemy_ships_flags_or_explosion_timer    = $29 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $29
+enemy_ships_on_screen                   = $29 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $31
+enemy_ships_x_fraction                  = $29 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $39
+enemy_ships_x_pixels                    = $29 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $41
+enemy_ships_x_screens                   = $29 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $49
+enemy_ships_y_fraction                  = $29 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $51
+enemy_ships_y_pixels                    = $29 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $59
+enemy_ships_y_screens                   = $29 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $61
+enemy_ships_velocity                    = $29 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $69
+enemy_ships_angle                       = $29 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $71
+enemy_ships_temporary_behaviour_flags   = $29 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $79
+enemy_ships_energy                      = $29 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $81
+rnd_1                                   = $89   ;
+rnd_2                                   = $8a   ;
 
-enemy_ships_flags_or_explosion_timer    = $2e +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $2e
-enemy_ships_on_screen                   = $2e +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $36
-enemy_ships_x_fraction                  = $2e +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $3e
-enemy_ships_x_pixels                    = $2e +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $46
-enemy_ships_x_screens                   = $2e +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $4e
-enemy_ships_y_fraction                  = $2e +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $56
-enemy_ships_y_pixels                    = $2e +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $5e
-enemy_ships_y_screens                   = $2e +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $66
-enemy_ships_velocity                    = $2e +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $6e
-enemy_ships_angle                       = $2e +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $76
-enemy_ships_temporary_behaviour_flags   = $2e + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $7e
-enemy_ships_energy                      = $2e + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $86
-rnd_1                                   = $8e   ;
-rnd_2                                   = $8f   ;
+screen_address_low                      = $8b
+screen_address_high                     = $8c
+output_pixels                           = $8d   ; } same location
+segment_angle_change_per_pixel          = $8d   ; }
+output_fraction                         = $8e
+segment_length                          = $8f   ; } same location
+multiplier                              = $8f   ; }
+temp8                                   = $90
+temp9                                   = $91   ; } same location
+input_fraction                          = $91   ; }
 
-screen_address_low                      = $90
-screen_address_high                     = $91
-output_pixels                           = $92   ; } same location
-segment_angle_change_per_pixel          = $92   ; }
-output_fraction                         = $93
-segment_length                          = $94   ; } same location
-multiplier                              = $94   ; }
-temp8                                   = $95
-temp9                                   = $96   ; } same location
-input_fraction                          = $96   ; }
+temp10                                  = $92   ; } same location
+input_pixels                            = $92   ; }
 
-temp10                                  = $97   ; } same location
-input_pixels                            = $97   ; }
+segment_angle                           = $93   ; } same location
+input_screens                           = $93   ; }
+x_pixels                                = $94
+y_pixels                                = $95
 
-segment_angle                           = $98   ; } same location
-input_screens                           = $98   ; }
-x_pixels                                = $9a
-y_pixels                                = $9b
+temp11                                  = $96
+temp0_low                               = $97
+temp0_high                              = $98
+temp1_low                               = $99
+temp1_high                              = $9a
+temp3                                   = $9b
+temp4                                   = $9c
+temp5                                   = $9d
+temp6                                   = $9e
+temp7                                   = $9f
 
-temp11                                  = $9c
-temp0_low                               = $9d
-temp0_high                              = $9e
-temp1_low                               = $9f
-temp1_high                              = $a0
-temp3                                   = $a1
-temp4                                   = $a2
-temp5                                   = $a3
-temp6                                   = $a4
-temp7                                   = $a5
+score_delta_low                         = $a0
+score_delta_high                        = $a1
+score_as_bcd                            = $a2
+score_as_bcd_mid                        = $a3
+score_as_bcd_high                       = $a4
+codeptr_low                             = $a5   ; } same location
+set_pixel_flag                          = $a5   ; }
+codeptr_high                            = $a6   ; } same location
+num_frontier_star_updates               = $a6   ; }
+rotation_damper                         = $a7
 
-score_delta_low                         = $a6
-score_delta_high                        = $a7
-score_as_bcd                            = $a8
-score_as_bcd_mid                        = $a9
-score_as_bcd_high                       = $aa
-codeptr_low                             = $ab
-codeptr_high                            = $ac
-num_frontier_star_updates               = $b1
-rotation_damper                         = $b2
-set_pixel_flag                          = $b3
-
-enemy_ship_update_done                  = $b4
-enemy_ship_update_done1                 = $b5
-enemy_ship_update_done2                 = $b6
-enemy_ship_update_done3                 = $b7
-enemy_ship_update_done4                 = $b8
-enemy_ship_update_done5                 = $b9
-enemy_ship_update_done6                 = $ba
-enemy_ship_update_done7                 = $bb
-
-starship_energy_low                     = $bc
-starship_energy_high                    = $bd
-desired_velocity_for_intact_enemy_ships = $be
+enemy_ship_update_done                  = $a8
+starship_energy_low                     = $a9
+starship_energy_high                    = $aa
+desired_velocity_for_intact_enemy_ships = $ab
 
 
 ; reuse zero page variables when filling in enemy cache
@@ -2726,13 +2714,26 @@ not_previously_on_screen
     jmp initialise_enemy_ship                                         ;
 
 ; ----------------------------------------------------------------------------------
+plot_enemy_ships
+    ; initialize the array to ones (nothing done yet)
+    lda #(1<<maximum_number_of_enemy_ships)-1
+    sta enemy_ship_update_done
+
+retry_loop
+    ldx #0
+    lda #maximum_number_of_enemy_ships                                ;
+    sta enemy_ships_still_to_consider                                 ;
+
+plot_enemy_ships_loop
+; ----------------------------------------------------------------------------------
 ; On Exit:
 ;   Preserves X
 ; ----------------------------------------------------------------------------------
 try_plot_enemy_ship
     ldy enemy_ships_still_to_consider                                 ;
-    lda enemy_ship_update_done - 1,y                                  ;
-    bmi skip_enemy_altogether                                         ; if (already updated) then branch
+    lda xbit_table,X
+    bit enemy_ship_update_done
+    beq skip_enemy_altogether                                         ; if (already updated) then branch
 
     lda enemy_ships_on_screen,x                                       ;
     bne not_on_screen_a                                               ;
@@ -2794,9 +2795,9 @@ copy_position_without_plotting
     ; jsr debug_make_background_black
 
     ; mark enemy as done
-    ldy enemy_ships_still_to_consider                                 ;
-    lda #$ff                                                          ;
-    sta enemy_ship_update_done - 1,y                                  ;
+    lda enemy_ship_update_done
+    eor xbit_table,X                                                  ;
+    sta enemy_ship_update_done
 
     lda enemy_ships_on_screen,x                                       ;
     sta enemy_ships_previous_on_screen,x                              ;
@@ -2812,54 +2813,15 @@ copy_position_without_plotting
     sta enemy_ships_previous_x_fraction,x                             ;
 
 skip_enemy_altogether
-    ; move X onto next enemy
-    inx                                                               ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-plot_enemy_ships
-    lda #8                                                            ;
-    sta danger_height                                                 ;
-
-    ; initialize the array to zero (nothing done yet)
-    ldx #maximum_number_of_enemy_ships-1                              ;
-    lda #0                                                            ;
--
-    sta enemy_ship_update_done,x                                      ;
-    dex                                                               ;
-    bpl -                                                             ;
-
-retry_loop
-    ldx #0                                                            ;
-    lda #maximum_number_of_enemy_ships                                ;
-    sta enemy_ships_still_to_consider                                 ;
-
-plot_enemy_ships_loop
-    jsr try_plot_enemy_ship                                           ;
-
-    dec enemy_ships_still_to_consider                                 ;
-    bne plot_enemy_ships_loop                                         ;
-
-!if elk=1 {
-    ; check if all enemies have updated (instead of checking all 8 enemies; this allows use to change maximum_number_of_enemy_ships if we wanted)
-    ldx #maximum_number_of_enemy_ships-1
-check_update_loop
-    lda enemy_ship_update_done,x
-    beq retry_loop
-    dex
-    bpl check_update_loop
-} else {
     ; check if all enemies have updated
     lda enemy_ship_update_done                                        ;
-    and enemy_ship_update_done+1                                      ;
-    and enemy_ship_update_done+2                                      ;
-    and enemy_ship_update_done+3                                      ;
-    and enemy_ship_update_done+4                                      ;
-    and enemy_ship_update_done+5                                      ;
-    and enemy_ship_update_done+6                                      ;
-    and enemy_ship_update_done+7                                      ;
-    beq retry_loop                                                    ;
-}
+    beq return8                                                       ;
+
+    ; move X onto next enemy
+    inx                                                               ;
+    dec enemy_ships_still_to_consider                                 ;
+    beq retry_loop
+    bne plot_enemy_ships_loop                                         ;
 
 return8
     rts                                                               ;
@@ -8248,11 +8210,11 @@ is_in_danger_area
     lsr                                                               ; A = character row
     sec                                                               ;
     sbc irq_counter                                                   ;
-    cmp danger_height                                                 ;
+    cmp #danger_height                                                 ;
     bcc done1                                                         ;
     sec                                                               ;
     sbc #256-38                                                       ;
-    cmp danger_height                                                 ;
+    cmp #danger_height                                                 ;
 done1
     rts                                                               ;
 }
