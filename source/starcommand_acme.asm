@@ -9692,12 +9692,12 @@ extended1
     ldx #7
     !byte $2c
 extended2
-    jsr get_5_bits                                                    ;
+    ldx #5
+    jsr get_x_bits                                                    ;
     jmp output_character
 
 token
-    ldx #5                                                            ;
-    jsr get_x_bits                                                    ;
+    jsr get_5_bits                                                    ;
     sec                                                               ;
     sbc #$100 - award_you_the_order_of_the                            ;
     tax                                                               ;
@@ -9898,6 +9898,7 @@ done
     sta sound_needed_for_low_energy
     sta energy_flash_timer
     sta starship_torpedo_type
+    sta scanner_failure_duration
 
     lda #$ca                                                          ;
     sta rnd_1                                                         ; seed random numbers
