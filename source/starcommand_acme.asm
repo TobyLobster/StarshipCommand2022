@@ -8716,35 +8716,6 @@ oswrch_ay
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
-; On Entry:
-;   X non-zero means skip any leading zeros
-plot_bcd_number_as_two_digits
-    tay                                                               ; print digits
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    bne has_non_zero_tens                                             ;
-    txa                                                               ;
-    bne skip_leading_zeroes                                           ;
-has_non_zero_tens
-    ldx #0                                                            ;
-    ora #'0'                                                          ;
-    jsr oswrch                                                        ;
-skip_leading_zeroes
-    tya                                                               ;
-    and #$0f                                                          ;
-    bne has_non_zero_ones                                             ;
-    txa                                                               ;
-    bne skip_leading_zeroes_again                                     ;
-has_non_zero_ones
-    ldx #0                                                            ;
-    ora #'0'                                                          ;
-    jmp oswrch                                                        ;
-skip_leading_zeroes_again
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 plot_instructions
     ldx #instructions_string1                                         ;
     jsr print_compressed_string                                       ;
@@ -9898,6 +9869,7 @@ done
     sta sound_needed_for_low_energy
     sta energy_flash_timer
     sta starship_torpedo_type
+    sta scanner_failure_duration
 
     lda #$ca                                                          ;
     sta rnd_1                                                         ; seed random numbers
