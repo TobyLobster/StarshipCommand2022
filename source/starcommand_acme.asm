@@ -602,16 +602,15 @@ enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_s
 enemy_address_high                      = enemy_address_low + 64                        ; i.e. starts at $0498
 enemy_address_high_end                  = enemy_address_high + 64                       ; i.e. end    at $04d7
 
-; 40 unused bytes starts at $04d8
+enemy_cache_a                           = $4d8
+    ; (x, y, start_angle, length) = 4 bytes
+    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
+; to $758
+
+enemy_torpedoes_table                   = enemy_cache_a + 640
+; length 144: to 7e8
 
 stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
-
-xandf8                                  = $0500  ; }
-xbit_table                              = $0600  ; } tables of constants (768 bytes)
-
-!if elk=0 {
-xtwobits_table                      = $0700  ; }
-}
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
 squares1_high                           = $0b00  ; } (1k total)
@@ -620,18 +619,13 @@ squares2_low                            = $0e00  ; } 512 entries of 16 bit value
 squares2_high                           = $1000  ; } (1k total)
 row_table_low                           = $1200
 play_area_row_table_high                = $1300
-; 1.375K of enemy definition cache
-enemy_cache_a                           = $1400
-    ; (x, y, start_angle, length) = 4 bytes
-    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
-enemy_cache_b                           = $1680
-    ; (x, y, start_angle, length) = 4 bytes
-    ; 4 bytes * 6 arcs * 32 angles = 768 bytes
-
+xandf8                                  = $1400  ; }
+xbit_table                              = $1500  ; } tables of constants (768 bytes)
     ; table to hold the star data while in game
     ; and also on the frontiers screen (which is larger,
     ; so we overwrite the following tables)
-star_table                              = $1980
+star_table                              = $1600
+frontier_star_positions_x               = $1900
 
 starship_explosion_table                = star_table + maximum_number_of_stars_in_game * 4
      ; randomised when needed
@@ -639,9 +633,11 @@ starship_explosion_table                = star_table + maximum_number_of_stars_i
 
 enemy_explosion_tables                  = starship_explosion_table + 192
 
-enemy_torpedoes_table                   = enemy_explosion_tables + 512
+enemy_cache_b                           = enemy_explosion_tables + 512
+    ; (x, y, start_angle, length) = 4 bytes
+    ; 4 bytes * 6 arcs * 32 angles = 768 bytes
 
-end_of_tables = enemy_torpedoes_table + 144
+end_of_tables = enemy_cache_b + 768
 ;!warn "end of tables: ", end_of_tables
 starship_torpedoes_table                = $373 ; 108 bytes spare from $373 to $3df
 
@@ -1348,15 +1344,10 @@ eor_two_play_area_pixels_ycoord_in_y
     sta screen_address_low                                            ;
 eor_two_play_area_pixels_same_y
     ldy xandf8,x
-!if (elk=0) {
-    lda xtwobits_table,x                                                  ;
-    beq straddle ; straddles two bytes
-} else {
     lda xbit_table,x
     lsr
     bcs straddle
     ora xbit_table,x
-}
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
@@ -2241,6 +2232,18 @@ skip5
     bne update_stars_loop                                             ;
     rts                                                               ;
 
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
+
 ; ----------------------------------------------------------------------------------
 update_frontier_stars
     ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
@@ -2255,21 +2258,28 @@ initialise_frontier_stars
     sta temp0_high                                                    ;
     ldy #0                                                            ;
     ldx #0                                                            ;
+    jsr skip
 initialise_stars_loop
-    lda #$80                                                          ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    lda frontier_star_positions,x                                     ;
+    lda frontier_star_positions_x,x                                   ;
+    jsr init_star_both
+    inx                                                               ;
+    bpl initialise_stars_loop                                         ;
+    lda #162                                                          ;
+    sta num_frontier_star_updates                                     ;
+    rts                                                               ;
+init_star_both
+    jsr init_star
+    lda frontier_star_positions_y,x                                   ;
+init_star
     sta (temp0_low),y                                                 ;
     iny                                                               ;
     bne skip                                                          ;
     inc temp0_high                                                    ;
 skip
-    inx                                                               ;
-    bne initialise_stars_loop                                         ;
-    lda #162                                                          ;
-    sta num_frontier_star_updates                                     ;
-    rts                                                               ;
+    lda #$80                                                          ;
+    sta (temp0_low),y                                                 ;
+    iny                                                               ;
+    rts
 
 ; ----------------------------------------------------------------------------------
 unplot_long_range_scanner_if_shields_inactive
@@ -9261,6 +9271,19 @@ post_reloc
     jsr oswrch_ay
 start
     ; initialise stars for frontiers rotating globe
+init_frontier_x_coords
+    lda #$5e
+    ldx #0
+    jsr init_first_frontier_coord
+    ldy #31
+-
+    jsr init_frontier_x_coord
+    dey
+    bpl -
+-
+    iny
+    jsr init_frontier_x_coord
+    bpl -
     jsr initialise_frontier_stars                                     ;
 
     jsr initialise_joystick_and_cursor_keys                           ;
@@ -9689,161 +9712,149 @@ token
     ldy #0                                                            ;
     beq print_compressed_loop ; always
 
-; ----------------------------------------------------------------------------------
-frontier_star_positions
-    ; this defines a 'globe' of 128 stars each with (X,Y) position
-    !byte $5E, $80
-    !byte $5F, $78
-    !byte $5F, $7D
-    !byte $5F, $83
-    !byte $5F, $88
-    !byte $60, $70
-    !byte $60, $90
-    !byte $61, $73
-    !byte $61, $8D
-    !byte $62, $7B
-    !byte $62, $85
-    !byte $63, $69
-    !byte $63, $97
-    !byte $64, $6E
-    !byte $64, $92
-    !byte $65, $79
-    !byte $65, $87
-    !byte $66, $62
-    !byte $66, $9E
-    !byte $68, $6A
-    !byte $68, $96
-    !byte $6A, $5B
-    !byte $6A, $77
-    !byte $6A, $89
-    !byte $6A, $A5
-    !byte $6D, $66
-    !byte $6D, $9A
-    !byte $70, $56
-    !byte $70, $75
-    !byte $70, $8B
-    !byte $70, $AA
-    !byte $72, $62
-    !byte $72, $9E
-    !byte $75, $50
-    !byte $75, $B0
-    !byte $76, $74
-    !byte $76, $8C
-    !byte $79, $5F
-    !byte $79, $A1
-    !byte $7C, $4C
-    !byte $7C, $B4
-    !byte $7D, $73
-    !byte $7D, $8D
-    !byte $7F, $5C
-    !byte $7F, $A4
-    !byte $83, $49
-    !byte $83, $B7
-    !byte $85, $72
-    !byte $85, $8E
-    !byte $87, $5A
-    !byte $87, $A6
-    !byte $8A, $46
-    !byte $8A, $BA
-    !byte $8D, $71
-    !byte $8D, $8F
-    !byte $8E, $59
-    !byte $8E, $A7
-    !byte $92, $45
-    !byte $92, $BB
-    !byte $96, $58
-    !byte $96, $71
-    !byte $96, $8F
-    !byte $96, $A8
-    !byte $9A, $44
-    !byte $9A, $BC
-    !byte $9E, $58
-    !byte $9E, $71
-    !byte $9E, $8F
-    !byte $9E, $A8
-    !byte $A2, $45
-    !byte $A2, $BB
-    !byte $A6, $59
-    !byte $A6, $A7
-    !byte $A7, $71
-    !byte $A7, $8F
-    !byte $AA, $46
-    !byte $AA, $BA
-    !byte $AD, $5A
-    !byte $AD, $A6
-    !byte $AF, $72
-    !byte $AF, $8E
-    !byte $B1, $49
-    !byte $B1, $B7
-    !byte $B5, $5C
-    !byte $B5, $A4
-    !byte $B7, $73
-    !byte $B7, $8D
-    !byte $B8, $4C
-    !byte $B8, $B4
-    !byte $BB, $5F
-    !byte $BB, $A1
-    !byte $BE, $74
-    !byte $BE, $8C
-    !byte $BF, $50
-    !byte $BF, $B0
-    !byte $C2, $62
-    !byte $C2, $9E
-    !byte $C4, $56
-    !byte $C4, $75
-    !byte $C4, $8B
-    !byte $C4, $AA
-    !byte $C7, $66
-    !byte $C7, $9A
-    !byte $CA, $5B
-    !byte $CA, $77
-    !byte $CA, $89
-    !byte $CA, $A5
-    !byte $CC, $6A
-    !byte $CC, $96
-    !byte $CE, $62
-    !byte $CE, $9E
-    !byte $CF, $79
-    !byte $CF, $87
-    !byte $D0, $6E
-    !byte $D0, $92
-    !byte $D1, $69
-    !byte $D1, $97
-    !byte $D2, $7B
-    !byte $D2, $85
-    !byte $D3, $73
-    !byte $D3, $8D
-    !byte $D4, $70
-    !byte $D4, $90
-    !byte $D5, $78
-    !byte $D5, $7D
-    !byte $D5, $83
-    !byte $D5, $88
-    !byte $D6, $80
+frontier_star_positions_y
+    ; this defines a 'globe' of 128 stars. X positions are calculated
+    !byte $80
+    !byte $78
+    !byte $7D
+    !byte $83
+    !byte $88
+    !byte $70
+    !byte $90
+    !byte $73
+    !byte $8D
+    !byte $7B
+    !byte $85
+    !byte $69
+    !byte $97
+    !byte $6E
+    !byte $92
+    !byte $79
+    !byte $87
+    !byte $62
+    !byte $9E
+    !byte $6A
+    !byte $96
+    !byte $5B
+    !byte $77
+    !byte $89
+    !byte $A5
+    !byte $66
+    !byte $9A
+    !byte $56
+    !byte $75
+    !byte $8B
+    !byte $AA
+    !byte $62
+    !byte $9E
+    !byte $50
+    !byte $B0
+    !byte $74
+    !byte $8C
+    !byte $5F
+    !byte $A1
+    !byte $4C
+    !byte $B4
+    !byte $73
+    !byte $8D
+    !byte $5C
+    !byte $A4
+    !byte $49
+    !byte $B7
+    !byte $72
+    !byte $8E
+    !byte $5A
+    !byte $A6
+    !byte $46
+    !byte $BA
+    !byte $71
+    !byte $8F
+    !byte $59
+    !byte $A7
+    !byte $45
+    !byte $BB
+    !byte $58
+    !byte $71
+    !byte $8F
+    !byte $A8
+    !byte $44
+    !byte $BC
+    !byte $58
+    !byte $71
+    !byte $8F
+    !byte $A8
+    !byte $45
+    !byte $BB
+    !byte $59
+    !byte $A7
+    !byte $71
+    !byte $8F
+    !byte $46
+    !byte $BA
+    !byte $5A
+    !byte $A6
+    !byte $72
+    !byte $8E
+    !byte $49
+    !byte $B7
+    !byte $5C
+    !byte $A4
+    !byte $73
+    !byte $8D
+    !byte $4C
+    !byte $B4
+    !byte $5F
+    !byte $A1
+    !byte $74
+    !byte $8C
+    !byte $50
+    !byte $B0
+    !byte $62
+    !byte $9E
+    !byte $56
+    !byte $75
+    !byte $8B
+    !byte $AA
+    !byte $66
+    !byte $9A
+    !byte $5B
+    !byte $77
+    !byte $89
+    !byte $A5
+    !byte $6A
+    !byte $96
+    !byte $62
+    !byte $9E
+    !byte $79
+    !byte $87
+    !byte $6E
+    !byte $92
+    !byte $69
+    !byte $97
+    !byte $7B
+    !byte $85
+    !byte $73
+    !byte $8D
+    !byte $70
+    !byte $90
+    !byte $78
+    !byte $7D
+    !byte $83
+    !byte $88
+    !byte $80
 
 !if (* >= $5800) {
     !error "code overflowed by ",*-$5800, " bytes"
 }
 
-; ----------------------------------------------------------------------------------
 entry_point
-    ldx #$ff  ; we want all the stack
-    txs
-    lda #140                                                          ; *TAPE
-    jsr osbyte_zeroxy                                                 ;
-    lda #225                                                          ; Function keys are
-    jsr osbyte_zeroxy                                                 ; not expanded.
+
+init_early
     lda #234                                                          ; disable tube
     jsr osbyte_zeroxy                                                 ;
     lda #200                                                          ; clear memory
     ldx #3                                                            ; on break
     jsr osbyte_zeroy                                                  ;
-!if elk=0 {
-    lda #143                                                          ; claim NMI vector
-    ldx #12                                                           ; so we can safely use
-    ldy #255                                                          ; page D
-    jsr osbyte                                                        ;
-}
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy
@@ -9854,9 +9865,22 @@ entry_point
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
 done
-    jsr initialise_envelopes                                          ;
     jsr create_square_tables                                          ;
     jsr create_other_tables                                           ;
+
+; ----------------------------------------------------------------------------------
+init_late
+    ldx #$ff  ; we want all the stack
+    txs
+    lda #140                                                          ; *TAPE
+    jsr osbyte_zeroxy                                                 ;
+    lda #225                                                          ; Function keys are
+    jsr osbyte_zeroxy                                                 ; not expanded.
+    lda #143                                                          ; claim NMI vector
+    ldx #12                                                           ; so we can safely use
+    ldy #255                                                          ; page D
+    jsr osbyte                                                        ; (and also A0-A7)
+    jsr initialise_envelopes                                          ;
 
     ; clear zp vars
     lda #0
@@ -9883,11 +9907,7 @@ done
     ldx #regular_strings_end - regular_strings_start
 -
     lda regular_strings_start-1,x                                     ;
-!if elk=0 {
     sta $0d00-1,x                                                     ;
-} else {
-    sta $0700-1,x
-}
     dex                                                               ;
     bne -                                                             ;
 
@@ -10114,18 +10134,6 @@ create_other_tables
 +
     inx
     bne -
-!if (elk=0) {
-	;; make xtwobits_table
-    ldx #0
--
-    txa
-    and #$07
-    tay
-    lda xtwobits_table_template,y
-    sta xtwobits_table,x
-    inx
-    bne -
-}
 
     ; make row tables:
     ; row_table_low
@@ -10169,10 +10177,6 @@ row_table_loop
 ;;     bne zero_loop
 
      rts
-!if (elk=0) {
-xtwobits_table_template
-    !byte $c0, $60, $30, $18, $0c, $06, $03, $00
-}
 ; ----------------------------------------------------------------------------------
 regular_string_index_shield_state_on                = shield_state_string1 - regular_strings_table
 regular_string_index_shield_state_off               = shield_state_string2 - regular_strings_table
@@ -10285,15 +10289,9 @@ command_move_string_end
 
 regular_strings_start
 
-!if elk=1 {
-!pseudopc $0700 {
-    +m_regular_strings
-}
-} else {
 !pseudopc $0d00 {
     rti                                                               ; put RTI at $0d00
     +m_regular_strings
-}
 }
 
 regular_strings_end
