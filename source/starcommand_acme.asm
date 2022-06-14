@@ -388,7 +388,8 @@ wordv                                   = $20c
 b                                       = $00
 c                                       = $01
 prod_low                                = $02
-t                                       = $03
+t                                       = $03   ; } same location
+num_frontier_star_updates               = $03   ; }
 
 how_enemy_ship_was_damaged              = $04
 
@@ -403,108 +404,117 @@ stars_still_to_consider                 = $0b   ; }
 explosion_bits_still_to_consider        = $0b   ; } same location
 enemy_ships_still_to_consider           = $0b   ; }
 
-torpedoes_still_to_consider             = $0c
-enemy_ship_was_previously_on_screen     = $0d
-enemy_ship_was_on_screen                = $0e
-remember_x                              = $0f
-old_timing_counter                      = $10
-timing_counter                          = $11
+lookup_low                              = $0c
+lookup_high                             = $0d
+lookup_byte                             = $0e
+bytes_left                              = $0f
 
-engine_sound_shifter                    = $12
-irqtmp                                  = $13   ; IRQ-safe temporary
-enemy_low                               = $14
-enemy_high                              = $15
-plot_enemy_progress                     = $16
-lookup_low                              = $17
-lookup_high                             = $18
-lookup_byte                             = $19
-bytes_left                              = $1a
-result                                  = $1b
-end_low                                 = $1c
-end_high                                = $1d
-starship_low                            = $1e   ; }
-cache_start_low                         = $1e   ; } same location
+temp_x                                  = $10
+temp_y                                  = $11
 
-starship_high                           = $1f   ; }
-cache_start_high                        = $1f   ; } same location
+object_x_fraction                       = $12
+object_x_pixels                         = $13
+object_y_fraction                       = $14
+object_y_pixels                         = $15
 
-enemy_number                            = $20   ; Enemy definition 0-5
-enemy_stride                            = $21   ; offset in bytes to get from one enemy angle definition to the next
+maximum_number_of_stars                 = $16
 
-irq_counter                             = $22   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
-temp_x                                  = $23   ;
-temp_y                                  = $24   ;
+x_pixels                                = $17
+y_pixels                                = $18
 
-object_x_fraction                       = $25   ;
-object_x_pixels                         = $26   ;
-object_y_fraction                       = $27   ;
-object_y_pixels                         = $28   ;
+temp0_low                               = $19
+temp0_high                              = $1a
 
-enemy_ships_flags_or_explosion_timer    = $29 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $29
-enemy_ships_on_screen                   = $29 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $31
-enemy_ships_x_fraction                  = $29 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $39
-enemy_ships_x_pixels                    = $29 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $41
-enemy_ships_x_screens                   = $29 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $49
-enemy_ships_y_fraction                  = $29 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $51
-enemy_ships_y_pixels                    = $29 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $59
-enemy_ships_y_screens                   = $29 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $61
-enemy_ships_velocity                    = $29 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $69
-enemy_ships_angle                       = $29 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $71
-enemy_ships_temporary_behaviour_flags   = $29 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $79
-enemy_ships_energy                      = $29 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $81
-rnd_1                                   = $89   ;
-rnd_2                                   = $8a   ;
+screen_address_low                      = $1b
+screen_address_high                     = $1c
+output_pixels                           = $1d   ; } same location
+segment_angle_change_per_pixel          = $1d   ; }
+output_fraction                         = $1e
 
-screen_address_low                      = $8b
-screen_address_high                     = $8c
-output_pixels                           = $8d   ; } same location
-segment_angle_change_per_pixel          = $8d   ; }
-output_fraction                         = $8e
-segment_length                          = $8f   ; } same location
-multiplier                              = $8f   ; }
-temp8                                   = $90
-temp9                                   = $91   ; } same location
-input_fraction                          = $91   ; }
+temp8                                   = $1f
+temp9                                   = $20   ; } same location
+input_fraction                          = $20   ; }
 
-temp10                                  = $92   ; } same location
-input_pixels                            = $92   ; }
+temp10                                  = $21   ; } same location
+input_pixels                            = $21   ; }
 
-segment_angle                           = $93   ; } same location
-input_screens                           = $93   ; }
-x_pixels                                = $94
-y_pixels                                = $95
+segment_angle                           = $22   ; } same location
+input_screens                           = $22   ; }
 
-temp11                                  = $96
-temp0_low                               = $97
-temp0_high                              = $98
-temp1_low                               = $99
-temp1_high                              = $9a
-temp3                                   = $9b
-temp4                                   = $9c
-temp5                                   = $9d
-temp6                                   = $9e
-temp7                                   = $9f
+zp_start                                = $23
 
-score_delta_low                         = $a0
-score_delta_high                        = $a1
-score_as_bcd                            = $a2
-score_as_bcd_mid                        = $a3
-score_as_bcd_high                       = $a4
-codeptr_low                             = $a5   ; } same location
-set_pixel_flag                          = $a5   ; }
-codeptr_high                            = $a6   ; } same location
-num_frontier_star_updates               = $a6   ; }
-rotation_damper                         = $a7
+rnd_1                                   = $23   ;
+rnd_2                                   = $24   ;
 
-enemy_ship_update_done                  = $a8
-starship_energy_low                     = $a9
-starship_energy_high                    = $aa
-desired_velocity_for_intact_enemy_ships = $ab
+torpedoes_still_to_consider             = $25
+enemy_ship_was_previously_on_screen     = $26
+enemy_ship_was_on_screen                = $27
+remember_x                              = $28
+old_timing_counter                      = $29
+timing_counter                          = $2a
 
-starship_angle_fraction                 = $ac
-starship_angle_delta                    = $ad
-value_used_for_enemy_torpedo_time_to_live = $ae
-maximum_number_of_stars                 = $af
+engine_sound_shifter                    = $2b
+irqtmp                                  = $2c   ; IRQ-safe temporary
+enemy_low                               = $2d
+enemy_high                              = $2e
+plot_enemy_progress                     = $2f
+
+result                                  = $30
+end_low                                 = $31
+end_high                                = $32
+starship_low                            = $33   ; }
+cache_start_low                         = $33   ; } same location
+
+starship_high                           = $34   ; }
+cache_start_high                        = $34   ; } same location
+
+enemy_number                            = $35   ; Enemy definition 0-5
+enemy_stride                            = $36   ; offset in bytes to get from one enemy angle definition to the next
+
+irq_counter                             = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
+
+enemy_ships_flags_or_explosion_timer    = $38 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $29
+enemy_ships_on_screen                   = $38 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $31
+enemy_ships_x_fraction                  = $38 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $39
+enemy_ships_x_pixels                    = $38 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $41
+enemy_ships_x_screens                   = $38 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $49
+enemy_ships_y_fraction                  = $38 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $51
+enemy_ships_y_pixels                    = $38 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $59
+enemy_ships_y_screens                   = $38 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $61
+enemy_ships_velocity                    = $38 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $69
+enemy_ships_angle                       = $38 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $71
+enemy_ships_temporary_behaviour_flags   = $38 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $79
+enemy_ships_energy                      = $38 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $81
+
+segment_length                          = $98   ; } same location
+multiplier                              = $98   ; }
+temp11                                  = $99
+temp1_low                               = $9a
+temp1_high                              = $9b
+temp3                                   = $9c
+temp4                                   = $9d
+temp5                                   = $9e
+temp6                                   = $9f
+temp7                                   = $a0
+
+score_delta_low                         = $a1
+score_delta_high                        = $a2
+score_as_bcd                            = $a3
+score_as_bcd_mid                        = $a4
+score_as_bcd_high                       = $a5
+codeptr_low                             = $a6   ; } same location
+set_pixel_flag                          = $a6   ; }
+codeptr_high                            = $a7
+rotation_damper                         = $a8
+
+enemy_ship_update_done                  = $a9
+starship_energy_low                     = $aa
+starship_energy_high                    = $ab
+desired_velocity_for_intact_enemy_ships = $ac
+
+starship_angle_fraction                 = $ad
+starship_angle_delta                    = $ae
+value_used_for_enemy_torpedo_time_to_live = $af
 starship_shields_active                 = $b0
 starship_torpedo_cooldown               = $b1
 fire_pressed                            = $b2
@@ -626,6 +636,8 @@ xbit_table                              = $1500  ; } tables of constants (768 by
     ; so we overwrite the following tables)
 star_table                              = $1600
 frontier_star_positions_x               = $1900
+
+loader_string				= $1a00
 
 starship_explosion_table                = star_table + maximum_number_of_stars_in_game * 4
      ; randomised when needed
@@ -895,10 +907,6 @@ starship_rotation_cosine_table
 starship_rotation_sine_table
     !byte 0  , 2  , 4  , 6  , 8  , 10                                 ;
 
-; ----------------------------------------------------------------------------------
-; Align to page boundary for speed
-!align 255, 0
-
 cosine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ; overlaps with sine table
 sine_table
@@ -906,6 +914,10 @@ sine_table
     !byte 6  , 6  , 5  , 5  , 4  , 3  , 2  , 1                        ;
     !byte 0  , $ff, $fe, $fd, $fc, $fb, $fb, $fa                      ;
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ;
+
+; ----------------------------------------------------------------------------------
+; Align to page boundary for speed
+!align 255, 0
 
 plot_table_offset
     !byte <plus_angle0
@@ -1064,31 +1076,11 @@ segment_angle_to_y_deltas_table
     !byte $ff    ; 30  y-
     !byte $0     ; 31  y0
 
-rotated_x_correction_lsb
-    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
-rotated_x_correction_screens
-    !byte 0, 0, 1, 2, 3, 4                                            ;
-
-rotated_y_correction_lsb
-    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
-rotated_y_correction_screens
-    !byte 0, 1, 2, 3, 4, 5                                            ;
-
-rotated_x_correction_fraction
-    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
-rotated_x_correction_pixels
-    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
-
-rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
-rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-!if >cosine_table != >* {
-    !error "alignment error", cosine_table, *;
+!if >plot_table_offset != >* {
+    !error "alignment error", plot_table_offset, *;
 }
 
-!align 255, 0
+;!align 255, 0
 ; ----------------------------------------------------------------------------------
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
@@ -1212,6 +1204,37 @@ sounds = sound_1 & 0xff00
 
 !src "build/sc_text.a"
 
+start
+    lda #$ce                                                          ;
+    sta starship_rotation_cosine                                      ;
+    lda #$0a                                                          ;
+    sta starship_rotation_sine_magnitude                              ;
+    jsr init_self_modifying_bytes_for_starship_rotation               ;
+    jsr init_frontier_screen
+    lda #osbyte_flush_buffer_class                                    ;
+    ldx #1                                                            ;
+    ldy #0                                                            ;
+    jsr osbyte                                                        ;
+    ldx #the_frontiers_string                                         ;
+    jsr print_compressed_string                                       ;
+print_string_after_loading
+    ; display string
+    ldx #begin_first_command_string                                   ;
+    jsr print_compressed_string                                       ;
+    jsr screen_on
+wait_for_return_in_frontiers_loop
+    inc rnd_1                                                         ;
+    jsr update_frontier_stars                                         ;
+    jsr check_for_return                                              ;
+    bne wait_for_return_in_frontiers_loop                             ;
+return_pressed
+    lda rnd_1                                                         ;
+    eor #$cd                                                          ;
+    sta rnd_2                                                         ;
+
+    jsr combat_preparation_screen                                     ;
+    jmp start_game                                                    ;
+
 ; ----------------------------------------------------------------------------------
 set_or_unset_pixel
     lda set_pixel_flag                                                ;
@@ -1250,147 +1273,6 @@ unset_pixel
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; Plot a point, with boundary check
-;
-; Checks that the point we are about to plot is close to the centre of the object.
-; If it isn't, it's because the point wrapped around from one side of the
-; play area and back onto the other side.
-;
-; On Entry:
-;   X        = x coordinate to plot
-;   y_pixels = y coordinate to plot
-;
-; On Exit:
-;   X is preserved
-; ----------------------------------------------------------------------------------
-eor_pixel_with_boundary_check
-    ; boundary check X
-    txa                                                               ;
-    sec                                                               ;
-    sbc temp10                                                        ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs return                                                        ;
-
-    ; boundary check Y
-    lda y_pixels                                                      ;
-    sec                                                               ;
-    sbc temp9                                                         ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs return                                                        ;
-    ; fall through...
-
-; ----------------------------------------------------------------------------------
-; Plot a point (using 'exclusive or')
-;
-; On Entry:
-;   X        = x coordinate to plot
-;   y_pixels = y coordinate to plot
-;
-; On Exit:
-;   X is preserved
-; ----------------------------------------------------------------------------------
-eor_play_area_pixel
-    ldy y_pixels                                                      ;
-eor_play_area_pixel_ycoord_in_y
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-eor_pixel_entry
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_pixel_same_y
-eor_play_area_pixel_same_y
-    ldy xandf8,x                                                      ;
-    lda xbit_table,x                                                  ;
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-return
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-; version that plots to scanner area
-; ----------------------------------------------------------------------------------
-eor_pixel
-    ldx x_pixels                                                      ;
-eor_pixel_xcoord_in_x
-    ldy y_pixels                                                      ;
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-    inc screen_address_high                                           ;
-    bne eor_pixel_entry
-
-; ----------------------------------------------------------------------------------
-; version for the frontiers screen, offset stars by $0780
-; ----------------------------------------------------------------------------------
-eor_frontier_pixel
-    lda y_pixels                                                      ;
-    clc
-    adc #48
-    tay
-    bne eor_play_area_pixel_ycoord_in_y
-
-
-eor_two_play_area_pixels
-    ldy y_pixels                                                      ;
-eor_two_play_area_pixels_ycoord_in_y
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_two_play_area_pixels_same_y
-    ldy xandf8,x
-    lda xbit_table,x
-    lsr
-    bcs straddle
-    ora xbit_table,x
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-    rts                                                               ;
-straddle
-    lda #1
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-    inx ; second pixel is off screen?
-    beq returna
-    lda #$80
-    ldy xandf8,x
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-returna
-    dex ; restore
-    rts
-
-; ----------------------------------------------------------------------------------
-; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
-; Calculate A*X with the product returned in prod_low(low) and A (high)
-; unsigned.
-; Preserves Y
-; ----------------------------------------------------------------------------------
-;mul8x8
-;    sta sm1                                                           ;
-;    sta sm3                                                           ;
-;    eor #$ff                                                          ;
-;    sta sm2                                                           ;
-;    sta sm4                                                           ;
-;
-;    sec                                                               ;
-;sm1 = * + 1
-;    lda squares1_low,x                                                ;
-;sm2 = * + 1
-;    sbc squares2_low,x                                                ;
-;    sta prod_low                                                      ;
-;sm3 = * + 1
-;    lda squares1_high,x                                               ;
-;sm4 = * + 1
-;    sbc squares2_high,x                                               ;
-;    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 init_self_modifying_bytes_for_starship_rotation
     lda starship_rotation_sine_magnitude                              ;
     sta sm_sine_a1                                                    ;
@@ -1416,236 +1298,6 @@ init_self_modifying_bytes_for_starship_rotation
     sta sm_cosine_a4                                                  ;
     sta sm_cosine_b4                                                  ;
     sta sm_cosine_c4                                                  ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
-;
-; Given a signed 8.8 fixed point number 'b.a', and an 8 bit number 'c'
-; calculate the product 'b.a * c' with the result in 8.8 fixed point 'output_fraction . output_pixels'
-;
-; Method:
-;
-; (c.a)*b = ((a+256*c)*b)/256 = (a*b)/256 + c*b
-;
-; We calculate a*b as a 16 bit number and just take the top byte, call this t
-; then we calculate c*b as a 16 bit number and add t
-;
-; here b = starship_rotation_sine_magnitude
-;      a = x register
-;
-; On Entry:
-;   X = low byte of position  (one coordinate)
-;   Y = high byte of position (one coordinate)
-; On Exit:
-;   output_pixels (low) and output_fraction (high)
-; ----------------------------------------------------------------------------------
-multiply_object_position_by_starship_rotation_sine_magnitude
-    ; 8 bit multiply starship_rotation_sine_magnitude * x into A register (the high byte)
-sm_sine_a1 = * + 1
-    lda squares1_low,x                                                ;
-    sec                                                               ;
-sm_sine_a2 = * + 1
-    sbc squares2_low,x                                                ;
-sm_sine_a3 = * + 1
-    lda squares1_high,x                                               ;
-sm_sine_a4 = * + 1
-    sbc squares2_high,x                                               ;
-
-    tax                                                               ; X = store the high byte 't'
-
-    ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
-sm_sine_b1 = * + 1
-    lda squares1_low,y                                                ;
-    sec                                                               ;
-sm_sine_b2 = * + 1
-    sbc squares2_low,y                                                ;
-    sta prod_low                                                      ;
-sm_sine_b3 = * + 1
-    lda squares1_high,y                                               ;
-sm_sine_b4 = * + 1
-    sbc squares2_high,y                                               ;
-    sta output_fraction                                               ;
-    txa                                                               ; recall 't'
-    clc
-    adc prod_low                                                      ;
-    sta output_pixels                                                 ;
-    bcc +                                                             ;
-    inc output_fraction                                               ;
-+
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-; On Entry:
-;   X = low byte of position 'fraction' (one coordinate)
-;   Y = high byte of position 'pixels'  (one coordinate)
-; On Exit:
-;   Result in A (low byte) and temp8 (high byte)
-;   Preserves X,Y
-; ----------------------------------------------------------------------------------
-multiply_object_position_by_starship_rotation_cosine
-    cpy #0                                                            ;
-    beq shortcut                                                      ;
-
-    stx temp_x                                                        ;
-    sty temp8                                                         ;
-
-    ; 8x8 multiply 'Y * starship_rotation_cosine', result in A (high byte only needed)
-sm_cosine_a1 = * + 1
-    lda squares1_low,y                                                ;
-    sec                                                               ;
-sm_cosine_a2 = * + 1
-    sbc squares2_low,y                                                ;
-sm_cosine_a3 = * + 1
-    lda squares1_high,y                                               ;
-sm_cosine_a4 = * + 1
-    sbc squares2_high,y                                               ;
-
-    sec                                                               ;
-    sbc temp8                                                         ;
-    bcs +                                                             ;
-    dec temp8                                                         ;
-+
-    clc                                                               ;
-    adc temp_x                                                        ;
-    bcc return1                                                       ;
-    inc temp8                                                         ;
-return1
-    rts                                                               ;
-
-shortcut
-    tya                                                               ; zero
-    sta temp8                                                         ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-update_object_position_for_starship_rotation_and_speed
-    ; get coordinates of object
-    ; store them in (object_x_fraction / pixel, object_y_fraction / pixel)
-    lda (temp0_low),y                                                 ;
-    sta object_x_fraction                                             ;
-    iny                                                               ;
-
-    lda (temp0_low),y                                                 ;
-    sta object_x_pixels                                               ;
-    sta x_pixels                                                      ;
-
-    iny                                                               ;
-    lda (temp0_low),y                                                 ;
-    sta object_y_fraction                                             ;
-
-    iny                                                               ;
-    lda (temp0_low),y                                                 ;
-    sta object_y_pixels                                               ;
-    sta y_pixels                                                      ;
-
-    ldx starship_rotation                                             ;
-    bmi skip_inversion                                                ;
-
-    ; invert X if ship is turning left (i.e. stars turning right)
-    lda object_x_fraction                                             ;
-    eor #$ff                                                          ;
-    sta object_x_fraction                                             ;
-
-    lda object_x_pixels                                               ;
-    eor #$ff                                                          ;
-    sta object_x_pixels                                               ;
-
-skip_inversion
-    ldx starship_rotation_sine_magnitude                              ;
-    bne update_position_for_rotation                                  ;
-    jmp add_starship_velocity_to_position                             ;
-
-; ----------------------------------------------------------------------------------
-update_position_for_rotation
-    sty temp_y                                                        ; remember Y
-
-    ; X' = Y*sine + X*cosine
-    ldx object_y_fraction                                             ;
-    ldy object_y_pixels                                               ;
-    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    ldx object_x_fraction                                             ;
-    ldy object_x_pixels                                               ;
-    jsr multiply_object_position_by_starship_rotation_cosine          ;
-    clc                                                               ;
-    adc output_pixels                                                 ; sine_y_fraction
-    sta temp9                                                         ; cosine_x_plus_sine_y_fraction
-    lda temp8                                                         ; cosine_x_pixels
-    adc output_fraction                                               ; sine_y_pixels
-    sta temp10                                                        ; cosine_x_plus_sine_y_pixels
-
-    ; Y' = Y*cosine - X*sine
-
-;    These assignments are not needed since X,Y are still set to these values:
-;    ldx object_x_fraction                                             ;
-;    ldy object_x_pixels                                               ;
-    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    ldx object_y_fraction                                             ;
-    ldy object_y_pixels                                               ;
-    jsr multiply_object_position_by_starship_rotation_cosine          ;
-    sec                                                               ;
-    sbc output_pixels                                                 ; sine_x_fraction
-    sta object_y_fraction                                             ;
-    lda temp8                                                         ; cosine_y_pixels
-    sbc output_fraction                                               ; sine_x_pixels
-    sta object_y_pixels                                               ;
-
-    ; do correction for X
-    ldx starship_rotation_magnitude                                   ;
-    lda temp9                                                         ; cosine_x_plus_sine_y_fraction
-    sec                                                               ;
-    sbc rotated_x_correction_lsb,x                                    ;
-    sta object_x_fraction                                             ;
-
-    lda temp10                                                        ; cosine_x_plus_sine_y_pixels
-    sbc rotated_x_correction_screens,x                                ;
-    sta object_x_pixels                                               ;
-
-    ; fix sign
-    lda starship_rotation                                             ;
-    bmi skip_uninversion                                              ;
-    lda object_x_fraction                                             ;
-    eor #$ff                                                          ;
-    sta object_x_fraction                                             ;
-    lda object_x_pixels                                               ;
-    eor #$ff                                                          ;
-    sta object_x_pixels                                               ;
-
-skip_uninversion
-    ; do correction for Y
-    lda object_y_fraction                                             ;
-    clc                                                               ;
-    adc rotated_y_correction_lsb,x                                    ;
-    sta object_y_fraction                                             ;
-
-    lda object_y_pixels                                               ;
-    adc rotated_y_correction_screens,x                                ;
-    sta object_y_pixels                                               ;
-
-    ldy temp_y                                                        ; recall Y
-    ; fall through...
-
-; ----------------------------------------------------------------------------------
-add_starship_velocity_to_position
-    dey                                                               ;
-    lda object_y_fraction                                             ;
-    clc                                                               ;
-    adc starship_velocity_low                                         ;
-    sta (temp0_low),y                                                 ; object_y_fraction
-    iny                                                               ;
-
-    lda object_y_pixels                                               ;
-    adc starship_velocity_high                                        ;
-    sta (temp0_low),y                                                 ; object_y_pixels
-    dey                                                               ;
-    dey                                                               ;
-
-    lda object_x_pixels                                               ;
-    sta (temp0_low),y                                                 ; object_x_pixels
-    dey                                                               ;
-
-    lda object_x_fraction                                             ;
-    sta (temp0_low),y                                                 ; object_x_fraction
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1695,7 +1347,6 @@ skipZ
     dey                                                               ;
     bne -                                                             ;
     rts                                                               ;
-
 
 ; ----------------------------------------------------------------------------------
 multiply_enemy_position_by_starship_rotation_cosine
@@ -2175,111 +1826,6 @@ plot_expiring_torpedo
     inx
     inx
     jmp eor_play_area_pixel_same_y
-
-!if >eor_frontier_pixel != >eor_play_area_pixel {
-    !error "alignment error: ", >eor_frontier_pixel, "!=", >eor_play_area_pixel;
-}
-!if <eor_frontier_pixel = 0 {
-    !error "alignment error";
-}
-; ----------------------------------------------------------------------------------
-plot_frontier_stars
-    dec num_frontier_star_updates ; plot performs a rotation
-    lda #<eor_frontier_pixel
-    bne plot_stars_with_function_address ; always
-plot_stars
-    lda #<eor_play_area_pixel
-plot_stars_with_function_address
-    sta maybe_unplot_star+1
-    sta plot_star+1
-    lda #$2c ; BIT abs
-    sta maybe_unplot_star ; skip unplotting
-    jsr update_stars
-    lda #$20 ; JSR abs
-    sta maybe_unplot_star
-    rts
-
-; ----------------------------------------------------------------------------------
-update_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-    lda maximum_number_of_stars                                       ;
-    sta stars_still_to_consider                                       ;
-update_stars_loop
-    ldy #0                                                            ;
-    jsr update_object_position_for_starship_rotation_and_speed        ;
-    ldx x_pixels                                                      ;
-maybe_unplot_star
-    jsr eor_play_area_pixel                                           ; unplot
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    tax                                                               ;
-    ldy #3                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
-plot_star
-    jsr eor_play_area_pixel                                           ; plot
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip5                                                         ;
-    inc temp0_high                                                    ;
-skip5
-    dec stars_still_to_consider                                       ;
-    bne update_stars_loop                                             ;
-    rts                                                               ;
-
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
-init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
-
-; ----------------------------------------------------------------------------------
-update_frontier_stars
-    ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
-    dec num_frontier_star_updates                                     ;
-    bne update_stars
-
-; ----------------------------------------------------------------------------------
-initialise_frontier_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
-    ldx #0                                                            ;
-    jsr skip
-initialise_stars_loop
-    lda frontier_star_positions_x,x                                   ;
-    jsr init_star_both
-    inx                                                               ;
-    bpl initialise_stars_loop                                         ;
-    lda #162                                                          ;
-    sta num_frontier_star_updates                                     ;
-    rts                                                               ;
-init_star_both
-    jsr init_star
-    lda frontier_star_positions_y,x                                   ;
-init_star
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    bne skip                                                          ;
-    inc temp0_high                                                    ;
-skip
-    lda #$80                                                          ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    rts
 
 ; ----------------------------------------------------------------------------------
 unplot_long_range_scanner_if_shields_inactive
@@ -5264,14 +4810,6 @@ skip_damper_keys
 pause_game
     +do_key inkey_space, 0, 3, pause_game, 0
 return18
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-check_key_x
-    lda #osbyte_inkey                                                 ;
-    ldy #$ff                                                          ;
-    jsr osbyte                                                        ;
-    cpy #$ff                                                          ;
     rts                                                               ;
 
 random_data = $4000 ;* and $ff00
@@ -8549,24 +8087,7 @@ player_retired
 
 leave_after_plotting_line_of_underscores
     ldy #29                                                           ;
-    bne plot_line_of_underscores_at_y                                 ;
-
-; ----------------------------------------------------------------------------------
-plot_underscores_at_0_3
-    ldy #0                                                            ;
-    jsr plot_line_of_underscores_at_y                                 ;
-    ldy #3                                                            ;
-plot_line_of_underscores_at_y
-    ldx #0                                                            ;
-    jsr tab_to_x_y                                                    ;
-plot_line_of_underscores_raw
-    ldy #$28                                                          ; loop counter
-plot_line_of_underscores_loop
-    lda #'_'                                                          ; underscore
-    jsr oswrch                                                        ;
-    dey                                                               ;
-    bne plot_line_of_underscores_loop                                 ;
-    rts                                                               ;
+    jmp plot_line_of_underscores_at_y                                 ;
 
 ; ----------------------------------------------------------------------------------
 ; "After reviewing your ADJECTIVE career, Star-Fleet OUTCOME."
@@ -8713,17 +8234,6 @@ done_award
     tya                                                               ; set the negative flag for testing if we have an award
     sty award                                                         ;
     rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-tab_to_x_y
-    lda #$1f                                                          ;
-oswrch_axy
-    jsr oswrch                                                        ;
-    txa                                                               ;
-oswrch_ay
-    jsr oswrch                                                        ;
-    tya                                                               ;
-    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 plot_instructions
@@ -8902,58 +8412,6 @@ not_f1
     sta (temp0_low),y                                                 ;
     jmp plot_selected_options
 
-!if (elk=0) {
-screen_off
-    lda #$f0
-    jsr writeR8
-    lda #12
-    jmp oswrch
-screen_on_with_cursor
-    lda #0
-    !byte $2c
-screen_on
-    lda #$c0
-writeR8
-    pha
-    lda #19
-    jsr osbyte
-    ldx #8
-    pla
-    ora $291
-    sei
-    stx $fe00
-    sta $fe01
-    cli
-    rts
-} else {
-screen_off
-    lda #$ff
-    ldx #$10
-    jsr writepal
-    jmp $cb9d
-screen_on_with_cursor
-    ldx #0
-    !byte $2c
-screen_on
-    ldx #$10
-    lda #$11
-writepal
-    stx $d0
-    sta $804
-    sta $805
-    jsr $e7ae
-    jmp $cbea
-fastwrch
-    ; we deliberately don't save A here as it's rarely required
-    stx xtmp2+1
-    sty ytmp2+1
-    jsr $c433
-xtmp2
-    ldx #0
-ytmp2
-    ldy #0
-    rts    
-}
 ; ----------------------------------------------------------------------------------
 starfleet_records_screen
     jsr screen_off
@@ -9263,73 +8721,6 @@ skip_change_of_stars
     jsr screen_off                                                         ;
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
-
-; ----------------------------------------------------------------------------------
-post_reloc
-    lda #22
-    ldy #4
-    jsr oswrch_ay
-start
-    ; initialise stars for frontiers rotating globe
-init_frontier_x_coords
-    lda #$5e
-    ldx #0
-    jsr init_first_frontier_coord
-    ldy #31
--
-    jsr init_frontier_x_coord
-    dey
-    bpl -
--
-    iny
-    jsr init_frontier_x_coord
-    bpl -
-    jsr initialise_frontier_stars                                     ;
-
-    jsr initialise_joystick_and_cursor_keys                           ;
-    jsr screen_off                                                         ;
-    jsr plot_underscores_at_0_3
-
-    ; display string
-    ldx #the_frontiers_string                                         ;
-    jsr print_compressed_string                                       ;
-    lda #osbyte_flush_buffer_class                                    ;
-    ldx #1                                                            ;
-    ldy #0                                                            ;
-    jsr osbyte                                                        ;
-
-    ; rotate stars
-    lda #$80                                                          ;
-    sta maximum_number_of_stars                                       ;
-    lda #1                                                            ;
-    sta starship_velocity_high                                        ;
-    sta starship_velocity_low                                         ;
-    lda #$85                                                          ;
-    sta starship_rotation                                             ;
-    lda #5                                                            ;
-    sta starship_rotation_magnitude                                   ;
-    lda #$ce                                                          ;
-    sta starship_rotation_cosine                                      ;
-    lda #$0a                                                          ;
-    sta starship_rotation_sine_magnitude                              ;
-    jsr init_self_modifying_bytes_for_starship_rotation               ;
-    jsr plot_frontier_stars                                           ;
-    jsr screen_on
-wait_for_return_in_frontiers_loop
-    inc rnd_1                                                         ;
-    jsr update_frontier_stars                                         ;
-
-    ldx #inkey_return                                                 ; check for RETURN
-    jsr check_key_x                                                   ;
-    bne wait_for_return_in_frontiers_loop                             ;
-
-return_pressed
-    lda rnd_1                                                         ;
-    eor #$cd                                                          ;
-    sta rnd_2                                                         ;
-
-    jsr combat_preparation_screen                                     ;
-    jmp start_game                                                    ;
 
 ; ----------------------------------------------------------------------------------
 get_joystick_input
@@ -9712,6 +9103,694 @@ token
     ldy #0                                                            ;
     beq print_compressed_loop ; always
 
+; things we need during the loader must go after here
+; ----------------------------------------------------------------------------------
+post_reloc
+    ; clear screen memory
+    lda #0
+    ldx #0
+clear_loop
+    sta $5800,x
+    inx
+    bne clear_loop
+    inc clear_loop+2
+    bpl clear_loop
+
+    lda #22
+    ldy #4
+    jsr oswrch_ay
+!if tape {
+    ; frontiers loading screen
+;removeme
+;	lda #$45
+;	sta $FE10 	; tape off
+    jsr init_frontier_screen
+    ldx #0
+-
+    lda loader_string,X
+    jsr oswrch
+    inx
+    cpx #$32
+    bne -
+    jsr screen_on
+loader_stars_loop
+loader_string_count
+    ldx #0
+    cpx #$de
+    beq +
+    lda loader_string+$32,X
+    jsr oswrch
+    inc loader_string_count+1
+    bne ++
++
+    ldx #18
+    ldy #12
+    jsr tab_to_x_y
+    ldx #0
+-
+    lda timeleft,X
+    ora #48
+    jsr oswrch
+    inx
+    cpx #4
+    bne -
+++
+    jsr update_frontier_stars                                         ;
+    lda partno
+    bne loader_stars_loop
+    jsr init_late
+    jmp print_string_after_loading
+} else {
+    jmp start
+}
+
+; ----------------------------------------------------------------------------------
+plot_underscores_at_0_3
+    ldy #0                                                            ;
+    jsr plot_line_of_underscores_at_y                                 ;
+    ldy #3                                                            ;
+plot_line_of_underscores_at_y
+    ldx #0                                                            ;
+    jsr tab_to_x_y                                                    ;
+plot_line_of_underscores_raw
+    ldy #$28                                                          ; loop counter
+plot_line_of_underscores_loop
+    lda #'_'                                                          ; underscore
+    jsr oswrch                                                        ;
+    dey                                                               ;
+    bne plot_line_of_underscores_loop                                 ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+check_for_return
+    ldx #inkey_return                                                 ; check for RETURN
+check_key_x
+    lda #osbyte_inkey                                                 ;
+    ldy #$ff                                                          ;
+    jsr osbyte                                                        ;
+    cpy #$ff                                                          ;
+    rts                                                               ;
+
+!if (elk=0) {
+screen_off
+    lda #$f0
+    jsr writeR8
+    lda #12
+    jmp oswrch
+screen_on_with_cursor
+    lda #0
+    !byte $2c
+screen_on
+    lda #$c0
+writeR8
+    pha
+    lda #19
+    jsr osbyte
+    ldx #8
+    pla
+    ora $291
+    sei
+    stx $fe00
+    sta $fe01
+    cli
+    rts
+} else {
+screen_off
+    lda #$ff
+    ldx #$10
+    jsr writepal
+    jmp $cb9d
+screen_on_with_cursor
+    ldx #0
+    !byte $2c
+screen_on
+    ldx #$10
+    lda #$11
+writepal
+    stx $d0
+    sta $804
+    sta $805
+    jsr $e7ae
+    jmp $cbea
+fastwrch
+    ; we deliberately don't save A here as it's rarely required
+    stx xtmp2+1
+    sty ytmp2+1
+    jsr $c433
+xtmp2
+    ldx #0
+ytmp2
+    ldy #0
+    rts    
+}
+
+init_frontier_screen
+    ; initialise stars for frontiers rotating globe
+init_frontier_x_coords
+    lda #$5e
+    ldx #0
+    jsr init_first_frontier_coord
+    ldy #31
+-
+    jsr init_frontier_x_coord
+    dey
+    bpl -
+-
+    iny
+    jsr init_frontier_x_coord
+    bpl -
+    jsr initialise_frontier_stars                                     ;
+
+;    jsr initialise_joystick_and_cursor_keys                           ;FIXME
+    jsr screen_off                                                         ;
+    jsr plot_underscores_at_0_3
+
+    ; rotate stars
+    lda #$80                                                          ;
+    sta maximum_number_of_stars                                       ;
+    lda #1                                                            ;
+    sta starship_velocity_high                                        ;
+    sta starship_velocity_low                                         ;
+    lda #$85                                                          ;
+    sta starship_rotation                                             ;
+    lda #5                                                            ;
+    sta starship_rotation_magnitude                                   ;
+    lda #$ce                                                          ;
+    sta starship_rotation_cosine                                      ;
+    lda #$0a                                                          ;
+    sta starship_rotation_sine_magnitude                              ;
+    ; fall through
+
+; ----------------------------------------------------------------------------------
+plot_frontier_stars
+    dec num_frontier_star_updates ; plot performs a rotation
+    lda #<eor_frontier_pixel
+    !byte $2c
+plot_stars
+    lda #<eor_play_area_pixel
+plot_stars_with_function_address
+    sta maybe_unplot_star+1
+    sta plot_star+1
+    lda #$2c ; BIT abs
+    sta maybe_unplot_star ; skip unplotting
+    jsr update_stars
+    lda #$20 ; JSR abs
+    sta maybe_unplot_star
+    rts
+
+; ----------------------------------------------------------------------------------
+update_stars
+    lda #<star_table                                                  ;
+    sta temp0_low                                                     ;
+    lda #>star_table                                                  ;
+    sta temp0_high                                                    ;
+    lda maximum_number_of_stars                                       ;
+    sta stars_still_to_consider                                       ;
+update_stars_loop
+    ldy #0                                                            ;
+    jsr update_object_position_for_starship_rotation_and_speed        ;
+    ldx x_pixels                                                      ;
+maybe_unplot_star
+    jsr eor_play_area_pixel                                           ; unplot
+    ldy #1                                                            ;
+    lda (temp0_low),y                                                 ;
+    tax                                                               ;
+    ldy #3                                                            ;
+    lda (temp0_low),y                                                 ;
+    sta y_pixels                                                      ;
+plot_star
+    jsr eor_play_area_pixel                                           ; plot
+    lda temp0_low                                                     ;
+    clc                                                               ;
+    adc #4                                                            ;
+    sta temp0_low                                                     ;
+    bcc skip5                                                         ;
+    inc temp0_high                                                    ;
+skip5
+    dec stars_still_to_consider                                       ;
+    bne update_stars_loop                                             ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+update_frontier_stars
+    ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
+    dec num_frontier_star_updates                                     ;
+    bne update_stars
+
+; ----------------------------------------------------------------------------------
+initialise_frontier_stars
+    lda #<star_table                                                  ;
+    sta temp0_low                                                     ;
+    lda #>star_table                                                  ;
+    sta temp0_high                                                    ;
+    ldy #0                                                            ;
+    ldx #0                                                            ;
+    jsr skip
+initialise_stars_loop
+    lda frontier_star_positions_x,x                                   ;
+    jsr init_star_both
+    inx                                                               ;
+    bpl initialise_stars_loop                                         ;
+    lda #162                                                          ;
+    sta num_frontier_star_updates                                     ;
+    rts                                                               ;
+init_star_both
+    jsr init_star
+    lda frontier_star_positions_y,x                                   ;
+init_star
+    sta (temp0_low),y                                                 ;
+    iny                                                               ;
+    bne skip                                                          ;
+    inc temp0_high                                                    ;
+skip
+    lda #$80                                                          ;
+    sta (temp0_low),y                                                 ;
+    iny                                                               ;
+    rts
+
+; ----------------------------------------------------------------------------------
+; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
+; Calculate A*X with the product returned in prod_low(low) and A (high)
+; unsigned.
+; Preserves Y
+; ----------------------------------------------------------------------------------
+;mul8x8
+;    sta sm1                                                           ;
+;    sta sm3                                                           ;
+;    eor #$ff                                                          ;
+;    sta sm2                                                           ;
+;    sta sm4                                                           ;
+;
+;    sec                                                               ;
+;sm1 = * + 1
+;    lda squares1_low,x                                                ;
+;sm2 = * + 1
+;    sbc squares2_low,x                                                ;
+;    sta prod_low                                                      ;
+;sm3 = * + 1
+;    lda squares1_high,x                                               ;
+;sm4 = * + 1
+;    sbc squares2_high,x                                               ;
+;    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
+;
+; Given a signed 8.8 fixed point number 'b.a', and an 8 bit number 'c'
+; calculate the product 'b.a * c' with the result in 8.8 fixed point 'output_fraction . output_pixels'
+;
+; Method:
+;
+; (c.a)*b = ((a+256*c)*b)/256 = (a*b)/256 + c*b
+;
+; We calculate a*b as a 16 bit number and just take the top byte, call this t
+; then we calculate c*b as a 16 bit number and add t
+;
+; here b = starship_rotation_sine_magnitude
+;      a = x register
+;
+; On Entry:
+;   X = low byte of position  (one coordinate)
+;   Y = high byte of position (one coordinate)
+; On Exit:
+;   output_pixels (low) and output_fraction (high)
+; ----------------------------------------------------------------------------------
+multiply_object_position_by_starship_rotation_sine_magnitude
+    ; 8 bit multiply starship_rotation_sine_magnitude * x into A register (the high byte)
+sm_sine_a1 = * + 1
+    lda squares1_low+$0a,x                                            ;
+    sec                                                               ;
+sm_sine_a2 = * + 1
+    sbc squares2_low+$f5,x                                            ;
+sm_sine_a3 = * + 1
+    lda squares1_high+$0a,x                                           ;
+sm_sine_a4 = * + 1
+    sbc squares2_high+$f5,x                                           ;
+
+    tax                                                               ; X = store the high byte 't'
+
+    ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
+sm_sine_b1 = * + 1
+    lda squares1_low+$0a,y                                            ;
+    sec                                                               ;
+sm_sine_b2 = * + 1
+    sbc squares2_low+$f5,y                                            ;
+    sta prod_low                                                      ;
+sm_sine_b3 = * + 1
+    lda squares1_high+$0a,y                                           ;
+sm_sine_b4 = * + 1
+    sbc squares2_high+$f5,y                                           ;
+    sta output_fraction                                               ;
+    txa                                                               ; recall 't'
+    clc
+    adc prod_low                                                      ;
+    sta output_pixels                                                 ;
+    bcc +                                                             ;
+    inc output_fraction                                               ;
++
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; On Entry:
+;   X = low byte of position 'fraction' (one coordinate)
+;   Y = high byte of position 'pixels'  (one coordinate)
+; On Exit:
+;   Result in A (low byte) and temp8 (high byte)
+;   Preserves X,Y
+; ----------------------------------------------------------------------------------
+multiply_object_position_by_starship_rotation_cosine
+    cpy #0                                                            ;
+    beq shortcut                                                      ;
+
+    stx temp_x                                                        ;
+    sty temp8                                                         ;
+
+    ; 8x8 multiply 'Y * starship_rotation_cosine', result in A (high byte only needed)
+sm_cosine_a1 = * + 1
+    lda squares1_low+$ce,y                                                ;
+    sec                                                               ;
+sm_cosine_a2 = * + 1
+    sbc squares2_low+$31,y                                                ;
+sm_cosine_a3 = * + 1
+    lda squares1_high+$ce,y                                               ;
+sm_cosine_a4 = * + 1
+    sbc squares2_high+$31,y                                               ;
+
+    sec                                                               ;
+    sbc temp8                                                         ;
+    bcs +                                                             ;
+    dec temp8                                                         ;
++
+    clc                                                               ;
+    adc temp_x                                                        ;
+    bcc return1                                                       ;
+    inc temp8                                                         ;
+return1
+    rts                                                               ;
+
+shortcut
+    tya                                                               ; zero
+    sta temp8                                                         ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+update_object_position_for_starship_rotation_and_speed
+    ; get coordinates of object
+    ; store them in (object_x_fraction / pixel, object_y_fraction / pixel)
+    lda (temp0_low),y                                                 ;
+    sta object_x_fraction                                             ;
+    iny                                                               ;
+
+    lda (temp0_low),y                                                 ;
+    sta object_x_pixels                                               ;
+    sta x_pixels                                                      ;
+
+    iny                                                               ;
+    lda (temp0_low),y                                                 ;
+    sta object_y_fraction                                             ;
+
+    iny                                                               ;
+    lda (temp0_low),y                                                 ;
+    sta object_y_pixels                                               ;
+    sta y_pixels                                                      ;
+
+    ldx starship_rotation                                             ;
+    bmi skip_inversion                                                ;
+
+    ; invert X if ship is turning left (i.e. stars turning right)
+    lda object_x_fraction                                             ;
+    eor #$ff                                                          ;
+    sta object_x_fraction                                             ;
+
+    lda object_x_pixels                                               ;
+    eor #$ff                                                          ;
+    sta object_x_pixels                                               ;
+
+skip_inversion
+    ldx starship_rotation_sine_magnitude                              ;
+    bne update_position_for_rotation                                  ;
+    jmp add_starship_velocity_to_position                             ;
+
+; ----------------------------------------------------------------------------------
+update_position_for_rotation
+    sty temp_y                                                        ; remember Y
+
+    ; X' = Y*sine + X*cosine
+    ldx object_y_fraction                                             ;
+    ldy object_y_pixels                                               ;
+    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
+    ldx object_x_fraction                                             ;
+    ldy object_x_pixels                                               ;
+    jsr multiply_object_position_by_starship_rotation_cosine          ;
+    clc                                                               ;
+    adc output_pixels                                                 ; sine_y_fraction
+    sta temp9                                                         ; cosine_x_plus_sine_y_fraction
+    lda temp8                                                         ; cosine_x_pixels
+    adc output_fraction                                               ; sine_y_pixels
+    sta temp10                                                        ; cosine_x_plus_sine_y_pixels
+
+    ; Y' = Y*cosine - X*sine
+
+;    These assignments are not needed since X,Y are still set to these values:
+;    ldx object_x_fraction                                             ;
+;    ldy object_x_pixels                                               ;
+    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
+    ldx object_y_fraction                                             ;
+    ldy object_y_pixels                                               ;
+    jsr multiply_object_position_by_starship_rotation_cosine          ;
+    sec                                                               ;
+    sbc output_pixels                                                 ; sine_x_fraction
+    sta object_y_fraction                                             ;
+    lda temp8                                                         ; cosine_y_pixels
+    sbc output_fraction                                               ; sine_x_pixels
+    sta object_y_pixels                                               ;
+
+    ; do correction for X
+    ldx starship_rotation_magnitude                                   ;
+    lda temp9                                                         ; cosine_x_plus_sine_y_fraction
+    sec                                                               ;
+    sbc rotated_x_correction_lsb,x                                    ;
+    sta object_x_fraction                                             ;
+
+    lda temp10                                                        ; cosine_x_plus_sine_y_pixels
+    sbc rotated_x_correction_screens,x                                ;
+    sta object_x_pixels                                               ;
+
+    ; fix sign
+    lda starship_rotation                                             ;
+    bmi skip_uninversion                                              ;
+    lda object_x_fraction                                             ;
+    eor #$ff                                                          ;
+    sta object_x_fraction                                             ;
+    lda object_x_pixels                                               ;
+    eor #$ff                                                          ;
+    sta object_x_pixels                                               ;
+
+skip_uninversion
+    ; do correction for Y
+    lda object_y_fraction                                             ;
+    clc                                                               ;
+    adc rotated_y_correction_lsb,x                                    ;
+    sta object_y_fraction                                             ;
+
+    lda object_y_pixels                                               ;
+    adc rotated_y_correction_screens,x                                ;
+    sta object_y_pixels                                               ;
+
+    ldy temp_y                                                        ; recall Y
+    ; fall through...
+
+; ----------------------------------------------------------------------------------
+add_starship_velocity_to_position
+    dey                                                               ;
+    lda object_y_fraction                                             ;
+    clc                                                               ;
+    adc starship_velocity_low                                         ;
+    sta (temp0_low),y                                                 ; object_y_fraction
+    iny                                                               ;
+
+    lda object_y_pixels                                               ;
+    adc starship_velocity_high                                        ;
+    sta (temp0_low),y                                                 ; object_y_pixels
+    dey                                                               ;
+    dey                                                               ;
+
+    lda object_x_pixels                                               ;
+    sta (temp0_low),y                                                 ; object_x_pixels
+    dey                                                               ;
+
+    lda object_x_fraction                                             ;
+    sta (temp0_low),y                                                 ; object_x_fraction
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; Plot a point, with boundary check
+;
+; Checks that the point we are about to plot is close to the centre of the object.
+; If it isn't, it's because the point wrapped around from one side of the
+; play area and back onto the other side.
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;
+; On Exit:
+;   X is preserved
+; ----------------------------------------------------------------------------------
+eor_pixel_with_boundary_check
+    ; boundary check X
+    txa                                                               ;
+    sec                                                               ;
+    sbc temp10                                                        ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs return                                                        ;
+
+    ; boundary check Y
+    lda y_pixels                                                      ;
+    sec                                                               ;
+    sbc temp9                                                         ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs return                                                        ;
+    ; fall through...
+
+; ----------------------------------------------------------------------------------
+; Plot a point (using 'exclusive or')
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;
+; On Exit:
+;   X is preserved
+; ----------------------------------------------------------------------------------
+eor_play_area_pixel
+    ldy y_pixels                                                      ;
+eor_play_area_pixel_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+eor_pixel_entry
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_pixel_same_y
+eor_play_area_pixel_same_y
+    ldy xandf8,x                                                      ;
+    lda xbit_table,x                                                  ;
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+return
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; version that plots to scanner area
+; ----------------------------------------------------------------------------------
+eor_pixel
+    ldx x_pixels                                                      ;
+eor_pixel_xcoord_in_x
+    ldy y_pixels                                                      ;
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    inc screen_address_high                                           ;
+    bne eor_pixel_entry
+
+; ----------------------------------------------------------------------------------
+; version for the frontiers screen, offset stars by $0780
+; ----------------------------------------------------------------------------------
+eor_frontier_pixel
+    lda y_pixels                                                      ;
+    clc
+    adc #48
+    tay
+    bne eor_play_area_pixel_ycoord_in_y
+
+
+eor_two_play_area_pixels
+    ldy y_pixels                                                      ;
+eor_two_play_area_pixels_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_two_play_area_pixels_same_y
+    ldy xandf8,x
+    lda xbit_table,x
+    lsr
+    bcs straddle
+    ora xbit_table,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    rts                                                               ;
+straddle
+    lda #1
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    inx ; second pixel is off screen?
+    beq returna
+    lda #$80
+    ldy xandf8,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+returna
+    dex ; restore
+    rts
+
+!if >eor_frontier_pixel != >eor_play_area_pixel {
+    !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
+}
+!if <eor_frontier_pixel = 0 {
+    !error "alignment error";
+}
+
+; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
+
+; ----------------------------------------------------------------------------------
+rotated_x_correction_lsb
+    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
+rotated_x_correction_screens
+    !byte 0, 0, 1, 2, 3, 4                                            ;
+
+rotated_y_correction_lsb
+    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
+rotated_y_correction_screens
+    !byte 0, 1, 2, 3, 4, 5                                            ;
+
+rotated_x_correction_fraction
+    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
+rotated_x_correction_pixels
+    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
+rotated_y_correction_fraction
+    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+rotated_y_correction_pixels
+    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+
+; ----------------------------------------------------------------------------------
+tab_to_x_y
+    lda #$1f                                                          ;
+oswrch_axy
+    jsr oswrch                                                        ;
+    txa                                                               ;
+oswrch_ay
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    jmp oswrch                                                        ;
+
 frontier_star_positions_y
     ; this defines a 'globe' of 128 stars. X positions are calculated
     !byte $80
@@ -9846,15 +9925,31 @@ frontier_star_positions_y
 !if (* >= $5800) {
     !error "code overflowed by ",*-$5800, " bytes"
 }
-
+!if tape {
+loader_copy_start
+    !src "source/loader2.asm"
+loader_copy_end
+}
 entry_point
 
 init_early
+    ldx #$ff  ; we want all the stack
+    txs
     lda #234                                                          ; disable tube
     jsr osbyte_zeroxy                                                 ;
     lda #200                                                          ; clear memory
     ldx #3                                                            ; on break
     jsr osbyte_zeroy                                                  ;
+!if tape=0 {
+    lda #140                                                          ; *TAPE
+    jsr osbyte_zeroxy                                                 ;
+}
+    lda #225                                                          ; Function keys are
+    jsr osbyte_zeroxy                                                 ; not expanded.
+    lda #143                                                          ; claim NMI vector
+    ldx #12                                                           ; so we can safely use
+    ldy #255                                                          ; page D
+    jsr osbyte                                                        ; (and also A0-A7)
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy
@@ -9865,28 +9960,178 @@ init_early
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
 done
-    jsr create_square_tables                                          ;
-    jsr create_other_tables                                           ;
+!if tape {
+    ; copy it
+;!warn "loader len = ",loader_end-loader_start
+    ldy #loader_end-loader_start
+-
+    lda loader_copy_start-1,Y
+    sta loader_start-1,Y
+    dey
+    bne -
+
+    jsr irqdecr_init
+}
 
 ; ----------------------------------------------------------------------------------
-init_late
-    ldx #$ff  ; we want all the stack
-    txs
-    lda #140                                                          ; *TAPE
-    jsr osbyte_zeroxy                                                 ;
-    lda #225                                                          ; Function keys are
-    jsr osbyte_zeroxy                                                 ; not expanded.
-    lda #143                                                          ; claim NMI vector
-    ldx #12                                                           ; so we can safely use
-    ldy #255                                                          ; page D
-    jsr osbyte                                                        ; (and also A0-A7)
+; routine to create tables of squares
+; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
+; ----------------------------------------------------------------------------------
+create_square_tables
+    ldx #0
+    txa
+    !byte $c9           ; CMP #immediate - skip TYA and clear carry flag
+lb1
+    tya
+    adc #0
+ml1
+    sta squares1_high,x
+    tay
+    cmp #$40
+    txa
+    ror
+ml9
+    adc #0
+    sta ml9+1
+    inx
+ml0
+    sta squares1_low,x
+    bne lb1
+    inc ml0+2
+    inc ml1+2
+    clc
+    iny
+    bne lb1
+
+    ; create second table of squares
+    ldx #$00
+    ldy #$ff
+-
+    lda squares1_high + 1,x
+    sta squares2_high + $100,x
+    lda squares1_high,x
+    sta squares2_high,y
+    lda squares1_low + 1,x
+    sta squares2_low + $100,x
+    lda squares1_low,x
+    sta squares2_low,y
+    dey
+    inx
+bne -
+;    rts
+
+; ----------------------------------------------------------------------------------
+create_other_tables
+    ; create xandf8 table
+    ;    !for i, 0, 255 {
+    ;        !byte (i & $f8)
+    ;    }
+    ldx #0
+-
+    txa
+    and #$f8
+    sta xandf8,x
+    inx
+    bne -
+
+    ; create xbit_table:
+    ;    !for i, 0, 255 {
+    ;        !byte $80 >> (i & 7)
+    ;    }
+    ;
+    ; and xinverse_bit_table:
+    ;    !for i, 0, 255 {
+    ;        !byte ($80 >> (i & 7)) XOR 255
+    ;    }
+    lda #$80
+    ldx #0
+-
+    sta xbit_table,x
+    lsr
+    bcc +
+    lda #$80
++
+    inx
+    bne -
+
+    ; make row tables:
+    ; row_table_low
+    ;     !for i, 0, 255 {
+    ;         !byte <((i & 7) + (i/8) * $0140)
+    ;     }
+    ; play_area_row_table_high
+    ;     !for i, 0, 255 {
+    ;         !byte >($5800 + (i & 7) + (i/8) * $0140)
+    ;     }
+
+    ldy #0
+    lda #$58
+row_table_loop2
+    ldx #7
+row_table_loop
+    sty row_table_low
+    sta play_area_row_table_high
+    iny
+    inc row_table_loop+1
+    inc row_table_loop+4
+    dex
+    bpl row_table_loop
+    pha
+    tya
+    clc
+    adc #$38
+    tay
+    pla
+    adc #1
+    bpl row_table_loop2
+
+;;     ; zero tables that need zeroing
+;;     lda #0
+;;     tax
+;; zero_loop
+;; !for i, >uninitialized_data_start, >uninitialized_data_end+1 {
+;;     sta i, x
+;; }
+;;     inx
+;;     bne zero_loop
+
+;     rts
+
+;	jsr create_square_tables                                          ;
+;    jsr create_other_tables                                           ;
+
+    ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
+    ldx #regular_strings_end - regular_strings_start
+-
+    lda regular_strings_start-1,x                                     ;
+    sta $0d00-1,x                                                     ;
+    dex                                                               ;
+    bne -                                                             ;
+!if tape {
+-
+    lda loader_string_copy,x                                          ;
+    sta loader_string,x                                               ;
+    lda loader_string_copy+$100,x                                     ;
+    sta loader_string+$100,x                                          ;
+    inx                                                               ;
+    bne -                                                             ;
+}
     jsr initialise_envelopes                                          ;
 
+!if tape {
+-
+    lda #1
+    cmp partno
+    bne -
+    jmp post_reloc
+}
+; ----------------------------------------------------------------------------------
+init_late
     ; clear zp vars
     lda #0
-    ldx #zp_end
+    ldx #zp_end-zp_start
 -
-    sta $ff,x ; yes! this wraps
+    sta zp_start-1,x
     dex
     bne -
     ; and any other zp oddballs
@@ -9902,14 +10147,6 @@ init_late
     sta starship_shields_active ; for some reason this needs initializing
     lda #$ff
     sta starship_energy_divided_by_sixteen ; disable low energy flashing
-
-    ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
-    ldx #regular_strings_end - regular_strings_start
--
-    lda regular_strings_start-1,x                                     ;
-    sta $0d00-1,x                                                     ;
-    dex                                                               ;
-    bne -                                                             ;
 
     ; zero highscore table
     lda #0                                                            ;
@@ -10007,14 +10244,20 @@ set_rdchv
     lda #$1
 }
     sta $266
-
+!if tape {
+    rts
+} else {
     jmp post_reloc
+}
 
 osbyte_zeroxy
     ldx #0
 osbyte_zeroy
     ldy #0
     jmp (bytev)
+!if (tape!=0) & (* >= $5800) {
+    !error "code overflowed by ",*-$5800, " bytes"
+}
 
 ; ----------------------------------------------------------------------------------
 initialise_envelopes
@@ -10054,129 +10297,6 @@ envelope3
 envelope4
     !byte 4, 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64
 
-; ----------------------------------------------------------------------------------
-; routine to create tables of squares
-; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
-; ----------------------------------------------------------------------------------
-create_square_tables
-    ldx #0
-    txa
-    !byte $c9           ; CMP #immediate - skip TYA and clear carry flag
-lb1
-    tya
-    adc #0
-ml1
-    sta squares1_high,x
-    tay
-    cmp #$40
-    txa
-    ror
-ml9
-    adc #0
-    sta ml9+1
-    inx
-ml0
-    sta squares1_low,x
-    bne lb1
-    inc ml0+2
-    inc ml1+2
-    clc
-    iny
-    bne lb1
-
-    ; create second table of squares
-    ldx #$00
-    ldy #$ff
--
-    lda squares1_high + 1,x
-    sta squares2_high + $100,x
-    lda squares1_high,x
-    sta squares2_high,y
-    lda squares1_low + 1,x
-    sta squares2_low + $100,x
-    lda squares1_low,x
-    sta squares2_low,y
-    dey
-    inx
-bne -
-    rts
-
-; ----------------------------------------------------------------------------------
-create_other_tables
-    ; create xandf8 table
-    ;    !for i, 0, 255 {
-    ;        !byte (i & $f8)
-    ;    }
-    ldx #0
--
-    txa
-    and #$f8
-    sta xandf8,x
-    inx
-    bne -
-
-    ; create xbit_table:
-    ;    !for i, 0, 255 {
-    ;        !byte $80 >> (i & 7)
-    ;    }
-    ;
-    ; and xinverse_bit_table:
-    ;    !for i, 0, 255 {
-    ;        !byte ($80 >> (i & 7)) XOR 255
-    ;    }
-    lda #$80
-    ldx #0
--
-    sta xbit_table,x
-    lsr
-    bcc +
-    lda #$80
-+
-    inx
-    bne -
-
-    ; make row tables:
-    ; row_table_low
-    ;     !for i, 0, 255 {
-    ;         !byte <((i & 7) + (i/8) * $0140)
-    ;     }
-    ; play_area_row_table_high
-    ;     !for i, 0, 255 {
-    ;         !byte >($5800 + (i & 7) + (i/8) * $0140)
-    ;     }
-
-    ldy #0
-    lda #$58
-row_table_loop2
-    ldx #7
-row_table_loop
-    sty row_table_low
-    sta play_area_row_table_high
-    iny
-    inc row_table_loop+1
-    inc row_table_loop+4
-    dex
-    bpl row_table_loop
-    pha
-    tya
-    clc
-    adc #$38
-    tay
-    pla
-    adc #1
-    bpl row_table_loop2
-
-;;     ; zero tables that need zeroing
-;;     lda #0
-;;     tax
-;; zero_loop
-;; !for i, >uninitialized_data_start, >uninitialized_data_end+1 {
-;;     sta i, x
-;; }
-;;     inx
-;;     bne zero_loop
-
-     rts
 ; ----------------------------------------------------------------------------------
 regular_string_index_shield_state_on                = shield_state_string1 - regular_strings_table
 regular_string_index_shield_state_off               = shield_state_string2 - regular_strings_table
@@ -10295,3 +10415,8 @@ regular_strings_start
 }
 
 regular_strings_end
+!if tape {
+loader_string_copy
+    !bin "text.o"
+}
+eof

@@ -50,11 +50,6 @@ loadinitial
 	dey
 	bne loadinitial
 	jsr decrunch
-!if elk=0 {
-	; tape off
- 	lda #$45
-	sta $fe10
-}
 	jmp go
 get_crunched_byte
 	php

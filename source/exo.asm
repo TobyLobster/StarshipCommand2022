@@ -16,19 +16,19 @@ MAX_SEQUENCE_LENGTH_256 = 0
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
-zp_len_lo = $e7
-zp_len_hi = $e8
+zp_len_lo = $c1
+zp_len_hi = $c2
 
-zp_src_lo  = $ee
+zp_src_lo  = $c3
 zp_src_hi  = zp_src_lo + 1
 
-zp_bits_hi = $e9
+zp_bits_hi = $c5
 ;;; zp_bits_hi needs leaving spare!!!!
-zp_bitbuf  = $eb
+zp_bitbuf  = $c7
 zp_dest_lo = zp_bitbuf + 1      ; dest addr lo
 zp_dest_hi = zp_bitbuf + 2      ; dest addr hi
 
-decrunch_table = 1
+decrunch_table = $23
 tabl_bi = decrunch_table
 tabl_lo = decrunch_table + 52
 tabl_hi = decrunch_table + 104

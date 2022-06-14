@@ -231,8 +231,10 @@ the_frontiers_string
     !text 149," ",150                                                 ;
     !byte $1f,  6, 31                                                 ; TAB
     !text "2022 Edition by TobyLobster"                               ;
-    !byte $1f,  6, 11                                                 ; TAB
-    !text "To begin",146,"r first command,"                              ;
+
+begin_first_command_string
+    !byte $1f,  3, 11                                                 ; TAB
+    !text "   To begin",146,"r first command, "                       ;
     !byte $1f, 12, 12                                                 ; TAB
     !text "p",141
 

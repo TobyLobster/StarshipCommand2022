@@ -12,25 +12,57 @@ mkdir -p build/tape
 
 python3 tools/text_compression.py --input source/sc_text.txt --output build/sc_text.a
 
-function prepare_disk {
-    local elk=$1
+function sym {
+    local name=$1
     local filename=$2
-    acme --symbollist build/$2.symbols.txt -r build/$2.report.txt -Delk=$elk -o build/disk/$2 source/starcommand_acme.asm
-    sort -o build/symbols.txt build/$2.symbols.txt
+    grep build/$filename.symbols.txt -e '.*'$name | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/'
+}
+
+function exo_region {
+    local filename=$1
+    local startsym=$2
+    local endsym=$3
+    local outfile=$4
+    local startaddr=$(sym $startsym $filename)
+    local endaddr=$(sym $endsym $filename)
+    local fileaddr=$(sym load_addr $filename)
+    local len=$((0x$endaddr-0x$startaddr))
+    local offset=$((0x$startaddr-0x$fileaddr))
+    tempfile=$(mktemp)
+    dd if=build/disk/$filename bs=1 skip=$offset count=$len >$tempfile 2>/dev/null
+    exomizer301 level -q ${tempfile}@0x$startaddr -o $outfile.exo
+    rm -f tempfile
+}
+
+function build_exe {
+    local elk=$1
+    local tape=$2
+    local filename=$3
+    acme --symbollist build/$filename.symbols.txt -r build/$filename.report.txt -Delk=$elk -Dtape=$tape -o build/disk/$filename source/starcommand_acme.asm
+    sort -o build/symbols.txt build/$filename.symbols.txt
 
     # Find entry point in symbols
-    entry_point=$(grep build/$2.symbols.txt -e '.*entry_point' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
+    entry_point=$(sym entry_point $filename)
 
     # and load address
-    load_addr=$(grep build/$2.symbols.txt -e '.*load_addr' | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/')
+    load_addr=$(sym load_addr $filename)
 
     # Create INF file
-    echo "$.$2     FFFF$load_addr FFFF$entry_point" >build/disk/$2.inf
+    echo "$.$filename     FFFF$load_addr FFFF$entry_point" >build/disk/$filename.inf
+}
 
-    # Create crunched version
-    exomizer301 level -q build/disk/$2@0x$load_addr -o build/tape/$2.exo
+function build_tape {
+    local elk=$1
+    local tape=$2
+    local filename=$3
 
-    acme --symbollist build/tape.$2.symbols.txt -r build/tape.$2.report.txt -Delk=$1 -Dgo=\$$entry_point -o build/tape/loader.$2 source/exo.asm
+    # split into early and late
+    exo_region $filename loader_copy_start eof build/tape/$filename.1
+    exo_region $filename post_reloc loader_copy_start build/tape/$filename.2
+    #exomizer301 level -q text.o@0x1a00 -o build/tape/$filename.3
+    exo_region $filename load_addr post_reloc build/tape/$filename.3
+
+    acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/exo.asm
 }
 
 # Build !BOOT image
@@ -39,8 +71,14 @@ acme -o build/disk/\!BOOT source/boot.asm
 # Create INF file for !BOOT
 echo "$.!BOOT     FFFF0180 FFFF0180" >build/disk/\!BOOT.inf
 
-prepare_disk 0 STAR
-prepare_disk 1 STARELK
+# Beeb disc version
+build_exe 0 0 STAR
+# Beeb tape version
+build_exe 0 1 STAR.tape
+# Elk disc version
+build_exe 1 0 STARELK
+# Elk tape version
+build_exe 1 1 STARELK.tape
 
 # Create new SSD file with the appropriate files
 cp templates/EMPTY.ssd STAR2022.ssd
@@ -50,9 +88,12 @@ cd ../..
 
 # prepare tape versions
 mkdir -p build/tape
+acme -o text.o --setpc 0 source/sc_loader_text.txt
+build_tape 0 1 STAR.tape
+build_tape 1 1 STARELK.tape
 
-perl tools/maketape.pl build/tape/loader.STAR build/tape/STAR.exo >STAR2022.uef
-perl tools/maketape.pl build/tape/loader.STARELK build/tape/STARELK.exo >STARELK.uef
+perl tools/maketape.pl build/tape/loader.STAR.tape build/tape/STAR.tape.?.exo >STAR2022.uef
+perl tools/maketape.pl build/tape/loader.STARELK.tape build/tape/STARELK.tape.?.exo >STARELK.uef
 
 if [ $USER == "tobynelson" ];
 then

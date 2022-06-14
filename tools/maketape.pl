@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use Digest::CRC qw[crc];
-print "UEF File!\x00\x01\x00";
+print "UEF File!\x00\x0a\x00";
 chunk(0x110,pack"v",500); # carrier
 my $loader=shift;
 open F, "<$loader" or die "$loader: $!";
@@ -21,13 +21,20 @@ $header='*'.$header.pack"n",crc($header,16,0,0,0,0x1021,0,0);
 $data.=pack"n",crc($data,16,0,0,0,0x1021,0,0);
 $data2=reverse $data2;
 
-my $main=shift;
-open F, "<$main" or die "$main: $!";
-$raw = <F>;
+while (my $main=shift) {
+    open F, "<$main" or die "$main: $!";
+    $raw .= <F>;
+}
 chunk(0x100,$header.$data);
-chunk(0x110,pack"v",20); # carrier
+chunk(0x110,pack"v",50); # carrier
 chunk(0x100,$data2.$raw);
 chunk(0x110,pack"v",500); # carrier
+
+sub file {
+    my $fn=shift;
+    open F, "<$fn" or die "$fn: $!";
+    $raw.=<F>;
+}
 
 sub chunk {
     my ($id,$data)=@_;
