@@ -71,6 +71,8 @@ acme -o build/disk/\!BOOT source/boot.asm
 # Create INF file for !BOOT
 echo "$.!BOOT     FFFF0180 FFFF0180" >build/disk/\!BOOT.inf
 
+acme -o text.o --setpc 0 source/sc_loader_text.txt
+
 # Beeb disc version
 build_exe 0 0 STAR
 # Beeb tape version
@@ -88,7 +90,6 @@ cd ../..
 
 # prepare tape versions
 mkdir -p build/tape
-acme -o text.o --setpc 0 source/sc_loader_text.txt
 build_tape 0 1 STAR.tape
 build_tape 1 1 STARELK.tape
 
