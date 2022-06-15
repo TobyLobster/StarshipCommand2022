@@ -5292,10 +5292,6 @@ skip_angle_inversion_x1
     sta enemy_ship_desired_angle_divided_by_eight                     ;
     rts                                                               ;
 
-ninety_degrees
-    lda #8                                                            ;
-    bne adjust_angle_for_inversions_and_swap                          ; ALWAYS branch
-
 ; ----------------------------------------------------------------------------------
 collide_enemy_ships
     ldx temp0_low                                                     ;
