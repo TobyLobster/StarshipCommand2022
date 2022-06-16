@@ -391,8 +391,7 @@ prod_low                                = $02
 t                                       = $03   ; } same location
 num_frontier_star_updates               = $03   ; }
 
-how_enemy_ship_was_damaged              = $04
-
+starship_rotation_eor                   = $04
 starship_velocity_high                  = $05
 starship_velocity_low                   = $06
 starship_rotation                       = $07
@@ -449,7 +448,7 @@ rnd_2                                   = $24   ;
 torpedoes_still_to_consider             = $25
 enemy_ship_was_previously_on_screen     = $26
 enemy_ship_was_on_screen                = $27
-remember_x                              = $28
+how_enemy_ship_was_damaged              = $28
 old_timing_counter                      = $29
 timing_counter                          = $2a
 
@@ -1438,7 +1437,7 @@ skip1
 skip2
     ldy starship_rotation                                             ;
     bmi skip_inversion1                                               ;
-    lda enemy_ships_previous_x_fraction,x                             ;
+    lda enemy_ships_x_fraction,x                             ;
     eor #$ff                                                          ;
     sta enemy_ships_x_fraction,x                                      ;
 
@@ -1450,6 +1449,7 @@ skip2
     eor #$ff                                                          ;
     sta enemy_ships_x_screens,x                                       ;
 skip_inversion1
+    stx temp_y
     txa                                                               ;
     clc                                                               ;
     adc #stride_between_enemy_coordinates                             ; X += stride
@@ -1457,11 +1457,7 @@ skip_inversion1
 
     jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
 
-    txa                                                               ;
-    sec                                                               ;
-    sbc #stride_between_enemy_coordinates                             ; X -= stride
-    tax                                                               ;
-
+    ldx temp_y
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
     lda temp9                                                         ;
     clc                                                               ;
@@ -1482,11 +1478,7 @@ skip_inversion1
 
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
 
-    txa                                                               ;
-    sec                                                               ;
-    sbc #stride_between_enemy_coordinates                             ; X -= stride
-    tax                                                               ;
-
+    ldx temp_y
     lda temp9                                                         ;
     sec                                                               ;
     sbc output_pixels                                                 ;
@@ -1501,25 +1493,16 @@ skip_inversion1
     lda x_pixels                                                      ;
     sec                                                               ;
     sbc rotated_x_correction_fraction,y                               ;
+    eor starship_rotation_eor                                         ;
     sta enemy_ships_x_fraction,x                                      ;
     lda y_pixels                                                      ;
     sbc rotated_x_correction_pixels,y                                 ;
+    eor starship_rotation_eor                                         ;
     sta enemy_ships_x_pixels,x                                        ;
     lda temp11                                                        ;
     sbc rotated_x_correction_screens,y                                ;
+    eor starship_rotation_eor                                         ;
     sta enemy_ships_x_screens,x                                       ;
-    lda starship_rotation                                             ;
-    bmi skip_uninversion1                                             ;
-    lda enemy_ships_x_fraction,x                                      ;
-    eor #$ff                                                          ;
-    sta enemy_ships_x_fraction,x                                      ;
-    lda enemy_ships_x_pixels,x                                        ;
-    eor #$ff                                                          ;
-    sta enemy_ships_x_pixels,x                                        ;
-    lda enemy_ships_x_screens,x                                       ;
-    eor #$ff                                                          ;
-    sta enemy_ships_x_screens,x                                       ;
-skip_uninversion1
     lda temp9                                                         ;
     clc                                                               ;
     adc rotated_y_correction_fraction,y                               ;
@@ -2714,7 +2697,7 @@ plot_segment_unrolled
     sta codeptr_high
     ldy #0
     lda (codeptr_low),Y
-    sta remember_x                                                    ; save the opcode
+    sta temp_x                                                        ; save the opcode
     lda #$60                                                          ; opcode for RTS
     sta (codeptr_low),Y
     ldx x_pixels                                                      ;
@@ -2725,7 +2708,7 @@ jump_address = * + 1
 finish_object
     eor (screen_address_low),y
     sta (screen_address_low),y
-    lda remember_x                                                    ; recall opcode
+    lda temp_x                                                        ; recall opcode
     ldy #0
     sta (codeptr_low),Y
     rts                                                               ;
@@ -2965,14 +2948,17 @@ rotate_starship_anticlockwise
     dec starship_rotation                                             ;
 continue
     clc                                                               ;
+    ldx #0
     lda starship_rotation                                             ;
     bmi skip_inversion3                                               ;
+    dex
     eor #$ff                                                          ;
     adc #1                                                            ;
 skip_inversion3
     adc #$80                                                          ;
     tay                                                               ;
     sta starship_rotation_magnitude                                   ;
+    stx starship_rotation_eor
     lda starship_rotation_sine_table,y                                ;
     sta starship_rotation_sine_magnitude                              ;
     lda starship_rotation_cosine_table,y                              ;
@@ -9249,6 +9235,7 @@ init_frontier_screen
 init_frontier_x_coords
     lda #$5e
     ldx #0
+    stx starship_rotation_eor
     jsr init_first_frontier_coord
     ldy #31
 -
@@ -9498,12 +9485,14 @@ update_object_position_for_starship_rotation_and_speed
     ; get coordinates of object
     ; store them in (object_x_fraction / pixel, object_y_fraction / pixel)
     lda (temp0_low),y                                                 ;
+    eor starship_rotation_eor
     sta object_x_fraction                                             ;
     iny                                                               ;
 
     lda (temp0_low),y                                                 ;
-    sta object_x_pixels                                               ;
     sta x_pixels                                                      ;
+    eor starship_rotation_eor
+    sta object_x_pixels                                               ;
 
     iny                                                               ;
     lda (temp0_low),y                                                 ;
@@ -9511,20 +9500,8 @@ update_object_position_for_starship_rotation_and_speed
 
     iny                                                               ;
     lda (temp0_low),y                                                 ;
-    sta object_y_pixels                                               ;
     sta y_pixels                                                      ;
-
-    ldx starship_rotation                                             ;
-    bmi skip_inversion                                                ;
-
-    ; invert X if ship is turning left (i.e. stars turning right)
-    lda object_x_fraction                                             ;
-    eor #$ff                                                          ;
-    sta object_x_fraction                                             ;
-
-    lda object_x_pixels                                               ;
-    eor #$ff                                                          ;
-    sta object_x_pixels                                               ;
+    sta object_y_pixels                                               ;
 
 skip_inversion
     ldx starship_rotation_sine_magnitude                              ;
@@ -9570,23 +9547,14 @@ update_position_for_rotation
     lda temp9                                                         ; cosine_x_plus_sine_y_fraction
     sec                                                               ;
     sbc rotated_x_correction_lsb,x                                    ;
+    eor starship_rotation_eor
     sta object_x_fraction                                             ;
 
     lda temp10                                                        ; cosine_x_plus_sine_y_pixels
     sbc rotated_x_correction_screens,x                                ;
+    eor starship_rotation_eor
     sta object_x_pixels                                               ;
 
-    ; fix sign
-    lda starship_rotation                                             ;
-    bmi skip_uninversion                                              ;
-    lda object_x_fraction                                             ;
-    eor #$ff                                                          ;
-    sta object_x_fraction                                             ;
-    lda object_x_pixels                                               ;
-    eor #$ff                                                          ;
-    sta object_x_pixels                                               ;
-
-skip_uninversion
     ; do correction for Y
     lda object_y_fraction                                             ;
     clc                                                               ;
@@ -9622,6 +9590,19 @@ add_starship_velocity_to_position
     lda object_x_fraction                                             ;
     sta (temp0_low),y                                                 ; object_x_fraction
     rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
 
 ; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
@@ -9745,19 +9726,6 @@ returna
 !if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
-init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
 
 ; ----------------------------------------------------------------------------------
 rotated_x_correction_lsb
