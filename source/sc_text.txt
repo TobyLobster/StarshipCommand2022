@@ -33,7 +33,7 @@ having_just_gained_string
 ; ----------------------------------------------------------------------------------
 after_your_performance_string
     !text 148,146,"r performance on this",140,
-    !text "command the",134,"authorities",140,
+    !text 154," the",134,"authorities",140,
     !text "are said to be \"" ;
 
 ; ----------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ emotions_8
 
 ; ----------------------------------------------------------------------------------
 they_allow_string
-    !text " they",140,"allow",146,143,"command of another",140,142,"."         ;
+    !text " they",140,"allow",146,143,154," of another",140,142,"."         ;
 
 ; ----------------------------------------------------------------------------------
 and_they_retire_you_string
@@ -126,51 +126,51 @@ award_outcome_escape_10
 ; ----------------------------------------------------------------------------------
 instructions_string1
     !byte $1f, 5  , 2                                                 ;
-    !text 147,149,"CONTROLS",147                                 ;
+    !text 147,149,"C",151,"TROLS",147                                 ;
     !byte 31, 13  , 5                                                 ;
-    !text "Z  -  Rotate left"                                         ;
+    !text "Z",153,"Rotate left"                                         ;
     !byte 31, 13  , 6                                                 ;
-    !text "X  -  Rotate right"                                        ;
+    !text "X",153,"Rotate right"                                        ;
     !byte 31, 3, 7                                                    ;
-    !text "Return or N  -  Fire ",139                                 ;
+    !text "Return or N",153,"Fire ",139                                 ;
     !byte 31, 7  , 8                                                  ;
-    !text " : or M  -  Thrust"                                        ;
+    !text " : or M",153,"Thrust"                                        ;
     !byte 31, 7  , 9                                                  ;
-    !text " / or ,  -  Brake"                                         ;
+    !text " / or ,",153,"Brake"                                         ;
     !byte $1f, 3  , 11                                                ;
-    !text "F  -  Launch port ",137                                    ;
+    !text "F",153,"Launch port ",137                                    ;
     !byte $1f, 3  , 12                                                ;
-    !text "G  -  Launch starboard ",137                               ;
+    !text "G",153,"Launch starboard ",137                               ;
     !byte $1f, 0  , 14                                                ;
     !text "All",143,"above may operate simultaneously"                  ;
-    !text "Alternatively, ONE of",143,"following may "                  ;
+    !text "Alternatively, ",151,"E of",143,"following may "                  ;
     !text "be depressed:"                                          ;
 instructions_string2
     !byte $1f, 3  , 18                                                ;
-    !text "B  -  Shields ON / Scanners OFF"                           ;
+    !text "B",153,"Shields ",151," / Scanners",152                      ;
     !byte $1f, 3  , 19                                                ;
-    !text "V  -  Scanners ON / Shields OFF"                           ;
+    !text "V",153,"Scanners ",151," / Shields",152                      ;
     !byte $1f, 3  , 20                                                ;
-    !text "C  -  Auto-Changeover ON"                                  ;
+    !text "C",153,"Auto-Changeover ",151                                ;
     !byte $1f, 3  , 22                                                ;
-    !text "f0 -  Rotation ",138," ON"                                 ;
+    !text "f0 -  Rotation ",138," ",151                               ;
     !byte $1f, 3  , 23                                                ;
-    !text "2  -  Rotation ",138," OFF"                                ;
+    !text "2",153,"Rotation ",138,152,                                  ;
     !byte $1f, 3  , 24                                                ;
-    !text "f1 -  Velocity ",138," ON"                                 ;
+    !text "f1 -  Velocity ",138," ",151                               ;
     !byte $1f, 3  , 25                                                ;
-    !text "3  -  Velocity ",138," OFF"                                ;
+    !text "3",153,"Velocity ",138,152,                                  ;
     !byte $1f, 13 , 27                                                ;
-    !text       "P  -  Pause"                                         ;
+    !text       "P",153,"Pause"                                         ;
     !byte $1f, 9  , 28                                                ;
-    !text   "Space  -  Resume"                                        ;
+    !text   "Space",153,"Resume"                                        ;
     !byte $1f, $0d, 31                                                ;
     !text "P",141
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_string
     !byte $1f, 5 , 2                                                  ; TAB(6 , 3)
-    !text 147,"COMBAT PREPARATION",147                                ;
+    !text 147,"COMBAT PREPARATI",151,147                                ;
     !byte $1f, 6 , 6                                                  ; TAB(6 , 7)
     !text "f0  View ",142," controls"                                 ;
     !byte $1f, 6 , 8                                                  ; TAB(6 , 9)
@@ -206,7 +206,7 @@ starfleet_records_string
     !text 147,"STAR-FLEET RECORDS",147                                ;
     !byte $1f, 3  , 6                                                 ;
     !text    "Below is a list of",143,"most highly",140               ;
-    !text "rated of",134,8,"'s past commanders."                    ;
+    !text "rated of",134,8,"'s past ",154,"ers."                    ;
     !byte $1f, 13, 30                                                 ;
     !text "P",141
 
@@ -224,7 +224,7 @@ the_frontiers_string
     !text    "The frontiers of space are frequently"                  ;
     !text "penetrated by hostile alien ships. These"                  ;
     !text "are tackled by battle ",142,"s,",143,13,10                 ;
-    !text "command of which is given to deserving  "                  ;
+    !text 154," of which is given to deserving  "                  ;
     !text "captains from",143,8,134,8,"."                             ;
 
     !byte $1f, 11,  2                                                 ; TAB
@@ -234,7 +234,7 @@ the_frontiers_string
 
 begin_first_command_string
     !byte $1f,  3, 11                                                 ; TAB
-    !text "   To begin",146,"r first command, "                       ;
+    !text "   To begin",146,"r first ",154,", "                       ;
     !byte $1f, 12, 12                                                 ; TAB
     !text "p",141
 
@@ -332,3 +332,19 @@ STARSHIP_string
 ; 150
 COMMAND_string
     !text "COMMAND "
+
+; 151
+ON_string
+    !text "ON"
+
+; 152
+OFF_string
+    !text " OFF"
+
+; 153
+hyphen_with_spaces_string
+    !text "  -  "
+
+; 154
+command_string_2
+    !text "command"
