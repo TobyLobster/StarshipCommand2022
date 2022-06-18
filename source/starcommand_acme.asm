@@ -7956,7 +7956,7 @@ plot_debriefing
     jsr osnewl
     jsr plot_line_of_underscores_raw                                  ;
 
-    ldx #3                                                            ;
+    ldx #4                                                            ;
     ldy #9                                                            ;
     jsr tab_to_x_y                                                    ;
 
@@ -9588,6 +9588,51 @@ add_starship_velocity_to_position
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+rotated_x_correction_lsb
+    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
+rotated_x_correction_screens
+    !byte 0, 0, 1, 2, 3, 4                                            ;
+
+rotated_y_correction_lsb
+    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
+rotated_y_correction_screens
+    !byte 0, 1, 2, 3, 4, 5                                            ;
+
+rotated_x_correction_fraction
+    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
+rotated_x_correction_pixels
+    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
+rotated_y_correction_fraction
+    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+rotated_y_correction_pixels
+    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+
+; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
+
+; ----------------------------------------------------------------------------------
+tab_to_x_y
+    lda #$1f                                                          ;
+oswrch_axy
+    jsr oswrch                                                        ;
+    txa                                                               ;
+oswrch_ay
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    jmp oswrch                                                        ;
+
+; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
 ; Checks that the point we are about to plot is close to the centre of the object.
@@ -9710,50 +9755,6 @@ returna
 }
 
 ; ----------------------------------------------------------------------------------
-rotated_x_correction_lsb
-    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
-rotated_x_correction_screens
-    !byte 0, 0, 1, 2, 3, 4                                            ;
-
-rotated_y_correction_lsb
-    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
-rotated_y_correction_screens
-    !byte 0, 1, 2, 3, 4, 5                                            ;
-
-rotated_x_correction_fraction
-    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
-rotated_x_correction_pixels
-    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
-
-rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
-rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
-init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
-
-; ----------------------------------------------------------------------------------
-tab_to_x_y
-    lda #$1f                                                          ;
-oswrch_axy
-    jsr oswrch                                                        ;
-    txa                                                               ;
-oswrch_ay
-    jsr oswrch                                                        ;
-    tya                                                               ;
-    jmp oswrch                                                        ;
-
 frontier_star_positions_y
     ; this defines a 'globe' of 128 stars. X positions are calculated
     !byte $80
