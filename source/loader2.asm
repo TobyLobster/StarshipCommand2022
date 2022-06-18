@@ -133,7 +133,7 @@ oldirq
 first	!byte 0
 
 timeleft
-	!byte 1,':'-'0',3,1
+	!byte 1,':'-'0',3,0
 ;tick_cb
 ;	rts
 timer

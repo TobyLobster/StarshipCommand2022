@@ -1210,21 +1210,17 @@ start
     sta starship_rotation_sine_magnitude                              ;
     jsr init_self_modifying_bytes_for_starship_rotation               ;
     jsr init_frontier_screen
-    lda #osbyte_flush_buffer_class                                    ;
-    ldx #1                                                            ;
-    ldy #0                                                            ;
-    jsr osbyte                                                        ;
     ldx #the_frontiers_string                                         ;
     jsr print_compressed_string                                       ;
 print_string_after_loading
     ; display string
     ldx #begin_first_command_string                                   ;
     jsr print_compressed_string                                       ;
-    jsr screen_on
+    jsr finish_screen
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
     jsr update_frontier_stars                                         ;
-    jsr check_for_return                                              ;
+    jsr get_key_maybe_its_return                                              ;
     bne wait_for_return_in_frontiers_loop                             ;
 return_pressed
     lda rnd_1                                                         ;
@@ -2837,7 +2833,7 @@ handle_player_movement
     ldx starship_torpedo_cooldown                                     ;
     beq reset_starship_torpedo_round                                  ;
     dec starship_torpedo_cooldown                                     ;
-    jmp skip_reset_starship_torpedo_round                             ;
+    bpl skip_reset_starship_torpedo_round ; always
 
 ; ----------------------------------------------------------------------------------
 reset_starship_torpedo_round
@@ -2977,7 +2973,7 @@ finished_rotating
     lda #starship_torpedoes_per_round                                 ;
     sta starship_torpedo_counter                                      ;
     lda #starship_torpedo_cooldown_after_round                        ;
-    jmp set_starship_torpedo_cooldown                                 ;
+    bne set_starship_torpedo_cooldown ; always
 
 not_end_of_round
     lda #starship_torpedo_cooldown_after_firing                       ;
@@ -4703,6 +4699,15 @@ check_for_keypresses
 }
 }
 
+!if elk=0 {
+check_key_x
+    lda #osbyte_inkey                                                 ;
+    ldy #$ff                                                          ;
+    jsr osbyte                                                        ;
+    iny
+    rts                                                               ;
+}
+
 ; ----------------------------------------------------------------------------------
 use_keyboard_input
     +do_key inkey_z, 12, 3, +, 0
@@ -4798,8 +4803,11 @@ pause_game
 return18
     rts                                                               ;
 
-random_data = $4000 ;* and $ff00
-
+!if elk=0 {
+    random_data = $4000 ;* and $ff00
+} else {
+    random_data = $d000 ; ROM is cheaper to access than RAM
+}
 ; ----------------------------------------------------------------------------------
 play_sounds
     lda sound_enabled                                                 ;
@@ -5424,7 +5432,7 @@ initialise_game_screen
     jsr plot_top_and_right_edge_of_long_range_scanner_without_text    ;
     ldx #$c7                                                          ; draw full
     jsr skip_swapping_start_and_end                                   ; energy bars
-    jsr initialise_joystick_and_cursor_keys                           ;
+    jsr initialise_joystick
     jsr plot_score
     jmp screen_on
 
@@ -7321,16 +7329,10 @@ initialise_enemy_ships_loop
     bne initialise_enemy_ships_loop                                   ;
     rts                                                               ;
 
-initialise_joystick_and_cursor_keys
+initialise_joystick
     ldx keyboard_or_joystick                                          ; enable 2 ADC channels
-    beq not_joystick                                                  ; only if we need them
-    ldx #2	                                                      ; for joystick
-not_joystick
-    lda #osbyte_select_adc_channels                                   ;
-    jsr osbyte                                                        ;
-    ldx #1                                                            ;
-    lda #osbyte_set_cursor_editing                                    ;
-    jmp osbyte                                                        ;
+    lda #osbyte_select_adc_channels                                   ; only if we need them
+    jmp (bytev)                                                       ; for joystick
 
 ; ----------------------------------------------------------------------------------
 update_enemy_ships
@@ -7993,6 +7995,7 @@ print_experience
 
     ; subtract the previous total score from the current total score, to get the amount gained in the last command
     lda score_as_bcd                                                  ;
+    php
     sec                                                               ;
     sei                                                               ;
     sed                                                               ; BCD on
@@ -8004,8 +8007,7 @@ print_experience
     lda score_as_bcd + 2                                              ;
     sbc previous_score_as_bcd + 2                                     ;
     sta previous_score_as_bcd + 2                                     ;
-    cld                                                               ; BCD off
-    cli                                                               ;
+    plp
 
     lda escape_capsule_destroyed                                      ;
     eor escape_capsule_launched                                       ; check for 'launched and not destroyed'
@@ -8218,15 +8220,7 @@ done_award
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_instructions
-    ldx #instructions_string1                                         ;
-    jsr print_compressed_string                                       ;
-    ldx #instructions_string2                                         ;
-    jsr print_compressed_string                                       ;
-
-    jsr plot_underscores_at_0_3
-    jmp leave_after_plotting_line_of_underscores                      ;
-
+!if 0 {
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen_key_table
 !if elk=0 {
@@ -8252,6 +8246,7 @@ combat_preparation_screen_key_table
     !byte $d9
     !byte $d8
 }
+}
 ; ----------------------------------------------------------------------------------
 game_options
 option_sound
@@ -8271,7 +8266,7 @@ options_values_to_write
     !byte $4c                                                         ;
     !byte $20                                                         ;
     !byte 0                                                           ;
-    !byte 1                                                           ;
+    !byte 2                                                           ;
 option_address_low_table
     !byte <sound_enabled                                              ;
     !byte <starship_torpedo_type                                      ;
@@ -8304,40 +8299,21 @@ plot_selected_option
     jmp oswrch
 
 ; ----------------------------------------------------------------------------------
-wait_for_return
-    lda #osbyte_flush_buffer_class                                    ;
-    ldx #1                                                            ;
-    ldy #0                                                            ;
-    jsr osbyte                                                        ;
-wait_for_return_loop
+get_key_maybe_its_return
     lda #osbyte_inkey                                                 ;
-    ldx #$32                                                          ;
-    ldy #0                                                            ;
+    ldx #0
+    ldy #0
     jsr osbyte                                                        ;
-    cpy #$ff                                                          ;
-    beq wait_for_return_loop                                          ;
-    cpx #$0d                                                          ;
-    bne wait_for_return_loop                                          ;
+    cpx #$0d
 return28
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-instructions_screen
-    jsr screen_off                                                         ;
-    jsr plot_instructions                                             ;
-    jsr screen_on                                ;
-    jmp wait_for_return                                               ;
+    rts
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen
     jsr screen_off                                                         ;
-
     ldx #combat_preparation_string                                    ;
-    jsr print_compressed_string                                       ;
+    jsr print_string_and_finish_screen
 
-finished_plotting_combat_preparations
-    jsr plot_underscores_at_0_3
-    jsr screen_on                                ;
 plot_selected_options
     ldx #3                                                            ;
     ldy #13                                                            ;
@@ -8347,62 +8323,51 @@ plot_selected_options_loop                                    ;
     dex                                                               ;
     bpl plot_selected_options_loop                                    ;
 get_keypress
-    lda #osbyte_flush_buffer_class                                    ;
-    ldx #1                                                            ;
-    jsr osbyte                                                        ;
-    lda #osbyte_inkey                                                 ;
-    ldx #5                                                            ;
-    ldy #0                                                            ;
-    jsr osbyte                                                        ;
-    cpx #$0d                                                          ;
+    jsr get_key_maybe_its_return
     beq return28                                                      ;
-    lda #$0a                                                          ;
-    sta x_pixels                                                      ;
-check_next_key
-    dec x_pixels                                                      ;
-    bmi get_keypress                                                  ;
-    ldy x_pixels                                                      ;
-    ldx combat_preparation_screen_key_table,y                         ;
-    jsr check_key_x                                                   ;
-    bne check_next_key                                                ;
-    ldx x_pixels                                                      ;
+    cpx #'9'+1
+    bcs get_keypress
+    cpx #'0'
+    bcc get_keypress
     bne not_f0                                                        ;
-    jsr instructions_screen                                           ;
-    jmp combat_preparation_screen                                     ;
+instructions_screen
+    jsr screen_off                                                         ;
+    ldx #instructions_string1                                         ;
+    jsr print_compressed_string                                       ;
+    ldx #instructions_string2                                         ;
+    jsr print_string_finish_and_wait
+    beq combat_preparation_screen ; always
 
 not_f0
-    cpx #1                                                            ;
+    cpx #'1'                                                          ;
     bne not_f1                                                        ;
     jsr starfleet_records_screen                                      ;
-    jmp combat_preparation_screen                                     ;
+    beq combat_preparation_screen ; always
 
 not_f1
     txa                                                               ;
+    and #$0f
     lsr                                                               ;
     tay                                                               ;
     txa                                                               ;
     and #1                                                            ;
-    cmp game_options - 1,y                                            ;
-    beq check_next_key                                                ;
+;    cmp game_options - 1,y                                            ;
+;    beq check_next_key                                                ;
     sta game_options - 1,y                                            ;
     lda option_address_low_table - 1,y                                ;
     sta temp0_low                                                     ;
     lda option_address_high_table - 1,y                               ;
     sta temp0_high                                                    ;
-    lda option_enemy_torpedoes,x                                      ;
+    lda option_enemy_torpedoes-48,x                                   ;
     ldy #0                                                            ;
     sta (temp0_low),y                                                 ;
-    jmp plot_selected_options
+    beq plot_selected_options ; always
 
 ; ----------------------------------------------------------------------------------
 starfleet_records_screen
     jsr screen_off
-    ldx #starfleet_records_string                                     ;
-    jsr print_compressed_string                                       ;
 
-    lda #8                                                            ;
-    sta temp8                                                         ;
-    ldx #0                                                            ;
+    ldx #0
 plot_high_scores_loop
     lda #$1f                                                          ;
     jsr oswrch                                                        ;
@@ -8412,20 +8377,14 @@ plot_high_scores_loop
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    clc                                                               ;
     adc #10                                                           ;
     jsr oswrch                                                        ;
-    lda high_score_table + 3,x                                        ;
+    ldy high_score_table + 3,x                                        ;
     beq leave_after_plotting_underscores                              ;
 
     ; plot index (X/16)
-    txa                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    clc                                                               ;
-    adc #'1'                                                          ; high score index 1-8
+    lsr
+    adc #44
     jsr oswrch                                                        ;
     jsr print_three_spaces
     inx                                                               ;
@@ -8452,13 +8411,18 @@ plot_name_loop
     jsr plot_two_bcd_digits
 
     ; loop over all entries
-    dec temp8                                                         ;
-    bne plot_high_scores_loop                                         ;
+    txa
+    bpl plot_high_scores_loop
 
 leave_after_plotting_underscores
-    jsr plot_underscores_at_0_3
-    jsr screen_on
-    jmp wait_for_return                                               ;
+    ldx #starfleet_records_string                                     ;
+
+print_string_finish_and_wait
+    jsr print_string_and_finish_screen
+wait_for_return
+    jsr get_key_maybe_its_return
+    bne wait_for_return
+    rts                                                               ;
 
 print_three_spaces
     ldy #3
@@ -8518,8 +8482,6 @@ check_for_high_score
     ora score_as_bcd + 1                                              ;
     ora score_as_bcd + 2                                              ;
     beq score_is_zero                                                 ; don't check if player scored zero
-    lda #8                                                            ;
-    sta temp8                                                         ;
     ldx #0                                                            ;
 consider_records_loop
     lda score_as_bcd + 2                                              ;
@@ -8538,8 +8500,7 @@ consider_next_record
     clc                                                               ;
     adc #$10                                                          ;
     tax                                                               ;
-    dec temp8                                                         ;
-    bne consider_records_loop                                         ;
+    bpl consider_records_loop                                         ;
 score_is_zero
     rts                                                               ;
 
@@ -8666,7 +8627,7 @@ end_of_command
 }
     jsr screen_off                                                         ;
     jsr plot_debriefing                                               ;
-    jsr screen_on                                ;
+    jsr screen_on_and_flush                                           ;
     jsr wait_for_return                                               ;
     lda allowed_another_command                                       ;
     bne start_next_command                                            ;
@@ -9061,7 +9022,7 @@ extended1
 extended2
     ldx #5
     jsr get_x_bits                                                    ;
-    jmp output_character
+    bcc output_character ; always
 
 token
     jsr get_5_bits                                                    ;
@@ -9114,7 +9075,7 @@ clear_loop
     inx
     cpx #$32
     bne -
-    jsr screen_on
+    jsr finish_screen
 loader_stars_loop
 loader_string_count
     ldx #0
@@ -9146,6 +9107,17 @@ loader_string_count
     jmp start
 }
 
+print_string_and_finish_screen
+    jsr print_compressed_string
+finish_screen
+    jsr plot_underscores_at_0_3
+screen_on_and_flush
+    jsr screen_on
+flush
+    lda #osbyte_flush_buffer_class
+    ldx #1
+    jmp (bytev)
+
 ; ----------------------------------------------------------------------------------
 plot_underscores_at_0_3
     ldy #0                                                            ;
@@ -9164,15 +9136,6 @@ plot_line_of_underscores_loop
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-check_for_return
-    ldx #inkey_return                                                 ; check for RETURN
-check_key_x
-    lda #osbyte_inkey                                                 ;
-    ldy #$ff                                                          ;
-    jsr osbyte                                                        ;
-    cpy #$ff                                                          ;
-    rts                                                               ;
-
 !if (elk=0) {
 screen_off
     lda #$f0
@@ -9244,9 +9207,7 @@ init_frontier_x_coords
     bpl -
     jsr initialise_frontier_stars                                     ;
 
-;    jsr initialise_joystick_and_cursor_keys                           ;FIXME
     jsr screen_off                                                         ;
-    jsr plot_underscores_at_0_3
 
     ; rotate stars
     lda #$80                                                          ;
@@ -9323,11 +9284,14 @@ update_frontier_stars
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
     lda #<star_table                                                  ;
+!if <star_table != 0 {
+    !error "alignment error"
+}
     sta temp0_low                                                     ;
+    tax
+    tay
     lda #>star_table                                                  ;
     sta temp0_high                                                    ;
-    ldy #0                                                            ;
-    ldx #0                                                            ;
     jsr skip
 initialise_stars_loop
     lda frontier_star_positions_x,x                                   ;
@@ -9588,51 +9552,6 @@ add_starship_velocity_to_position
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-rotated_x_correction_lsb
-    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
-rotated_x_correction_screens
-    !byte 0, 0, 1, 2, 3, 4                                            ;
-
-rotated_y_correction_lsb
-    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
-rotated_y_correction_screens
-    !byte 0, 1, 2, 3, 4, 5                                            ;
-
-rotated_x_correction_fraction
-    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
-rotated_x_correction_pixels
-    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
-
-rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
-rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
-init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
-
-; ----------------------------------------------------------------------------------
-tab_to_x_y
-    lda #$1f                                                          ;
-oswrch_axy
-    jsr oswrch                                                        ;
-    txa                                                               ;
-oswrch_ay
-    jsr oswrch                                                        ;
-    tya                                                               ;
-    jmp oswrch                                                        ;
-
-; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
 ; Checks that the point we are about to plot is close to the centre of the object.
@@ -9755,136 +9674,74 @@ returna
 }
 
 ; ----------------------------------------------------------------------------------
+rotated_x_correction_lsb
+    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
+
+;rotated_x_correction_screens
+;    !byte 0, 0, 1, 2, 3, 4
+;rotated_y_correction_screens
+;    !byte 0, 1, 2, 3, 4, 5
+rotated_x_correction_screens
+    !byte 0
+rotated_y_correction_screens
+    !byte 0, 1, 2, 3, 4, 5                                            ;
+
+rotated_y_correction_lsb
+    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
+
+rotated_x_correction_fraction
+    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
+rotated_x_correction_pixels
+    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
+rotated_y_correction_fraction
+    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+rotated_y_correction_pixels
+    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+
+; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
+
+; ----------------------------------------------------------------------------------
+tab_to_x_y
+    lda #$1f                                                          ;
+oswrch_axy
+    jsr oswrch                                                        ;
+    txa                                                               ;
+oswrch_ay
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    jmp oswrch                                                        ;
+
+; ----------------------------------------------------------------------------------
 frontier_star_positions_y
     ; this defines a 'globe' of 128 stars. X positions are calculated
-    !byte $80
-    !byte $78
-    !byte $7D
-    !byte $83
-    !byte $88
-    !byte $70
-    !byte $90
-    !byte $73
-    !byte $8D
-    !byte $7B
-    !byte $85
-    !byte $69
-    !byte $97
-    !byte $6E
-    !byte $92
-    !byte $79
-    !byte $87
-    !byte $62
-    !byte $9E
-    !byte $6A
-    !byte $96
-    !byte $5B
-    !byte $77
-    !byte $89
-    !byte $A5
-    !byte $66
-    !byte $9A
-    !byte $56
-    !byte $75
-    !byte $8B
-    !byte $AA
-    !byte $62
-    !byte $9E
-    !byte $50
-    !byte $B0
-    !byte $74
-    !byte $8C
-    !byte $5F
-    !byte $A1
-    !byte $4C
-    !byte $B4
-    !byte $73
-    !byte $8D
-    !byte $5C
-    !byte $A4
-    !byte $49
-    !byte $B7
-    !byte $72
-    !byte $8E
-    !byte $5A
-    !byte $A6
-    !byte $46
-    !byte $BA
-    !byte $71
-    !byte $8F
-    !byte $59
-    !byte $A7
-    !byte $45
-    !byte $BB
-    !byte $58
-    !byte $71
-    !byte $8F
-    !byte $A8
-    !byte $44
-    !byte $BC
-    !byte $58
-    !byte $71
-    !byte $8F
-    !byte $A8
-    !byte $45
-    !byte $BB
-    !byte $59
-    !byte $A7
-    !byte $71
-    !byte $8F
-    !byte $46
-    !byte $BA
-    !byte $5A
-    !byte $A6
-    !byte $72
-    !byte $8E
-    !byte $49
-    !byte $B7
-    !byte $5C
-    !byte $A4
-    !byte $73
-    !byte $8D
-    !byte $4C
-    !byte $B4
-    !byte $5F
-    !byte $A1
-    !byte $74
-    !byte $8C
-    !byte $50
-    !byte $B0
-    !byte $62
-    !byte $9E
-    !byte $56
-    !byte $75
-    !byte $8B
-    !byte $AA
-    !byte $66
-    !byte $9A
-    !byte $5B
-    !byte $77
-    !byte $89
-    !byte $A5
-    !byte $6A
-    !byte $96
-    !byte $62
-    !byte $9E
-    !byte $79
-    !byte $87
-    !byte $6E
-    !byte $92
-    !byte $69
-    !byte $97
-    !byte $7B
-    !byte $85
-    !byte $73
-    !byte $8D
-    !byte $70
-    !byte $90
-    !byte $78
-    !byte $7D
-    !byte $83
-    !byte $88
-    !byte $80
+    !byte $80, $78, $7D, $83, $88, $70, $90, $73
+    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
+    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
+    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
+    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
+    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
+    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
+    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
+    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
+    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
+    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
+    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
+    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
+    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
+    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
+    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
 
 !if (* >= $5800) {
     !error "code overflowed by ",*-$5800, " bytes"
@@ -9908,8 +9765,6 @@ init_early
     lda #140                                                          ; *TAPE
     jsr osbyte_zeroxy                                                 ;
 }
-    lda #225                                                          ; Function keys are
-    jsr osbyte_zeroxy                                                 ; not expanded.
     lda #143                                                          ; claim NMI vector
     ldx #12                                                           ; so we can safely use
     ldy #255                                                          ; page D
@@ -10208,6 +10063,17 @@ set_rdchv
     lda #$1
 }
     sta $266
+
+    lda #11                                                           ; disable key repeat
+    jsr osbyte_zeroxy                                                 ;
+    lda #'0'                                                          ; function keys
+    sta $271                                                          ; generate ASCII 0-9
+    sta $272
+    sta $273
+    sta $274
+    lda #osbyte_set_cursor_editing                                    ; cursor keys
+    ldx #1                                                            ; generate ASCII
+    jsr osbyte                                                        ; 136-139
 !if tape {
     rts
 } else {
