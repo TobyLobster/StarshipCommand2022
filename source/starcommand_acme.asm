@@ -573,6 +573,7 @@ enemy_arc_length                        = enemy_ships_flags_or_explosion_timer +
 enemy_temp_index                        = enemy_ships_flags_or_explosion_timer + 5
 
 award                                   = enemy_ships_flags_or_explosion_timer
+allowed_another_command                 = award + 1
 
 
 ; ----------------------------------------------------------------------------------
@@ -7857,8 +7858,6 @@ previous_score_as_bcd
     !byte 0                                                           ;
     !byte 0                                                           ;
     !byte 0                                                           ;
-allowed_another_command
-    !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
 ; twenty times these values are the score thresholds to reach
@@ -7894,6 +7893,108 @@ no_escape_capsule
     jsr print_compressed_string                                       ;
     jmp print_experience                                              ;
 
+; ----------------------------------------------------------------------------------
+plot_debriefing
+    jsr plot_starship_heading                                         ;
+
+    lda #30                                                           ;
+    jsr oswrch                                                        ;
+    jsr plot_line_of_underscores_raw                                  ;
+
+    ; Print heading
+    ldx #combat_experience_heading_string                             ;
+    jsr print_compressed_string                                       ;
+
+    ; Print command number
+    lda command_number
+    jsr plot_two_bcd_digits_with_no_spaces
+    jsr osnewl
+    jsr plot_line_of_underscores_raw                                  ;
+
+    ldy #29                                                           ;
+    jsr plot_line_of_underscores_at_y                                 ;
+
+    ldx #4                                                            ;
+    ldy #9                                                            ;
+    jsr tab_to_x_y                                                    ;
+
+    lda escape_capsule_launched                                       ;
+    beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
+
+    ; Print "An escape capsule was launched"
+    lda #'A'
+    ldy #'n'
+    jsr print_escape_capsule_launched_with_qualifier
+
+    ; Print one of:
+    ;   " and returned safely from the combat zone."
+    ;   " but collided with an enemy ship."
+    ldx #but_collided_string                                          ;
+    lda escape_capsule_destroyed                                      ;
+    bne +                                                             ; if (capsule destroyed) then branch
+    dex
++
+    jsr print_compressed_string                                       ;
+
+print_experience
+    ; Print "Your official combat experience rating is now recorded as"
+    ldx #combat_experience_rating_string                              ;
+    jsr print_compressed_string                                       ;
+
+    ; print score with no leading spaces
+    lda score_as_bcd + 2
+    jsr plot_two_bcd_digits_with_no_spaces
+    lda score_as_bcd + 1
+    jsr plot_two_bcd_digits
+    lda score_as_bcd
+    jsr plot_final_two_digits
+
+    ; subtract the previous total score from the current total score, to get the amount gained in the last command
+    php
+    sec                                                               ;
+    sei                                                               ;
+    sed                                                               ; BCD on
+    ldx #0
+    ldy #3
+-
+    lda score_as_bcd,X
+    sbc previous_score_as_bcd,X
+    sta previous_score_as_bcd,X
+    inx
+    dey
+    bne -
+    plp
+
+    lda escape_capsule_destroyed                                      ;
+    eor escape_capsule_launched                                       ; check for 'launched and not destroyed'
+    sta allowed_another_command                                       ;
+
+    lda command_number                                                ;
+    cmp #1                                                            ;
+    beq skip_previous_command_score                                   ;
+
+    ldx #having_just_gained_string                                    ;
+    jsr print_compressed_string                                       ;
+
+    ; print previous score
+    lda previous_score_as_bcd + 2                                     ;
+    jsr plot_two_bcd_digits_with_no_spaces
+    lda previous_score_as_bcd + 1                                     ;
+    jsr plot_two_bcd_digits
+    lda previous_score_as_bcd                                         ;
+    jsr plot_final_two_digits
+
+skip_previous_command_score
+    jsr print_dot                                                     ; End with full stop
+    lda allowed_another_command                                       ;
+    beq show_any_posthumous_award                                     ;
+
+plot_after_your_performance
+    ; print "After your performance on this command the Star-Fleet authorities are said to be \""
+    ldx #after_your_performance_string                                ;
+    jsr print_compressed_string                                       ;
+
+judge_player
 calculate_and_print_emotion
     ; add random amount $00-$3f to BCD version of score.
     ; Implementation seems odd, mixing a regular number with BCD number.
@@ -7928,137 +8029,33 @@ check_threshold_loop
     bne check_threshold_loop                                          ;
 
 end_of_calculation
-    sty y_pixels                                                      ; to find authorities' emotion
 print_quoted_emotion
     ; print emotion, quote
     tya                                                               ;
+    pha
     clc                                                               ;
     adc #emotions_1 - 1                                               ;
     tax                                                               ;
     jsr print_compressed_string                                       ;
 print_quote
     lda #'"'                                                          ;"
-    jmp oswrch                                                        ;
-
-; ----------------------------------------------------------------------------------
-plot_debriefing
-    jsr plot_starship_heading                                         ;
-
-    lda #30                                                           ;
     jsr oswrch                                                        ;
-    jsr plot_line_of_underscores_raw                                  ;
-
-    ; Print heading
-    ldx #combat_experience_heading_string                             ;
-    jsr print_compressed_string                                       ;
-
-    ; Print command number
-    lda command_number
-    jsr plot_two_bcd_digits_with_no_spaces
-    jsr osnewl
-    jsr plot_line_of_underscores_raw                                  ;
-
-    ldx #4                                                            ;
-    ldy #9                                                            ;
-    jsr tab_to_x_y                                                    ;
-
-    lda escape_capsule_launched                                       ;
-    beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
-
-    ; Print "An escape capsule was launched "
-    lda #'A'
-    ldy #'n'
-    jsr print_escape_capsule_launched_with_qualifier
-
-    ; Print one of:
-    ;   "and returned safely from the combat zone."
-    ;   "but collided with an enemy ship."
-    ldx #but_collided_string                                          ;
-    lda escape_capsule_destroyed                                      ;
-    bne +                                                             ; if (capsule destroyed) then branch
-    ldx #and_returned_safely_string                                   ;
-+
-    jsr print_compressed_string                                       ;
-
-print_experience
-    ; Print "Your official combat experience rating is now recorded as."
-    ldx #combat_experience_rating_string                              ;
-    jsr print_compressed_string                                       ;
-
-    ; print score with no leading spaces
-    lda score_as_bcd + 2
-    jsr plot_two_bcd_digits_with_no_spaces
-    lda score_as_bcd + 1
-    jsr plot_two_bcd_digits
-    lda score_as_bcd
-    jsr plot_final_two_digits
-
-    ; subtract the previous total score from the current total score, to get the amount gained in the last command
-    lda score_as_bcd                                                  ;
-    php
-    sec                                                               ;
-    sei                                                               ;
-    sed                                                               ; BCD on
-    sbc previous_score_as_bcd                                         ;
-    sta previous_score_as_bcd                                         ;
-    lda score_as_bcd + 1                                              ;
-    sbc previous_score_as_bcd + 1                                     ;
-    sta previous_score_as_bcd + 1                                     ;
-    lda score_as_bcd + 2                                              ;
-    sbc previous_score_as_bcd + 2                                     ;
-    sta previous_score_as_bcd + 2                                     ;
-    plp
-
-    lda escape_capsule_destroyed                                      ;
-    eor escape_capsule_launched                                       ; check for 'launched and not destroyed'
-    sta allowed_another_command                                       ;
-
-    lda command_number                                                ;
-    cmp #1                                                            ;
-    beq skip_previous_command_score                                   ;
-
-    ldx #having_just_gained_string                                    ;
-    jsr print_compressed_string                                       ;
-
-    ; print previous score
-    lda previous_score_as_bcd + 2                                     ;
-    jsr plot_two_bcd_digits_with_no_spaces
-    lda previous_score_as_bcd + 1                                     ;
-    jsr plot_two_bcd_digits
-    lda previous_score_as_bcd                                         ;
-    jsr plot_final_two_digits
-
-skip_previous_command_score
-    lda #'.'                                                          ; End with full stop
-    jsr oswrch                                                        ;
-
-    lda allowed_another_command                                       ;
-    beq show_any_posthumous_award                                     ;
-
-plot_after_your_performance
-    ; print "After your performance on this command the Star-Fleet authorities are said to be \""
-    ldx #after_your_performance_string                                ;
-    jsr print_compressed_string                                       ;
-
-judge_player
-    jsr calculate_and_print_emotion                                             ;
 
     ldx #and_string                                                   ;
     ; check for retired
-    lda y_pixels                                                      ; emotion
+    pla                                                               ; emotion
     cmp #4                                                            ;
     bcc player_retired                                                ; if (retired) then branch
 
-    ; print "and" / "but"
+    ; print " and " / " but "
     bne do_and
     inx
 do_and
     jsr print_compressed_string                                       ;
 
-    ; print " they allow you the command of another starship"
+    ; print "they allow you the command of another starship."
     ldx #they_allow_string                                            ;
-    jsr print_compressed_string                                       ;
-    jmp leave_after_plotting_line_of_underscores                      ;
+    jmp print_compressed_string                                       ;
 
 player_retired
     ldy #0                                                            ;
@@ -8067,11 +8064,47 @@ player_retired
     ldx #and_they_retire_you_string                                   ;
     jsr print_compressed_string                                       ;
 
-    jsr show_any_retirement_award                                     ;
-
-leave_after_plotting_line_of_underscores
-    ldy #29                                                           ;
-    jmp plot_line_of_underscores_at_y                                 ;
+show_any_retirement_award
+    lda #award_outcome_escape_1                                       ;
+    !byte $2c
+show_any_posthumous_award
+    lda #award_outcome_die_1                                          ;
+    pha
+calculate_and_print_award
+    ldy #num_award_levels - 1                                         ; start at highest award level
+    lda score_as_bcd + 2                                              ;
+    bne done_award                                                    ;
+    iny                                                               ;
+-
+    dey                                                               ;
+    lda score_as_bcd + 1                                              ;
+    cmp award_thresholds_high,y                                       ;
+    bcc -                                                             ;
+    bne done_award                                                    ;
+    lda score_as_bcd                                                  ;
+    cmp award_thresholds_low,y                                        ;
+    bcc -                                                             ;
+done_award
+    sty award                                                         ;
+    ldx #award_review_string
+    jsr print_compressed_string                                       ;
+    lda #award_adjective_6                                            ; distinguished
+    ldx command_number                                                ;
+    cpx #9                                                            ;
+    bcs +                                                             ;
+    lda adjective_table - 1,x                                         ;
++
+    tax                                                               ;
+    jsr print_compressed_string                                       ;
+    pla
+    clc
+    adc award
+print_award
+    tax                                                               ;
+    jsr print_compressed_string                                       ;
+print_dot
+    lda #'.'                                                          ;
+    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 ; "After reviewing your ADJECTIVE career, Star-Fleet OUTCOME."
@@ -8150,74 +8183,6 @@ adjective_table
     !byte award_adjective_5         ; 8 commands:   "long"
     !byte award_adjective_5         ; 9 commands:   "long"
                                     ; 10+ commands: "distinguished"
-
-; ----------------------------------------------------------------------------------
-show_any_retirement_award
-    jsr calculate_award                                               ;
-    bmi no_award                                                      ;
-
-    jsr award_adjective                                               ;
-
-    lda award                                                         ;
-    clc
-    adc #award_outcome_escape_1                                       ;
-    tax                                                               ;
-    jmp print_award                                                   ;
-
-; ----------------------------------------------------------------------------------
-show_any_posthumous_award
-    jsr calculate_award                                               ;
-    bmi no_award                                                      ;
-
-    jsr award_adjective                                               ;
-
-    lda award                                                         ;
-    clc
-    adc #award_outcome_die_1                                          ;
-    tax                                                               ;
-print_award
-    jsr print_compressed_string                                       ;
-    lda #'.'                                                          ;
-    jsr oswrch                                                        ;
-no_award
-    jmp leave_after_plotting_line_of_underscores                      ;
-
-; ----------------------------------------------------------------------------------
-award_adjective
-    ldx #award_review_string                                          ;
-    jsr print_compressed_string                                       ;
-
-    lda #award_adjective_6                                            ; distinguished
-    ldx command_number                                                ;
-    cpx #9                                                            ;
-    bcs +                                                             ;
-    lda adjective_table - 1,x                                         ;
-+
-    tax                                                               ;
-    jmp print_compressed_string                                       ;
-
-; ----------------------------------------------------------------------------------
-; On Exit:
-;   Y = 0-9 is the award index
-; ----------------------------------------------------------------------------------
-calculate_award
-    ldy #num_award_levels - 1                                         ; start at highest award level
-    lda score_as_bcd + 2                                              ;
-    bne done_award                                                    ;
-    iny                                                               ;
--
-    dey                                                               ;
-    lda score_as_bcd + 1                                              ;
-    cmp award_thresholds_high,y                                       ;
-    bcc -                                                             ;
-    bne done_award                                                    ;
-    lda score_as_bcd                                                  ;
-    cmp award_thresholds_low,y                                        ;
-    bcc -                                                             ;
-done_award
-    tya                                                               ; set the negative flag for testing if we have an award
-    sty award                                                         ;
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 !if 0 {
@@ -8643,13 +8608,13 @@ end_of_command
 ; ----------------------------------------------------------------------------------
 start_next_command
     jsr combat_preparation_screen                                     ;
-    lda score_as_bcd                                                  ;
-    sta previous_score_as_bcd                                         ;
-    lda score_as_bcd + 1                                              ;
-    sta previous_score_as_bcd + 1                                     ;
-    lda score_as_bcd + 2                                              ;
-    sta previous_score_as_bcd + 2                                     ;
-    ldy #3                                                            ;
+    ldy #0
+-
+    lda score_as_bcd,Y                                                  ;
+    sta previous_score_as_bcd,Y                                         ;
+    iny
+    cpy #3
+    bne -
 change_probabilities_loop
     lda probability_of_new_enemy_ship_being_defensive_about_damage,y  ;
     cmp ultimate_enemy_ship_probabilities,y                           ;
@@ -9558,6 +9523,56 @@ add_starship_velocity_to_position
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+rotated_x_correction_lsb
+    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
+
+;rotated_x_correction_screens
+;    !byte 0, 0, 1, 2, 3, 4
+;rotated_y_correction_screens
+;    !byte 0, 1, 2, 3, 4, 5
+rotated_x_correction_screens
+    !byte 0
+rotated_y_correction_screens
+    !byte 0, 1, 2, 3, 4, 5                                            ;
+
+rotated_y_correction_lsb
+    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
+
+rotated_x_correction_fraction
+    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
+rotated_x_correction_pixels
+    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
+rotated_y_correction_fraction
+    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+rotated_y_correction_pixels
+    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+
+; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc
+    adc frontier_x_deltas,y
+    sta frontier_star_positions_x,x
+    inx
+init_first_frontier_coord
+    sta frontier_star_positions_x,x
+    inx
+    rts
+
+; ----------------------------------------------------------------------------------
+tab_to_x_y
+    lda #$1f                                                          ;
+oswrch_axy
+    jsr oswrch                                                        ;
+    txa                                                               ;
+oswrch_ay
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    jmp oswrch                                                        ;
+
+; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
 ; Checks that the point we are about to plot is close to the centre of the object.
@@ -9678,56 +9693,6 @@ returna
 !if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
-
-; ----------------------------------------------------------------------------------
-rotated_x_correction_lsb
-    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
-
-;rotated_x_correction_screens
-;    !byte 0, 0, 1, 2, 3, 4
-;rotated_y_correction_screens
-;    !byte 0, 1, 2, 3, 4, 5
-rotated_x_correction_screens
-    !byte 0
-rotated_y_correction_screens
-    !byte 0, 1, 2, 3, 4, 5                                            ;
-
-rotated_y_correction_lsb
-    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
-
-rotated_x_correction_fraction
-    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
-rotated_x_correction_pixels
-    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
-
-rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
-rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
-init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
-
-; ----------------------------------------------------------------------------------
-tab_to_x_y
-    lda #$1f                                                          ;
-oswrch_axy
-    jsr oswrch                                                        ;
-    txa                                                               ;
-oswrch_ay
-    jsr oswrch                                                        ;
-    tya                                                               ;
-    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 frontier_star_positions_y
