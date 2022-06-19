@@ -8378,7 +8378,13 @@ plot_high_scores_loop
     lsr                                                               ;
     lsr                                                               ;
     adc #10                                                           ;
+!if elk {
+    pha
+}
     jsr oswrch                                                        ;
+!if elk {
+    pla
+}
     ldy high_score_table + 3,x                                        ;
     beq leave_after_plotting_underscores                              ;
 
