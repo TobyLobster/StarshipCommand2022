@@ -9017,6 +9017,37 @@ token
     ldy #0                                                            ;
     beq print_compressed_loop ; always
 
+; ----------------------------------------------------------------------------------
+eor_two_play_area_pixels
+    ldy y_pixels                                                      ;
+eor_two_play_area_pixels_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_two_play_area_pixels_same_y
+    ldy xandf8,x
+    lda xbit_table,x
+    lsr
+    bcs straddle
+    ora xbit_table,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    rts                                                               ;
+straddle
+    lda #1
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    inx ; second pixel is off screen?
+    beq returna
+    lda #$80
+    ldy xandf8,x
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+returna
+    dex ; restore
+    rts
+
 ; things we need during the loader must go after here
 ; ----------------------------------------------------------------------------------
 post_reloc
@@ -9035,9 +9066,6 @@ clear_loop
     jsr oswrch_ay
 !if tape {
     ; frontiers loading screen
-;removeme
-;	lda #$45
-;	sta $FE10 	; tape off
     jsr init_frontier_screen
     ldx #0
 -
@@ -9135,7 +9163,7 @@ screen_off
     lda #$ff
     ldx #$10
     jsr writepal
-    jmp $cb9d
+    jmp $cb9d ; clear screen
 screen_on_with_cursor
     ldx #0
     !byte $2c
@@ -9146,8 +9174,13 @@ writepal
     stx $d0
     sta $804
     sta $805
-    jsr $e7ae
-    jmp $cbea
+    ldy $240
+-
+    cpy $240
+    beq -
+    sta $fe08
+    sta $fe09
+    rts
 fastwrch
     ; we deliberately don't save A here as it's rarely required
     stx xtmp2+1
@@ -9573,6 +9606,26 @@ oswrch_ay
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
+frontier_star_positions_y
+    ; this defines a 'globe' of 128 stars. X positions are calculated
+    !byte $80, $78, $7D, $83, $88, $70, $90, $73
+    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
+    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
+    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
+    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
+    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
+    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
+    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
+    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
+    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
+    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
+    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
+    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
+    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
+    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
+    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
+
+; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
 ; Checks that the point we are about to plot is close to the centre of the object.
@@ -9636,6 +9689,16 @@ return
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; version for the frontiers screen, offset stars by $0780
+; ----------------------------------------------------------------------------------
+eor_frontier_pixel
+    lda y_pixels                                                      ;
+    clc
+    adc #48
+    tay
+    bne eor_play_area_pixel_ycoord_in_y
+
+; ----------------------------------------------------------------------------------
 ; version that plots to scanner area
 ; ----------------------------------------------------------------------------------
 eor_pixel
@@ -9647,72 +9710,12 @@ eor_pixel_xcoord_in_x
     inc screen_address_high                                           ;
     bne eor_pixel_entry
 
-; ----------------------------------------------------------------------------------
-; version for the frontiers screen, offset stars by $0780
-; ----------------------------------------------------------------------------------
-eor_frontier_pixel
-    lda y_pixels                                                      ;
-    clc
-    adc #48
-    tay
-    bne eor_play_area_pixel_ycoord_in_y
-
-eor_two_play_area_pixels
-    ldy y_pixels                                                      ;
-eor_two_play_area_pixels_ycoord_in_y
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_two_play_area_pixels_same_y
-    ldy xandf8,x
-    lda xbit_table,x
-    lsr
-    bcs straddle
-    ora xbit_table,x
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-    rts                                                               ;
-straddle
-    lda #1
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-    inx ; second pixel is off screen?
-    beq returna
-    lda #$80
-    ldy xandf8,x
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-returna
-    dex ; restore
-    rts
-
 !if >eor_frontier_pixel != >eor_play_area_pixel {
     !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
 }
 !if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
-
-; ----------------------------------------------------------------------------------
-frontier_star_positions_y
-    ; this defines a 'globe' of 128 stars. X positions are calculated
-    !byte $80, $78, $7D, $83, $88, $70, $90, $73
-    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
-    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
-    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
-    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
-    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
-    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
-    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
-    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
-    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
-    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
-    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
-    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
-    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
-    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
-    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
 
 !if (* >= $5800) {
     !error "code overflowed by ",*-$5800, " bytes"
@@ -9889,7 +9892,7 @@ row_table_loop
 
 ;	jsr create_square_tables                                          ;
 ;    jsr create_other_tables                                           ;
-
+!if 0 {
     ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
     ldx #regular_strings_end - regular_strings_start
 -
@@ -9897,6 +9900,9 @@ row_table_loop
     sta $0d00-1,x                                                     ;
     dex                                                               ;
     bne -                                                             ;
+} else {
+    ldx #0
+}
 !if tape {
 -
     lda loader_string_copy,x                                          ;
@@ -10061,44 +10067,6 @@ osbyte_zeroy
 }
 
 ; ----------------------------------------------------------------------------------
-initialise_envelopes
-    ldx #<(envelope1)                                                 ;
-    ldy #>(envelope1)                                                 ;
-    lda #osword_envelope                                              ;
-    jsr osword                                                        ;
-    ldx #<(envelope2)                                                 ;
-    ldy #>(envelope2)                                                 ;
-    lda #osword_envelope                                              ;
-    jsr osword                                                        ;
-    ldx #<(envelope3)                                                 ;
-    ldy #>(envelope3)                                                 ;
-    lda #osword_envelope                                              ;
-    jsr osword                                                        ;
-    ldx #<(envelope4)                                                 ;
-    ldy #>(envelope4)                                                 ;
-    lda #osword_envelope                                              ;
-    jmp osword                                                        ;
-
-; ----------------------------------------------------------------------------------
-; Envelope 1, used by sound_3 (Starship fired torpedo)
-envelope1
-    !byte 1, 0  , $f8, $fa, $0f, 4  , $0a, 8  , $7f, $fe, $fc, $ff, $7e, $64
-
-; Envelope 2, used by sound_4 (Enemy ship fired torpedo),
-;                 and sound_7 (Enemy ships colliding with each other)
-envelope2
-    !byte 2, 0  , $f8, $fa, $fe, 4  , $0a, 8  , $7f, $fe, $ff, $ff, $64, $50
-
-; Envelope 3, used by sound_11 (Exploding enemy ship)
-envelope3
-    !byte 3, $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78
-
-; Envelope 4, used by sound_5 (Enemy ship hit by torpedo)
-;                 and sound_6 (Starship hit by torpedo)
-envelope4
-    !byte 4, 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64
-
-; ----------------------------------------------------------------------------------
 regular_string_index_shield_state_on                = shield_state_string1 - regular_strings_table
 regular_string_index_shield_state_off               = shield_state_string2 - regular_strings_table
 regular_string_index_shield_state_auto              = shield_state_string3 - regular_strings_table
@@ -10210,12 +10178,56 @@ command_move_string_end
 
 regular_strings_start
 
-!pseudopc $0d00 {
-    rti                                                               ; put RTI at $0d00
+;!pseudopc $0d00 {
+;    rti                                                               ; put RTI at $0d00
     +m_regular_strings
-}
+;}
 
 regular_strings_end
+!if * >= $5800 {
+    !error "code overflowed by ",*-$5800, " bytes"
+}
+
+; ----------------------------------------------------------------------------------
+initialise_envelopes
+    ldx #<(envelope1)                                                 ;
+    ldy #>(envelope1)                                                 ;
+    lda #osword_envelope                                              ;
+    jsr osword                                                        ;
+    ldx #<(envelope2)                                                 ;
+    ldy #>(envelope2)                                                 ;
+    lda #osword_envelope                                              ;
+    jsr osword                                                        ;
+    ldx #<(envelope3)                                                 ;
+    ldy #>(envelope3)                                                 ;
+    lda #osword_envelope                                              ;
+    jsr osword                                                        ;
+    ldx #<(envelope4)                                                 ;
+    ldy #>(envelope4)                                                 ;
+    lda #osword_envelope                                              ;
+    jmp osword                                                        ;
+
+; ----------------------------------------------------------------------------------
+; Envelope 1, used by sound_3 (Starship fired torpedo)
+envelope1
+    !byte 1, 0  , $f8, $fa, $0f, 4  , $0a, 8  , $7f, $fe, $fc, $ff, $7e, $64
+
+; Envelope 2, used by sound_4 (Enemy ship fired torpedo),
+;                 and sound_7 (Enemy ships colliding with each other)
+envelope2
+    !byte 2, 0  , $f8, $fa, $fe, 4  , $0a, 8  , $7f, $fe, $ff, $ff, $64, $50
+
+; Envelope 3, used by sound_11 (Exploding enemy ship)
+envelope3
+    !byte 3, $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78
+
+; Envelope 4, used by sound_5 (Enemy ship hit by torpedo)
+;                 and sound_6 (Starship hit by torpedo)
+envelope4
+    !byte 4, 0  , $10, $f0, $10, 4  , 8  , 4  , $7f, $ff, $ff, $ff, $7e, $64
+
+; ----------------------------------------------------------------------------------
+
 !if tape {
 loader_string_copy
     !bin "text.o"

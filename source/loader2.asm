@@ -60,8 +60,12 @@ irqdecr_init
 	ldx #0
 	stx $278 ; ACIA mask
 } else {
-	ldy #$1c
-	jsr $faf3 ; set ULA interrupt mask
+	lda #$f0
+	sta $282
+	lda #$1c
+	sta $fe00
+	lda #$0c
+	sta $25b
 }
 -
 	jsr decrunch
@@ -74,7 +78,13 @@ loading_done
 	lda $fe08
 	lda #$45
 	sta $fe10 	; tape off
+} else {
+	lda #$0c
+	sta $fe00
+	ldx #0
+	jsr $e48a ; tape off
 }
+
 	sei
 	lda oldirq+1
 	sta $0204

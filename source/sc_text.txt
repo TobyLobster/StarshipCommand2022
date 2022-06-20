@@ -135,7 +135,7 @@ instructions_string1
     !text " : or M",153,"Thrust"                                        ;
     !byte 31, 7  , 9                                                  ;
     !text " / or ,",153,"Brake"                                         ;
-    !byte 155                                                ;
+    !byte 140,155                                                ;
     !text "F",153,"Launch port",137                                    ;
     !byte 155                                                ;
     !text "G",153,"Launch starboard",137                               ;
