@@ -228,6 +228,7 @@
 ; ----------------------------------------------------------------------------------
 
 do_debug = 0
+rom_writes = 1
 !ifndef elk {
 elk=0           ; 0xC0DE: 0=Beeb version, 1=Elk version
 }
@@ -2614,12 +2615,15 @@ plot_segment
     bcc plot_segment_with_boundary_checks                             ;
     cmp #256 - 16                                                     ;
     bcs plot_segment_with_boundary_checks                             ;
+!if rom_writes {
+    ; fast path now includes going off the top/bottom of the screen
+} else {
     lda temp9                                                         ;
     cmp #16                                                           ;
     bcc plot_segment_with_boundary_checks                             ;
     cmp #256 - 16                                                     ;
     bcs plot_segment_with_boundary_checks                             ;
-
+}
     lda segment_angle_change_per_pixel                                ;
     cmp #1                                                            ;
     beq plot_segment_unrolled                                         ;
@@ -2768,6 +2772,9 @@ downfix_with_offset
     bcc +
     inc screen_address_high
 +
+!if rom_writes {
+    bmi offscreen_down
+}
     ldy #0
     rts
 
@@ -2781,7 +2788,6 @@ downrightfix
     ldx #0 ; fix both
     lda #$48
     bne downfix_with_offset
-
 
 downleftfix
     cpx #$ff
@@ -2798,12 +2804,37 @@ upfix_with_offset
     clc
     adc screen_address_low
     sta screen_address_low
-    dec screen_address_high
-    bcs +
-    dec screen_address_high
-+
+    lda screen_address_high
+    sbc #1
+    sta screen_address_high
+!if rom_writes {
+    cmp #$58
+}
     ldy #7
+!if rom_writes {
+    bcc offscreen_up
+}
+-
     rts
+
+!if rom_writes {
+offscreen_down
+    ldy #0
+    ; if screen address >$8000 then we're off the bottom
+    ; we leave the address unchanged, writing to ROM (but that's OK)
+    lda screen_address_high
+    cmp #$98
+    bcc -
+    ; we've just moved back onto the top of the screen
+    ; subtract $4000 to reinstate the screen address
+
+offscreen_up
+    ; if screen address <$5800 then we're off the top
+    ; we add $4000 to make the address <$9800, which is also in ROM.
+    eor #$c0
+    sta screen_address_high
+    rts
+}
 
 upleftfix
     cpx #$ff
@@ -9972,6 +10003,13 @@ init_late
     ; page in keyboard ROM
     lda #8
     jsr $e3a0
+} else {
+!if rom_writes {
+    ; page in BASIC to minimize the chance of scribbling over whatever may be in SWRAM
+    lda $24b
+    sta $f4
+    sta $fe30
+}
 }
 !if elk=0 {
     ; enable timer 1 in free run mode (on the User VIA)
