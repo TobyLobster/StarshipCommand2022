@@ -5212,35 +5212,74 @@ skip27
     sec                                                               ; torpedo fired
     rts                                                               ;
 
+; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
+angle_result_table_8
+	!byte $00,$18,$00,$08,$10,$18,$10,$08
+angle_result_table_9
+	!byte $1f,$19,$01,$07,$11,$17,$0f,$09
+angle_result_table_10
+	!byte $1e,$1a,$02,$06,$12,$16,$0e,$0a
+angle_result_table_11
+	!byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
+angle_result_table_12
+	!byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
+
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   (temp10, temp9) are the (x,y) coordinates of the enemy ship
 ; On Exit:
-;   Preserves X
+;   Angle in A. Preserves X
 ; ----------------------------------------------------------------------------------
+
+; original code: 1574cs, ~480 cycles, 122 bytes, accuracy OK
+; Toby's code: 702cs, ~214 cycles, 152 bytes, accuracy excellent
+; with accurate_atan2=1: 452cs, ~138 cycles, 211 bytes. accuracy as Toby's
+; with accurate_atan2=0: 411cs, ~125 cycles, 179 bytes, accuracy OK
+accurate_atan2=0
+
 calculate_enemy_ship_angle_to_starship
-    lda temp9                                                         ;
+    lda temp9
+calculate_enemy_ship_angle_to_starship_ycoord_in_a
+    ldy #0
+    sty temp8
+!if accurate_atan2 {
     sec                                                               ;
     bmi skip_inversion_y3                                             ;
     eor #$ff                                                          ;
     sbc #1                                                            ;
     clc                                                               ;
-skip_inversion_y3
-    ror temp8                                                         ; note whether inversion occurred
-    sec                                                               ;
-    sbc #$7f                                                          ; difference from centre point (starship)
+.skip_inversion_y3
+    rol temp8                                                         ; note whether inversion occurred
+;    sec                                                               ;
+    sbc #$7e                                                          ; difference from centre point (starship)
     sta y_pixels                                                      ;
 
-    lda temp10                                                        ;
-    sec                                                               ;
+    lda temp10
     bmi skip_inversion_x3                                             ;
+;    sec
     eor #$ff                                                          ;
     sbc #1                                                            ;
     clc                                                               ;
 skip_inversion_x3
-    ror temp8                                                         ; note whether inversion occurred
+    rol temp8                                                         ; note whether inversion occurred
+;    sec                                                               ;
+    sbc #$7e                                                          ; difference from centre point (starship)
+} else {
     sec                                                               ;
     sbc #$7f                                                          ; difference from centre point (starship)
+    bpl skip_inversion_y3                                             ;
+    eor #$ff                                                          ;
+skip_inversion_y3
+    rol temp8                                                         ; note whether inversion occurred
+    sta y_pixels                                                      ;
+
+    lda temp10
+    sbc #$7e                                                          ; difference from centre point (starship)
+    bpl skip_inversion_x3                                             ;
+    eor #$ff                                                          ;
+skip_inversion_x3
+    rol temp8                                                         ; note whether inversion occurred
+}
     sta x_pixels                                                      ;
 
     cmp y_pixels                                                      ;
@@ -5249,74 +5288,98 @@ skip_inversion_x3
     sty x_pixels                                                      ;
     sta y_pixels                                                      ;
 skip_swap
-    ror temp8                                                         ; note whether swap occurred
+    rol temp8                                                         ; note whether swap occurred
 
     ; At this point x_pixels >= y_pixels, and both values are distances from centre point
 
     ; use fast 8 bit multiply with fixed constants
-    stx temp_x                                                        ; remember X
-    ldy #8                                                            ;
-    ldx x_pixels                                                      ;
-    lda squares1_low + 25,x                                           ;
-    sec                                                               ;
-    sbc squares2_low + 255-25,x                                       ;
-    lda squares1_high + 25,x                                          ;
-    sbc squares2_high + 255-25,x                                      ;
+    ldy x_pixels                                                      ;
+    tya
+    ; through cunning use of binary search we can narrow down the number of 
+    ; multiplications required to at most one
+    lsr
+    cmp y_pixels  ; 128
+    bcc angle_10_or_greater
+    lsr
+    cmp y_pixels ; 64
+    bcc angle_9_or_greater
+    lsr
+    cmp y_pixels ; 32
+    bcc return_angle_9
+    lsr
+    cmp y_pixels ; 16
+    bcs return_angle_8
+angle_8_or_greater
+!if accurate_atan2 {
+    lda squares1_low + 25,y                                           ;
+    ;sec                                                               ;
+    sbc squares2_low + 255-25,y                                       ;
+}
+    lda squares1_high + 25,y                                          ;
+    sbc squares2_high + 255-25,y                                      ;
     cmp y_pixels                                                      ;
-    bcs finished_calculating_partial_angle                            ; if (x*25/256 >= y) then angle=8
-
-    iny                                                               ; Y=9
-    lda squares1_low + 78,x                                           ;
+    bcc return_angle_9                            ; if (x*25/256 >= y) then angle=8
+return_angle_8
+    ldy temp8
+    lda angle_result_table_8,y
+    rts
+return_angle_9
+    ldy temp8
+    lda angle_result_table_9,y
+    rts
+angle_9_or_greater
+!if accurate_atan2 {
+    lda squares1_low + 78,y                                           ;
     sec                                                               ;
-    sbc squares2_low + 255-78,x                                       ;
-    lda squares1_high + 78,x                                          ;
-    sbc squares2_high + 255-78,x                                      ;
+    sbc squares2_low + 255-78,y                                       ;
+}
+    lda squares1_high + 78,y                                          ;
+    sbc squares2_high + 255-78,y                                      ;
     cmp y_pixels                                                      ;
-    bcs finished_calculating_partial_angle                            ; if (x*78/256 >= y) then angle=9
+    bcs return_angle_9                            ; if (x*78/256 >= y) then angle=9
+return_angle_10
+    ldy temp8
+    lda angle_result_table_10,y
+    rts
 
-    iny                                                               ; Y=10
-    lda squares1_low + 137,x                                          ;
+angle_10_or_greater
+    adc x_pixels
+    ror
+    cmp y_pixels ; 192
+    bcc angle_11_or_greater
+!if accurate_atan2 {
+    lda squares1_low + 137,y                                          ;
+    ;sec                                                               ;
+    sbc squares2_low + 255-137,y                                      ;
+}
+    lda squares1_high + 137,y                                         ;
+    sbc squares2_high + 255-137,y                                     ;
+    cmp y_pixels                                                      ;
+    bcs return_angle_10                            ; if (x*137/256 >= y) then angle=10
+return_angle_11
+    ldy temp8
+    lda angle_result_table_11,y
+    rts
+
+angle_11_or_greater
+    ; commented out because of extremely marginal benefit
+;    adc x_pixels
+;    ror
+;    cmp y_pixels ; 224
+;    bcc return_angle_12
+!if accurate_atan2 {
+    lda squares1_low + 210,y                                          ;
     sec                                                               ;
-    sbc squares2_low + 255-137,x                                      ;
-    lda squares1_high + 137,x                                         ;
-    sbc squares2_high + 255-137,x                                     ;
+    sbc squares2_low + 255-210,y                                      ;
+}
+    lda squares1_high + 210,y                                         ;
+    sbc squares2_high + 255-210,y                                     ;
     cmp y_pixels                                                      ;
-    bcs finished_calculating_partial_angle                            ; if (x*137/256 >= y) then angle=10
-
-    iny                                                               ; Y=11
-    lda squares1_low + 210,x                                          ;
-    sec                                                               ;
-    sbc squares2_low + 255-210,x                                      ;
-    lda squares1_high + 210,x                                         ;
-    sbc squares2_high + 255-210,x                                     ;
-    cmp y_pixels                                                      ;
-    bcs finished_calculating_partial_angle                            ; if (x*210/256 >= y) then angle=11
-
-    iny                                                               ; angle=12
-
-finished_calculating_partial_angle
-    ldx temp_x                                                        ; recall X
-    tya                                                               ;
-
-adjust_angle_for_inversions_and_swap
-    rol temp8                                                         ; set if x and y weren't swapped
-    bcs skip_angle_swap                                               ;
-    eor #7                                                            ;
-    adc #1                                                            ;
-skip_angle_swap
-    rol temp8                                                         ; set if x wasn't inverted
-    bcs skip_angle_inversion_x                                        ;
-    eor #$1f                                                          ;
-    adc #1                                                            ;
-skip_angle_inversion_x
-    rol temp8                                                         ; set if y wasn't inverted
-    bcs skip_angle_inversion_x1                                       ;
-    eor #$0f                                                          ;
-    adc #1                                                            ;
-skip_angle_inversion_x1
-    and #$1f                                                          ;
-    sta enemy_ship_desired_angle_divided_by_eight                     ;
-    rts                                                               ;
+    bcs return_angle_11                            ; if (x*210/256 >= y) then angle=11
+return_angle_12
+    ldy temp8
+    lda angle_result_table_12,y
+    rts
 
 ; ----------------------------------------------------------------------------------
 collide_enemy_ships
@@ -5720,8 +5783,8 @@ enemy_ship_defensive_behaviour_handling
     lda enemy_ships_x_pixels,x                                        ;
     sta temp10                                                        ;
     lda enemy_ships_y_pixels,x                                        ;
-    sta temp9                                                         ;
-    jsr calculate_enemy_ship_angle_to_starship                        ;
+    jsr calculate_enemy_ship_angle_to_starship_ycoord_in_a            ;
+    sta enemy_ship_desired_angle_divided_by_eight
     ldy enemy_ships_temporary_behaviour_flags,x                       ;
     bmi skip_retreating_because_of_damage                             ; if not already retreating,
     lda enemy_ships_flags_or_explosion_timer,x                        ;
@@ -5827,13 +5890,13 @@ turn_enemy_ship_towards_starship_using_screens
     jmp turn_enemy_ship_towards_starship                              ;
 
 ; ----------------------------------------------------------------------------------
-turn_enemy_ship_towards_starship
-    jsr calculate_enemy_ship_angle_to_starship                        ;
 turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity
     lda enemy_ship_desired_angle_divided_by_eight                     ;
-    clc                                                               ;
-    adc #$10                                                          ;
-    and #$1f                                                          ;
+    bpl turn_enemy_ship_towards_angle_accounting_for_starship_velocity ; always
+turn_enemy_ship_towards_starship
+    jsr calculate_enemy_ship_angle_to_starship                        ;
+turn_enemy_ship_towards_angle_accounting_for_starship_velocity
+    eor #$10
     sta enemy_ship_desired_angle_divided_by_eight                     ;
     cmp #$11                                                          ;
     bcc skip_inversion9                                               ;
@@ -7139,10 +7202,8 @@ skip_swap1
     sta temp10                                                        ;
     lda x_pixels                                                      ;
     sta enemy_ships_y_screens,x                                       ;
-    sta temp9                                                         ;
-    jsr calculate_enemy_ship_angle_to_starship                        ;
-    clc                                                               ;
-    adc #$10                                                          ; initially pointing away from starship
+    jsr calculate_enemy_ship_angle_to_starship_ycoord_in_a            ;
+    eor #$10                                                          ; initially pointing away from starship
     asl                                                               ;
     asl                                                               ;
     asl                                                               ;
@@ -7564,8 +7625,7 @@ kamikaze_stage_one_set
     clc                                                               ;
     adc #8                                                            ; ninety degrees clockwise turn
     and #$1f                                                          ;
-    sta enemy_ship_desired_angle_divided_by_eight                     ;
-    jsr turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity ;
+    jsr turn_enemy_ship_towards_angle_accounting_for_starship_velocity ;
     lda enemy_ships_y_pixels,x                                        ;
     bmi return_after_changing_velocity5                               ; leave if underneath starship
     lda enemy_ships_x_pixels,x                                        ;
