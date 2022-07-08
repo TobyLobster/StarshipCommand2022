@@ -670,6 +670,23 @@ ShortTimerValue  = 16*64 - 2
 
 load_addr
 
+!macro start_keyboard_read {
+!if elk=0 {
+    sei
+    lda #$7f
+    sta $fe43
+    lda #$03
+    sta $fe40
+}
+}
+!macro finish_keyboard_read {
+!if elk=0 {
+    lda #$0b
+    sta $fe40
+    cli
+}
+}
+
 ; macros for object drawing
 ; A holds the current screen modification byte
 ; X and Y are between 0 and 7
@@ -918,7 +935,6 @@ sine_table
 
 ; ----------------------------------------------------------------------------------
 ; Align to page boundary for speed
-!align 255, 0
 
 plot_table_offset
     !byte <plus_angle0
@@ -964,6 +980,7 @@ plot_table_offset
     !byte <plus_angle40
     !byte <plus_angle41
     !byte <plus_angle42
+!align 255, 0
 plot_table_offset2
     !byte >plus_angle0
     !byte >plus_angle1
@@ -1078,7 +1095,7 @@ segment_angle_to_y_deltas_table
     !byte $0     ; 31  y0
 
 !if >plot_table_offset != >* {
-    !error "alignment error", plot_table_offset, *;
+;    !error "alignment error", plot_table_offset, *;
 }
 
 ;!align 255, 0
@@ -2873,6 +2890,7 @@ reset_starship_torpedo_round
     sta starship_torpedo_counter                                      ;
 skip_reset_starship_torpedo_round
     jsr check_for_keypresses                                          ;
+    +finish_keyboard_read
     lda starship_destroyed                                            ;
     beq starship_isnt_destroyed                                       ;
     jmp player_isnt_firing                                            ;
@@ -4707,6 +4725,7 @@ check_for_keypresses
     ldy keyboard_or_joystick                                          ;
     beq use_keyboard_input                                            ;
     jsr get_joystick_input                                            ;
+    +start_keyboard_read
     jmp check_for_additional_keys                                     ;
 
 !macro do_key .inkey_value, .row, .col, .skip, .invert {
@@ -4721,27 +4740,20 @@ check_for_keypresses
     beq .skip
 }
 } else {
-    ldx #.inkey_value
-    jsr check_key_x
+    lda #255-.inkey_value
+    sta $fe4f
+    lda $fe4f
 !if .invert {
-    beq .skip
+    bmi .skip
 } else {
-    bne .skip
+    bpl .skip
 }
 }
-}
-
-!if elk=0 {
-check_key_x
-    lda #osbyte_inkey                                                 ;
-    ldy #$ff                                                          ;
-    jsr osbyte                                                        ;
-    iny
-    rts                                                               ;
 }
 
 ; ----------------------------------------------------------------------------------
 use_keyboard_input
+    +start_keyboard_read
     +do_key inkey_z, 12, 3, +, 0
     dec rotation_delta                                                ;
 +
@@ -4831,6 +4843,8 @@ skip_damper_keys
 +
     +do_key inkey_p, 3, 1, return18, 0
 pause_game
+    +finish_keyboard_read
+    +start_keyboard_read
     +do_key inkey_space, 0, 3, pause_game, 0
 return18
     rts                                                               ;
@@ -5540,6 +5554,7 @@ launch_escape_capsule_starboard
 launch_escape_capsule
     inc escape_capsule_launched                                       ;
     sty escape_capsule_launch_direction                               ;
+    +finish_keyboard_read
     lda #$3f                                                          ;
     sta self_destruct_countdown                                       ;
     ldx #regular_string_index_escape_capsule_launched                 ;
@@ -7353,9 +7368,7 @@ prepare_starship_for_next_command
     sta previous_starship_automatic_shields                           ;
     sta sound_needed_for_low_energy                                   ;
     sta energy_flash_timer                                            ;
-!if elk {
     sta $242 ; disable keyboard interrupt
-}
     lda #4                                                            ;
     sta starship_velocity_high                                        ;
     lda #0                                                            ;
@@ -8684,9 +8697,7 @@ end_of_command
     sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
-!if elk {
     sta $242 ; enable keyboard interrupt
-}
     jsr screen_off                                                         ;
     jsr plot_debriefing                                               ;
     jsr screen_on_and_flush                                           ;
@@ -9314,10 +9325,12 @@ init_frontier_x_coords
     sta starship_rotation                                             ;
     lda #5                                                            ;
     sta starship_rotation_magnitude                                   ;
+!if tape {
     lda #$ce                                                          ;
     sta starship_rotation_cosine                                      ;
     lda #$0a                                                          ;
     sta starship_rotation_sine_magnitude                              ;
+}
     ; fall through
 
 ; ----------------------------------------------------------------------------------
@@ -9787,7 +9800,7 @@ return
 ; ----------------------------------------------------------------------------------
 eor_frontier_pixel
     lda y_pixels                                                      ;
-    clc
+    ;clc ; C is already clear
     adc #48
     tay
     bne eor_play_area_pixel_ycoord_in_y
