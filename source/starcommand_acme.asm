@@ -9474,7 +9474,7 @@ sm_sine_a4 = * + 1
     ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
 sm_sine_b1 = * + 1
     lda squares1_low+$0a,y                                            ;
-    sec                                                               ;
+    ;sec ; C is already set                                                              ;
 sm_sine_b2 = * + 1
     sbc squares2_low+$f5,y                                            ;
     sta prod_low                                                      ;
@@ -9501,7 +9501,7 @@ sm_sine_b4 = * + 1
 ;   Preserves X,Y
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_cosine
-    cpy #0                                                            ;
+    ;cpy #0 ; Z is already set
     beq shortcut                                                      ;
 
     stx temp_x                                                        ;
@@ -9518,15 +9518,16 @@ sm_cosine_a3 = * + 1
 sm_cosine_a4 = * + 1
     sbc squares2_high+$31,y                                               ;
 
-    sec                                                               ;
+;    sec ; C is already set                                               ;
     sbc temp8                                                         ;
-    bcs +                                                             ;
-    dec temp8                                                         ;
-+
-    clc                                                               ;
+;    bcs +                                                             ;
+;    dec temp8                                                         ;
+;+
+;    clc ; C is already clear                                         ;
     adc temp_x                                                        ;
-    bcc return1                                                       ;
-    inc temp8                                                         ;
+    bcs return1                                                       ;
+;    inc temp8                                                         ;
+    dec temp8                                                         ;
 return1
     rts                                                               ;
 
@@ -9560,8 +9561,9 @@ update_object_position_for_starship_rotation_and_speed
 
 skip_inversion
     ldx starship_rotation_sine_magnitude                              ;
-    bne update_position_for_rotation                                  ;
-    jmp add_starship_velocity_to_position                             ;
+;    bne update_position_for_rotation                                  ;
+;    jmp add_starship_velocity_to_position                             ;
+    beq add_starship_velocity_to_position                             ;
 
 ; ----------------------------------------------------------------------------------
 update_position_for_rotation
@@ -9569,7 +9571,8 @@ update_position_for_rotation
 
     ; X' = Y*sine + X*cosine
     ldx object_y_fraction                                             ;
-    ldy object_y_pixels                                               ;
+    tay
+;    ldy object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     ldx object_x_fraction                                             ;
     ldy object_x_pixels                                               ;
