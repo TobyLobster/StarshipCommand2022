@@ -1,10 +1,10 @@
-# Starship Command 2022 Edition (for the BBC Micro and Electron)
+# Starship Command 2022 Edition (for the BBC Micro, Master and Electron)
 
 This is an update to the original 1983 Acornsoft game *Starship Command* by Peter Irvin.
 
 As always, nothing written here is meant to denigrate the original work from 1983, which remains a remarkable achievement in the world before such things as the Internet, source control, fast reliable storage media, extensive information and a community about the inner workings of the BBC Micro, etc. It all just highlights the benefits we have today.
 
-This new version features:
+## Features
 
 * Significantly faster, more responsive play (less slow-down).
 * Reduced flicker.
@@ -16,6 +16,16 @@ This new version features:
 * Enhanced reporting/awards at the end of each command/game.
 * Master compatible (fixes the scanner static).
 * Electron version - many thanks to [0xC0DE](https://twitter.com/0xC0DE6502) for making the required changes.
+* Many thanks to Tom (hexwab) for excellent and extensive efforts, including:
+    - A much more realistic engine sound
+    - Optimisations pushed a lot further, with faster maths routines, and faster plotting for ship, enemy, torpedo, debris etc. 
+    - A fix for the flicker reduction code.
+    - Compression to speed up tape loading.
+    - An animated loading screen for tape builds (a very nice bonus feature).
+    - Other minor fixes.
+
+## Dependencies
+To implement the compression for tape builds, Exomizer is used. If you want to build the game, you will need a copy of Exomizer 3.0.2. For some reason the latest version doesn't work the same way, so this earlier version is needed. This is available from [here](https://bitbucket.org/magli143/exomizer/wiki/Home). 
 
 ## Technical Changes
 
@@ -69,6 +79,10 @@ In maths terms this is the atan2(y,x) function. Not so easy for a humble 6502. B
 In the original game the remaining calculation is done by a 12 bit division y/x to find a slope which is then tested against predetermined values to find the appropriate angle.
 
 In this updated version of the game we instead calculate kx for some fixed constants k (we have a very fast multiply, see below), and compare each against y. This is in effect testing if y/x < k, i.e. the slope is less than the constants.
+
+In fact we initially do some fast binary search checks on the relative sizes of x and y to determine a narrower range of segments, meaning we only end up needing a single multiply to determine the correct result. A further optimisation avoids calculating the lower byte of the multiply, leading to a faster result with a negligible amount of error in the result (resulting in the slightly jagged edges below).
+
+![Fast angles](documents/atan2-fast.png)
 
 ### Fast multiply
 A fast multiply routine is a key part of the increase in speed. The original game has a several multiply routines: 3 bit, 5 bit, 8 bit, 16 bit and 24 bit.
@@ -144,7 +158,7 @@ Note that in this new version, the X register holds x_pixels, and is preserved a
 ### Fast arc plotting
 We have a routine that draws an entire circle, pixel by pixel. It is an unrolled loop. We jump into this routine at the appropriate starting point for the arc we want to draw, having already modified the code to write an RTS instruction at the point we want to stop drawing. This (a) minimises the cycle cost of working out what coordinates to incement or decrement to get the the next pixel and (b) also removes the overhead of a loop counter and branch instruction.
 
-In fact it draws more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. This fits into one page of memory, for easier/quicker self modification.
+In fact it draws more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. 
 
 ```
 plus_angle0
@@ -163,6 +177,8 @@ plus_angle41
 plus_angle42
     rts
 ```
+
+Update: This has now been optimised further (thanks to hexwab). Instead of calling a generic pixel plotting routine each time, the screen address is maintained as we go. We can then handle adjacent horizontal pixel plots as a single change to a byte (where possible) instead of performing multiple calls to a generic pixel plotting routine.
 
 ### The secret bonus
 Just before your command is judged by Star-Fleet, a secret random bonus of 0-39 is added to your score. This luck can make all the difference as to whether you get another command. With bonus added:
@@ -274,3 +290,4 @@ TobyLobster
 * And to both for useful feedback and play testing.
 * Thanks to Level 7 for the excellent [disassembly](http://www.level7.org.uk/miscellany/starship-command-disassembly.txt) that started this.
 * Thanks to [0xC0DE](https://twitter.com/0xC0DE6502) for making the required changes for the Electron.
+* Thanks to Tom (hexwab) for extensive optimizations, features and bug fixes.

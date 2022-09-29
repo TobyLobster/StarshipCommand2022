@@ -30,7 +30,7 @@ function exo_region {
     local offset=$((0x$startaddr-0x$fileaddr))
     tempfile=$(mktemp)
     dd if=build/disk/$filename bs=1 skip=$offset count=$len >$tempfile 2>/dev/null
-    exomizer301 level -q ${tempfile}@0x$startaddr -o $outfile.exo
+    exomizer302 level -q ${tempfile}@0x$startaddr -o $outfile.exo
     rm -f tempfile
 }
 
@@ -59,7 +59,7 @@ function build_tape {
     # split into early and late
     exo_region $filename loader_copy_start eof build/tape/$filename.1
     exo_region $filename post_reloc loader_copy_start build/tape/$filename.2
-    #exomizer301 level -q text.o@0x1a00 -o build/tape/$filename.3
+    #exomizer302 level -q text.o@0x1a00 -o build/tape/$filename.3
     exo_region $filename load_addr post_reloc build/tape/$filename.3
 
     acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/exo.asm

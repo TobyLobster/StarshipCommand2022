@@ -3084,9 +3084,9 @@ incur_low_damage
     sta damage_low                                                    ;
     bcc return11                                                      ;
     inc damage_high                                                   ;
-return11
 }
 
+return11
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -4830,7 +4830,7 @@ skip_damper_keys
     rts                                                               ;
 ;-------------------------
 +
-!if 1 { ; for testing scoring
+!if 0 { ; for testing scoring
     +do_key inkey_6, 7, 0, +, 0
     lda #10
     jsr debug_score_points

@@ -224,8 +224,8 @@ the_frontiers_string
 
     !byte $1f, 11,  2                                                 ; TAB
     !text 149," ",150                                                 ;
-    !byte $1f,  6, 31                                                 ; TAB
-    !text "2022 Edition by TobyLobster"                               ;
+    !byte $1f,  4, 31                                                 ; TAB
+    !text "2022 Edition by TobyLobster (v2)"                               ;
 
 begin_first_command_string
     !byte $1f,  3, 11                                                 ; TAB
