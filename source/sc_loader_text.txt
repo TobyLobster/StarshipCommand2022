@@ -1,0 +1,12 @@
+    !byte $1f, 11,  2                                                 ; TAB
+    !text "STARSHIP  COMMAND"
+    !byte $1f,  6, 31                                                 ; TAB
+    !text "2022 Edition by TobyLobster"                               ;
+    !byte $1f, 3, 5                                                   ; TAB
+    !text    "The frontiers of space are frequently"                  ;
+    !text "penetrated by hostile alien ships. These"                  ;
+    !text "are tackled by battle starships, the",13,10                ;
+    !text "command of which is given to deserving  "                  ;
+    !text "captains from the Star-Fleet."                             ;
+    !byte $1f,  3, 11                                                 ; TAB
+    !text "Your first command will begin in"

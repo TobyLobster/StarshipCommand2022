@@ -18,8 +18,21 @@ class BitStream:
             self.bitarray.append((value & bit) != 0)
             bit >>= 1
 
+    def pad_with(self, bits, value, bits2, value2):
+        assert(bits+bits2 >= 7)
+        if len(self.bitarray) % 8 == 0:
+            return
+        bytes_so_far = (len(self.bitarray)+7)//8
+        self.append(bits, value)
+        if bytes_so_far == (len(self.bitarray)+7)//8:
+            # first padding was insufficient
+            self.append(bits2, value2)
+
+        self.bitarray = self.bitarray[:bytes_so_far*8]
+
     def get_byte_list(self):
         result = []
+        # how many bytes follow?
         result.append(1 + ((len(self.bitarray) + 7)//8))
 
         offset_in_byte = 0
@@ -79,7 +92,7 @@ def parse_string(line, result):
     while not done:
         # deal with escape sequences first
         if (inEscapeSequence):
-            result.append(line[0])
+            result.append(ord(line[0]))
             line = line[1:]
             inEscapeSequence = False
             continue
@@ -91,14 +104,14 @@ def parse_string(line, result):
         elif line[0] == '\\':
             inEscapeSequence = True
             line = line[1:]
-            break
+            continue
         else:
             if isInString:
                 result.append(ord(line[0]))
             line = line[1:]
 
         done = not isInString
-
+    #print (''.join(map(chr,result)))
     return(line)
 
 def parse_bytes(rawline, count):
@@ -125,15 +138,16 @@ def compress(string_dict):
     # get concordance of bytes
     for entry in string_dict:
         for b in string_dict[entry]:
-            if not (b in conc):
-                conc[b] = 1
-            else:
-                conc[b] += 1
+            if b < 128: # skip tokens
+                if not (b in conc):
+                    conc[b] = 1
+                else:
+                    conc[b] += 1
 
     conc = dict(sorted(conc.items(), key= lambda x:-x[1]))
 
-    commonest_entries = dict(list(conc.items())[0: 30])
-#    print("Commonest characters:", list(commonest_entries.keys()))
+    commonest_entries = dict(list(conc.items())[0: 29])
+    #print("Commonest characters:", list(commonest_entries.keys()))
 
     depth = 0
     counter = 0
@@ -155,13 +169,21 @@ def compress_string(string):
     common_list = list(commonest_entries.keys())
     for entry in string:
         if entry in commonest_entries:
+            assert (entry < 128)
             result.append(5, common_list.index(entry))
         else:
-            result.append(5, 30)
-            result.append(8, entry)
+            if entry >= 128:
+                assert (entry < 160)
+                result.append(5, 31)
+                result.append(5, entry & 31)
+            elif entry < 32:
+                result.append(5, 30)
+                result.append(5, entry)
+            else:
+                result.append(5, 29)
+                result.append(7, entry)
 
-    # add terminator
-    result.append(5, 31)
+    result.pad_with(5,30, 7,0)
     return result
 
 # Construct an argument parser
