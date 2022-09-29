@@ -80,7 +80,7 @@ In the original game the remaining calculation is done by a 12 bit division y/x 
 
 In this updated version of the game we instead calculate kx for some fixed constants k (we have a very fast multiply, see below), and compare each against y. This is in effect testing if y/x < k, i.e. the slope is less than the constants.
 
-In fact we initially do some fast binary search checks on the relative sizes of x and y to determine a narrower range of segments, meaning we only end up needing a single multiply to determine the correct result. A further optimisation avoids calculating the lower byte of the multiply, leading to a faster result with a negligible amount of error in the result (resulting in the slightly jagged edges below).
+In fact we initially do some fast binary search checks on the relative sizes of x and y to determine a narrower range of segments, meaning we only end up needing a single multiply to determine the correct result. A further optimisation avoids calculating the lower byte of the multiply, leading to a faster result with a negligible amount of error (see the slightly jagged edges below).
 
 ![Fast angles](documents/atan2-fast.png)
 
