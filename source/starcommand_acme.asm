@@ -555,7 +555,7 @@ energy_flash_timer                      = $e3
 starship_collided_with_enemy_ship       = $e4
 velocity_gauge_position                 = $e5
 rotation_gauge_position                 = $f5
-enemy_ship_desired_angle_divided_by_eight = $f6 
+enemy_ship_desired_angle_divided_by_eight = $f6
 number_of_live_starship_torpedoes       = $f7
 starship_fired_torpedo                  = $f8
 scanner_failure_duration                = $f9
@@ -638,7 +638,7 @@ xbit_table                              = $1500  ; } tables of constants (768 by
 star_table                              = $1600
 frontier_star_positions_x               = $1900
 
-loader_string				= $1a00
+loader_string                           = $1a00
 
 starship_explosion_table                = star_table + maximum_number_of_stars_in_game * 4
      ; randomised when needed
@@ -672,18 +672,18 @@ load_addr
 
 !macro start_keyboard_read {
 !if elk=0 {
-    sei
-    lda #$7f
-    sta $fe43
-    lda #$03
-    sta $fe40
+    sei                                                               ;
+    lda #$7f                                                          ;
+    sta $fe43                                                         ;
+    lda #$03                                                          ;
+    sta $fe40                                                         ;
 }
 }
 !macro finish_keyboard_read {
 !if elk=0 {
-    lda #$0b
-    sta $fe40
-    cli
+    lda #$0b                                                          ;
+    sta $fe40                                                         ;
+    cli                                                               ;
 }
 }
 
@@ -691,92 +691,92 @@ load_addr
 ; A holds the current screen modification byte
 ; X and Y are between 0 and 7
 !macro left {
-    dex
-    bpl +
-    jsr leftfix
+    dex                                                               ;
+    bpl +                                                             ;
+    jsr leftfix                                                       ;
 +
-    eor xbit_table,X
+    eor xbit_table,X                                                  ;
 }
 
 !macro right {
-    inx
-    cpx #8
-    bne +
-    jsr rightfix
+    inx                                                               ;
+    cpx #8                                                            ;
+    bne +                                                             ;
+    jsr rightfix                                                      ;
 +
-    eor xbit_table,X
+    eor xbit_table,X                                                  ;
 }
 !macro up {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    dey
-    bpl +
-    jsr upfix
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    dey                                                               ;
+    bpl +                                                             ;
+    jsr upfix                                                         ;
 +
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 !macro down {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    iny
-    cpy #8
-    bne +
-    jsr downfix
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    iny                                                               ;
+    cpy #8                                                            ;
+    bne +                                                             ;
+    jsr downfix                                                       ;
 +
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 !macro downleft {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    iny
-    dex
-    bmi .nope
-    cpy #8
-    bne .ok
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    iny                                                               ;
+    dex                                                               ;
+    bmi .nope                                                         ;
+    cpy #8                                                            ;
+    bne .ok                                                           ;
 .nope
-    jsr downleftfix
+    jsr downleftfix                                                   ;
 .ok
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 !macro downright {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    inx
-    iny
-    cpx #8
-    beq .nope
-    cpy #8
-    bne .ok
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    inx                                                               ;
+    iny                                                               ;
+    cpx #8                                                            ;
+    beq .nope                                                         ;
+    cpy #8                                                            ;
+    bne .ok                                                           ;
 .nope
-    jsr downrightfix
+    jsr downrightfix                                                  ;
 .ok
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 !macro upleft {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    dex
-    dey
-    bmi .nope
-    cpx #$ff
-    bne .ok
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    dex                                                               ;
+    dey                                                               ;
+    bmi .nope                                                         ;
+    cpx #$ff                                                          ;
+    bne .ok                                                           ;
 .nope
-    jsr upleftfix
+    jsr upleftfix                                                     ;
 .ok
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 !macro upright {
-    eor (screen_address_low),y
-    sta (screen_address_low),y
-    inx
-    dey
-    bmi .nope
-    cpx #8
-    bne .ok
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+    inx                                                               ;
+    dey                                                               ;
+    bmi .nope                                                         ;
+    cpx #8                                                            ;
+    bne .ok                                                           ;
 .nope
-    jsr uprightfix
+    jsr uprightfix                                                    ;
 .ok
-    lda xbit_table,X
+    lda xbit_table,X                                                  ;
 }
 
 ; ----------------------------------------------------------------------------------
@@ -866,60 +866,7 @@ plus_angle41
     +downleft
 plus_angle42
 
-;!if >plus_angle0 != >plus_angle42 {
-;    !error "alignment error", plus_angle0, plus_angle42
-;}
-;plus_angle = plus_angle0 ; & 0xff00
-
 ; ----------------------------------------------------------------------------------
-!if 0 {
-starship_angle_fraction
-    !byte $c4                                                         ;
-starship_angle_delta
-    !byte $ff                                                         ;
-value_used_for_enemy_torpedo_time_to_live
-    !byte $20                                                         ;
-maximum_number_of_stars
-    !byte $11                                                         ;
-starship_shields_active
-    !byte 1                                                           ;
-starship_torpedo_cooldown
-    !byte 0                                                           ;
-fire_pressed
-    !byte 0                                                           ;
-damage_high
-    !byte 0                                                           ;
-damage_low
-    !byte 0                                                           ;
-starship_destroyed
-    !byte 0                                                           ;
-starship_energy_divided_by_sixteen
-    !byte $ff                                                         ;
-starship_energy_regeneration
-    !byte 0                                                           ;
-starship_automatic_shields
-    !byte 0                                                           ;
-value_of_x_when_incur_damage_called
-    !byte 0                                                           ;
-shields_state_delta
-    !byte 0                                                           ;
-rotation_delta
-    !byte 0                                                           ;
-starship_rotation_fraction
-    !byte 0                                                           ;
-velocity_delta
-    !byte 0                                                           ;
-velocity_damper
-    !byte 0                                                           ;
-
-enemy_ship_type
-    !byte 0                                                           ;
-starship_torpedo_counter
-    !byte 0                                                           ;
-previous_starship_automatic_shields
-    !byte 0                                                           ;
-}
-
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
 starship_rotation_sine_table
@@ -1094,11 +1041,6 @@ segment_angle_to_y_deltas_table
     !byte $ff    ; 30  y-
     !byte $0     ; 31  y0
 
-!if >plot_table_offset != >* {
-;    !error "alignment error", plot_table_offset, *;
-}
-
-;!align 255, 0
 ; ----------------------------------------------------------------------------------
 ; Exploding starship 1
 ; ----------------------------------------------------------------------------------
@@ -1239,7 +1181,7 @@ print_string_after_loading
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
     jsr update_frontier_stars                                         ;
-    jsr get_key_maybe_its_return                                              ;
+    jsr get_key_maybe_its_return                                      ;
     bne wait_for_return_in_frontiers_loop                             ;
 return_pressed
     lda rnd_1                                                         ;
@@ -1452,7 +1394,7 @@ skip1
 skip2
     ldy starship_rotation                                             ;
     bmi skip_inversion1                                               ;
-    lda enemy_ships_x_fraction,x                             ;
+    lda enemy_ships_x_fraction,x                                      ;
     eor #$ff                                                          ;
     sta enemy_ships_x_fraction,x                                      ;
 
@@ -1768,10 +1710,10 @@ empty_torpedo_slot
     bcs return3                                                       ;
     jmp plot_starship_torpedo                                         ;
 
-	;; -21012
-	;;  .OOO.
-	;;  OOOOO
-	;;   OOO
+    ; -21012
+    ;  .OOO.
+    ;  OOOOO
+    ;   OOO
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
     ldy #2                                                            ;
@@ -1780,50 +1722,27 @@ plot_expiring_torpedo
     ldy #4                                                            ;
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;0,0
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;0,1
-    ;; inx                                                               ;
-    ;; jsr eor_play_area_pixel	;1,1
-    ;; inx                                                               ;
-    ;; dec y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;2,0
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel	;1,0
-    ;; dec y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;1,-1
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel	;0,-1
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel	;-1,-1
-    ;; dex                                                               ;
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;-2,0
-    ;; inx                                                               ;
-    ;; jsr eor_play_area_pixel	;-1,0
-    ;; inc y_pixels                                                      ;
-    ;; jmp eor_play_area_pixel	;-1,1
-    dex
-    dex
-    jsr eor_two_play_area_pixels
-    inx
-    inx
-    jsr eor_two_play_area_pixels_same_y
-    inx
-    inx
-    jsr eor_play_area_pixel_same_y
-    dex
-    dex
+    dex                                                               ;
+    dex                                                               ;
+    jsr eor_two_play_area_pixels                                      ;
+    inx                                                               ;
+    inx                                                               ;
+    jsr eor_two_play_area_pixels_same_y                               ;
+    inx                                                               ;
+    inx                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
+    dex                                                               ;
+    dex                                                               ;
     inc y_pixels                                                      ;
-    jsr eor_two_play_area_pixels
-    dex
-    jsr eor_play_area_pixel_same_y
-    dec y_pixels
-    dec y_pixels
-    jsr eor_two_play_area_pixels
-    inx
-    inx
-    jmp eor_play_area_pixel_same_y
+    jsr eor_two_play_area_pixels                                      ;
+    dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ;
+    dec y_pixels                                                      ;
+    dec y_pixels                                                      ;
+    jsr eor_two_play_area_pixels                                      ;
+    inx                                                               ;
+    inx                                                               ;
+    jmp eor_play_area_pixel_same_y                                    ;
 
 ; ----------------------------------------------------------------------------------
 unplot_long_range_scanner_if_shields_inactive
@@ -1865,50 +1784,14 @@ plot_top_and_right_edge_of_long_range_scanner_without_text
 return5
     rts                                                               ;
 
-	;; 101
-	;; .O.  2
-	;; OOO  1
-	;; OOO  0
-	;; .O. -1
+    ;-101
+    ; .O.  2
+    ; OOO  1
+    ; OOO  0
+    ; .O. -1
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
     jmp plot_3x4
-    ;; inx                                                               ; x coordinate
-    ;; jsr eor_play_area_pixel	   ;1,0
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	   ;1,1
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel_same_y ;0,1
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel	;0,2
-    ;; dex                                                               ;
-    ;; dec y_pixels		;-1,1
-    ;; jsr eor_play_area_pixel                                           ;
-    ;; dec y_pixels		;-1,0
-    ;; jsr eor_play_area_pixel                                           ;
-    ;; dec y_pixels
-    ;; inx			;0,-1
-    ;; jmp eor_play_area_pixel                                           ;
-
-    ;; inx
-    ;; jsr eor_play_area_pixel_same_y
-    ;; dex
-    ;; dex
-    ;; jsr eor_play_area_pixel_same_y
-    ;; inc y_pixels
-    ;; jsr eor_play_area_pixel
-    ;; inx
-    ;; jsr eor_play_area_pixel_same_y
-    ;; inx
-    ;; jsr eor_play_area_pixel_same_y
-    ;; inc y_pixels
-    ;; dex
-    ;; jsr eor_play_area_pixel
-    ;; lda y_pixels
-    ;; sec
-    ;; sbc #3
-    ;; tay
-    ;; jmp eor_play_area_pixel_ycoord_in_y
 
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
@@ -2182,10 +2065,10 @@ enemy_torpedo_type_instruction
     jmp eor_play_area_pixel                                           ; self modifying code
     ; ... actually JSR if (option_enemy_torpedoes == 1)
     inx                                                               ;
-    jsr eor_play_area_pixel_same_y                                           ;
+    jsr eor_play_area_pixel_same_y                                    ;
     inc y_pixels                                                      ;
     dex                                                               ;
-    jmp eor_two_play_area_pixels
+    jmp eor_two_play_area_pixels                                      ;
 
 ; ----------------------------------------------------------------------------------
 apply_velocity_to_enemy_ships
@@ -2330,8 +2213,8 @@ not_previously_on_screen
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships
     ; initialize the array to ones (nothing done yet)
-    lda #(1<<maximum_number_of_enemy_ships)-1
-    sta enemy_ship_update_done
+    lda #(1<<maximum_number_of_enemy_ships)-1                         ;
+    sta enemy_ship_update_done                                        ;
 
 retry_loop
     ldx #0
@@ -2345,8 +2228,8 @@ plot_enemy_ships_loop
 ; ----------------------------------------------------------------------------------
 try_plot_enemy_ship
     ldy enemy_ships_still_to_consider                                 ;
-    lda xbit_table,X
-    bit enemy_ship_update_done
+    lda xbit_table,X                                                  ;
+    bit enemy_ship_update_done                                        ;
     beq skip_enemy_altogether                                         ; if (already updated) then branch
 
     lda enemy_ships_on_screen,x                                       ;
@@ -2409,9 +2292,9 @@ copy_position_without_plotting
     ; jsr debug_make_background_black
 
     ; mark enemy as done
-    lda enemy_ship_update_done
+    lda enemy_ship_update_done                                        ;
     eor xbit_table,X                                                  ;
-    sta enemy_ship_update_done
+    sta enemy_ship_update_done                                        ;
 
     lda enemy_ships_on_screen,x                                       ;
     sta enemy_ships_previous_on_screen,x                              ;
@@ -2703,173 +2586,179 @@ plot_segment_unrolled
     ldx segment_angle                                                 ; based on start angle,
     lda plot_table_offset,x                                           ; look up in a table
     sta jump_address                                                  ; the address we jump to (low byte)
-    lda plot_table_offset2,x                                           ; look up in a table
-    sta jump_address+1                                                  ; the address we jump to (high byte)
+    lda plot_table_offset2,x                                          ; look up in a table
+    sta jump_address+1                                                ; the address we jump to (high byte)
     txa                                                               ;
     clc                                                               ;
     adc segment_length                                                ; add the segment length
     tax                                                               ;
-    lda plot_table_offset-1,x                                           ;
-    sta codeptr_low
-    lda plot_table_offset2-1,x                                          ;
-    sta codeptr_high
-    ldy #0
-    lda (codeptr_low),Y
+    lda plot_table_offset-1,x                                         ;
+    sta codeptr_low                                                   ;
+    lda plot_table_offset2-1,x                                        ;
+    sta codeptr_high                                                  ;
+    ldy #0                                                            ;
+    lda (codeptr_low),Y                                               ;
     sta temp_x                                                        ; save the opcode
     lda #$60                                                          ; opcode for RTS
-    sta (codeptr_low),Y
+    sta (codeptr_low),Y                                               ;
     ldx x_pixels                                                      ;
-    ldy y_pixels
-    jsr init_object_play_area
+    ldy y_pixels                                                      ;
+    jsr init_object_play_area                                         ;
 jump_address = * + 1
-    jsr $0000
+    jsr $0000                                                         ;
 finish_object
-    eor (screen_address_low),y
-    sta (screen_address_low),y
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
     lda temp_x                                                        ; recall opcode
-    ldy #0
-    sta (codeptr_low),Y
+    ldy #0                                                            ;
+    sta (codeptr_low),Y                                               ;
     rts                                                               ;
 
 init_object_play_area
     lda row_table_low,y                                               ;
-    and #$f8
-    clc
-    adc xandf8,x
+    and #$f8                                                          ;
+    clc                                                               ;
+    adc xandf8,x                                                      ;
     sta screen_address_low                                            ;
     lda play_area_row_table_high,y                                    ;
-    adc #0
+    adc #0                                                            ;
     sta screen_address_high                                           ;
-    txa
-    and #7
-    tax
-    tya
-    and #7
-    tay
-    lda xbit_table,X
-    rts
+    txa                                                               ;
+    and #7                                                            ;
+    tax                                                               ;
+    tya                                                               ;
+    and #7                                                            ;
+    tay                                                               ;
+    lda xbit_table,X                                                  ;
+    rts                                                               ;
 
 leftfix
-    eor (screen_address_low),y
-    sta (screen_address_low),y
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
 leftfix2
-    lda screen_address_low
-    sec
-    sbc #8
-    sta screen_address_low
-    bcs +
-    dec screen_address_high
+    lda screen_address_low                                            ;
+    sec                                                               ;
+    sbc #8                                                            ;
+    sta screen_address_low                                            ;
+    bcs +                                                             ;
+    dec screen_address_high                                           ;
 +
-    ldx #7
-    lda #0
-    rts
+    ldx #7                                                            ;
+    lda #0                                                            ;
+    rts                                                               ;
 
 rightfix
-    eor (screen_address_low),y
-    sta (screen_address_low),y
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
 rightfix2
-    lda screen_address_low
-    clc
-    adc #8
-    sta screen_address_low
-    bcc +
-    inc screen_address_high
+    lda screen_address_low                                            ;
+    clc                                                               ;
+    adc #8                                                            ;
+    sta screen_address_low                                            ;
+    bcc +                                                             ;
+    inc screen_address_high                                           ;
 +
-    ldx #0
-    lda #0
-    rts
+    ldx #0                                                            ;
+    lda #0                                                            ;
+    rts                                                               ;
 
 downfix
-    lda #$40
+    lda #$40                                                          ;
 downfix_with_offset
-    clc
-    adc screen_address_low
-    sta screen_address_low
-    inc screen_address_high
-    bcc +
-    inc screen_address_high
+    clc                                                               ;
+    adc screen_address_low                                            ;
+    sta screen_address_low                                            ;
+    inc screen_address_high                                           ;
+    bcc +                                                             ;
+    inc screen_address_high                                           ;
 +
 !if rom_writes {
-    bmi offscreen_down
+    bmi offscreen_down                                                ;
 }
-    ldy #0
-    rts
+    ldy #0                                                            ;
+    rts                                                               ;
 
 downrightfix
-    cpx #8
-    bne downfix ; right doesn't need fixing
-    ; so it must be down that does
-    ; (we know *something* does)
-    cpy #8 ; right needs fixing. does down need fixing too?
-    bne rightfix2 ; no. only fix right
-    ldx #0 ; fix both
-    lda #$48
-    bne downfix_with_offset
+    cpx #8                                                            ; if (x != 8) then right doesn't need fixing,
+    bne downfix                                                       ; so it must be down that does
+                                                                      ; (we know *something* does)
+    ; right needs fixing. does down need fixing too?
+    cpy #8                                                            ;
+    bne rightfix2                                                     ; if (y != 8) then only fix right
+
+    ; fix both
+    ldx #0                                                            ;
+    lda #$48                                                          ;
+    bne downfix_with_offset                                           ;
 
 downleftfix
-    cpx #$ff
-    bne downfix
-    cpy #8
-    bne leftfix2
-    ldx #7
-    lda #$38
-    bne downfix_with_offset
+    cpx #$ff                                                          ;
+    bne downfix                                                       ;
+    cpy #8                                                            ;
+    bne leftfix2                                                      ;
+    ldx #7                                                            ;
+    lda #$38                                                          ;
+    bne downfix_with_offset                                           ;
 
 upfix
-    lda #$100-$40
+    lda #$100-$40                                                     ;
 upfix_with_offset
-    clc
-    adc screen_address_low
-    sta screen_address_low
-    lda screen_address_high
-    sbc #1
-    sta screen_address_high
+    clc                                                               ;
+    adc screen_address_low                                            ;
+    sta screen_address_low                                            ;
+    lda screen_address_high                                           ;
+    sbc #1                                                            ;
+    sta screen_address_high                                           ;
 !if rom_writes {
-    cmp #$58
+    cmp #$58                                                          ;
 }
-    ldy #7
+    ldy #7                                                            ;
 !if rom_writes {
-    bcc offscreen_up
+    bcc offscreen_up                                                  ;
 }
 -
-    rts
+    rts                                                               ;
 
 !if rom_writes {
 offscreen_down
-    ldy #0
+    ldy #0                                                            ;
     ; if screen address >$8000 then we're off the bottom
     ; we leave the address unchanged, writing to ROM (but that's OK)
-    lda screen_address_high
-    cmp #$98
-    bcc -
+    lda screen_address_high                                           ;
+    cmp #$98                                                          ;
+    bcc -                                                             ;
     ; we've just moved back onto the top of the screen
     ; subtract $4000 to reinstate the screen address
 
 offscreen_up
     ; if screen address <$5800 then we're off the top
     ; we add $4000 to make the address <$9800, which is also in ROM.
-    eor #$c0
-    sta screen_address_high
-    rts
+    eor #$c0                                                          ;
+    sta screen_address_high                                           ;
+    rts                                                               ;
 }
 
 upleftfix
-    cpx #$ff
-    bne upfix
-    cpy #$ff
-    bne leftfix2
-    ldx #7
-    lda #$100-$40-$8
-    bne upfix_with_offset
+    cpx #$ff                                                          ;
+    bne upfix                                                         ;
+    cpy #$ff                                                          ;
+    bne leftfix2                                                      ;
+    ldx #7                                                            ;
+    lda #$100-$40-$8                                                  ;
+    bne upfix_with_offset                                             ;
 
 uprightfix
-    cpx #8
-    bne upfix ; right doesn't need fixing
-    ldx #0 ; fix right. does down need fixing too?
-    cpy #$ff
-    bne rightfix2 ; no. only fix right
-    lda #$100-$40+$8
-    bne upfix_with_offset
+    cpx #8                                                            ;
+    bne upfix                                                         ; if (x != 8) then right doesn't need fixing
+
+    ; fix right. does down need fixing too?
+    ldx #0                                                            ;
+    cpy #$ff                                                          ;
+    bne rightfix2                                                     ; if (y != 255) then only fix right
+
+    ; fix up.
+    lda #$100-$40+$8                                                  ;
+    bne upfix_with_offset                                             ;
 
 
 ; ----------------------------------------------------------------------------------
@@ -2882,7 +2771,7 @@ handle_player_movement
     ldx starship_torpedo_cooldown                                     ;
     beq reset_starship_torpedo_round                                  ;
     dec starship_torpedo_cooldown                                     ;
-    bpl skip_reset_starship_torpedo_round ; always
+    bpl skip_reset_starship_torpedo_round                             ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
 reset_starship_torpedo_round
@@ -2890,7 +2779,7 @@ reset_starship_torpedo_round
     sta starship_torpedo_counter                                      ;
 skip_reset_starship_torpedo_round
     jsr check_for_keypresses                                          ;
-    +finish_keyboard_read
+    +finish_keyboard_read                                             ;
     lda starship_destroyed                                            ;
     beq starship_isnt_destroyed                                       ;
     jmp player_isnt_firing                                            ;
@@ -3023,7 +2912,7 @@ finished_rotating
     lda #starship_torpedoes_per_round                                 ;
     sta starship_torpedo_counter                                      ;
     lda #starship_torpedo_cooldown_after_round                        ;
-    bne set_starship_torpedo_cooldown ; always
+    bne set_starship_torpedo_cooldown                                 ; ALWAYS branch
 
 not_end_of_round
     lda #starship_torpedo_cooldown_after_firing                       ;
@@ -3179,21 +3068,21 @@ finished_calculating_pixel_position_in_bar
     asl                                                               ;
     clc                                                               ;
     adc #$95                                                          ;
-    tay
-    ldx x_pixels
-    sty energy_y+1
+    tay                                                               ;
+    ldx x_pixels                                                      ;
+    sty energy_y+1                                                    ;
 plot_energy_change_loop
     lda #5                                                            ;
     jsr plot_vertical_line_xy                                         ;
-    dex
+    dex                                                               ;
 energy_y
-    ldy #0
+    ldy #0                                                            ;
     cpx #$0d                                                          ;
     bcs skip_moving_to_next_bar                                       ;
-    tya
-    adc #8 ; C is clear
-    tay
-    sty energy_y+1
+    tya                                                               ;
+    adc #8                                                            ; C is clear
+    tay                                                               ;
+    sty energy_y+1                                                    ;
     ldx #$3e                                                          ;
 skip_moving_to_next_bar
     dec output_fraction                                               ;
@@ -3242,11 +3131,11 @@ plot_horizontal_line_xy
 plot_horizontal_line
     sta temp3                                                         ;
     jsr eor_pixel_xcoord_in_x                                         ;
-    jmp +
+    jmp +                                                             ;
 plot_horizontal_line_loop
-    jsr eor_pixel_same_y                                 ;
+    jsr eor_pixel_same_y                                              ;
 +
-    inx
+    inx                                                               ;
     dec temp3                                                         ;
     bne plot_horizontal_line_loop                                     ;
 return14
@@ -4229,38 +4118,13 @@ skip_uninversion_cosine
     jmp plot_segment                                                  ;
 
 
-; -101
-;-1.h.
-; 0gab
-; 1fdc
-; 2.e.
+;  -101
+; -1.h.
+;  0gab
+;  1fdc
+;  2.e.
 ; ----------------------------------------------------------------------------------
 plot_variable_size_fragment
-    ;; ldx x_pixels                                                      ;
-    ;; jsr eor_play_area_pixel                                           ; 0,0 (a)
-    ;; lda temp8                                                         ;
-    ;; cmp #$c0                                                          ;
-    ;; beq return15                                                      ;
-    ;; inx                                                               ;
-    ;; jsr eor_play_area_pixel                                           ; 1,0 (b)
-    ;; lda temp8                                                         ;
-    ;; bmi return15                                                      ;
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel                                           ; 1,1 (c)
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel                                           ; 0,1 (d)
-    ;; lda temp8                                                         ;
-    ;; bne return15                                                      ;
-    ;; inc y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel                                           ; 0,2 (e)
-    ;; dec y_pixels                                                      ;
-    ;; dex                                                               ;
-    ;; jsr eor_play_area_pixel                                           ;-1,1 (f)
-    ;; dec y_pixels                                                      ;
-    ;; jsr eor_play_area_pixel                                           ;-1,0 (g)
-    ;; dec y_pixels                                                      ;
-    ;; inx                                                               ;
-    ;; jmp eor_play_area_pixel                                           ; 0,-1 (h)
     ldx x_pixels
     lda temp8                                                         ;
     cmp #$c0                                                          ;
@@ -4269,26 +4133,26 @@ plot_variable_size_fragment
     bmi plot_2x1                                                      ;
     bne plot_2x2
 plot_3x4
-    dec y_pixels
-    jsr eor_play_area_pixel ; h
-    inc y_pixels
-    jsr eor_two_play_area_pixels ; a,b
-    dex
-    jsr eor_play_area_pixel_same_y ; g
-    inc y_pixels
-    jsr eor_play_area_pixel ; f
-    inx
-    jsr eor_two_play_area_pixels_same_y ; d,c
-    inc y_pixels
+    dec y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ; h
+    inc y_pixels                                                      ;
+    jsr eor_two_play_area_pixels                                      ; a,b
+    dex                                                               ;
+    jsr eor_play_area_pixel_same_y                                    ; g
+    inc y_pixels                                                      ;
+    jsr eor_play_area_pixel                                           ; f
+    inx                                                               ;
+    jsr eor_two_play_area_pixels_same_y                               ; d,c
+    inc y_pixels                                                      ;
 plot_1x1
-    jmp eor_play_area_pixel ; e
+    jmp eor_play_area_pixel                                           ; e
 plot_2x2
-    jsr eor_two_play_area_pixels
-    inc y_pixels
+    jsr eor_two_play_area_pixels                                      ;
+    inc y_pixels                                                      ;
     ; here we don't need this check
     ;beq return15 ; wrapped?
 plot_2x1
-    jmp eor_two_play_area_pixels
+    jmp eor_two_play_area_pixels                                      ;
 
 ; ----------------------------------------------------------------------------------
 initialise_starship_explosion_pieces
@@ -4457,7 +4321,7 @@ update_enemy_explosion_pieces_loop
     and #$3f                                                          ;
     iny                                                               ;
     sta (temp5),y                                                     ;
-    bne move_to_next_piece_after_dey                                  ; always
+    bne move_to_next_piece_after_dey                                  ; ALWAYS branch
 
 piece_still_active
     sta (temp5),y                                                     ; store updated age
@@ -4612,16 +4476,16 @@ skip_uninversion_cosine1
     bmi plot_1x1_a                                                    ;
     bne plot_2x1_a                                                    ;
 plot_2x2_a
-    jsr eor_two_play_area_pixels
-    inc y_pixels
-    beq leave_after_restoring_y ; wrapped?
+    jsr eor_two_play_area_pixels                                      ;
+    inc y_pixels                                                      ;
+    beq leave_after_restoring_y                                       ; wrapped?
 plot_2x1_a
-    jsr eor_two_play_area_pixels
+    jsr eor_two_play_area_pixels                                      ;
 leave_after_restoring_y
     ldy temp11                                                        ;
     rts                                                               ;
 plot_1x1_a
-    jsr eor_play_area_pixel
+    jsr eor_play_area_pixel                                           ;
     ldy temp11                                                        ;
 return16
     rts                                                               ;
@@ -4725,61 +4589,61 @@ check_for_keypresses
     ldy keyboard_or_joystick                                          ;
     beq use_keyboard_input                                            ;
     jsr get_joystick_input                                            ;
-    +start_keyboard_read
+    +start_keyboard_read                                              ;
     jmp check_for_additional_keys                                     ;
 
 !macro do_key .inkey_value, .row, .col, .skip, .invert {
 !if elk {
 .rom_address   = $bfff - (1<<.row)
 .bitmask       = 1<<.col
-    lda .rom_address
-    and #.bitmask
+    lda .rom_address                                                  ;
+    and #.bitmask                                                     ;
 !if .invert {
-    bne .skip
+    bne .skip                                                         ;
 } else {
-    beq .skip
+    beq .skip                                                         ;
 }
 } else {
-    lda #255-.inkey_value
-    sta $fe4f
-    lda $fe4f
+    lda #255-.inkey_value                                             ;
+    sta $fe4f                                                         ;
+    lda $fe4f                                                         ;
 !if .invert {
-    bmi .skip
+    bmi .skip                                                         ;
 } else {
-    bpl .skip
+    bpl .skip                                                         ;
 }
 }
 }
 
 ; ----------------------------------------------------------------------------------
 use_keyboard_input
-    +start_keyboard_read
-    +do_key inkey_z, 12, 3, +, 0
+    +start_keyboard_read                                              ;
+    +do_key inkey_z, 12, 3, +, 0                                      ;
     dec rotation_delta                                                ;
 +
-    +do_key inkey_x, 11, 3, +, 0
+    +do_key inkey_x, 11, 3, +, 0                                      ;
     inc rotation_delta                                                ;
 +
-    +do_key inkey_m, 6, 3, speed_up, 1
-    +do_key inkey_colon, 2, 2, +, 0                                                  ;
+    +do_key inkey_m, 6, 3, speed_up, 1                                ;
+    +do_key inkey_colon, 2, 2, +, 0                                   ;
 speed_up
     inc velocity_delta                                                ;
 +
-    +do_key inkey_comma, 5, 3, slow_down, 1                                                  ;
-    +do_key inkey_slash, 3, 3, +, 0                                                ;
+    +do_key inkey_comma, 5, 3, slow_down, 1                           ;
+    +do_key inkey_slash, 3, 3, +, 0                                   ;
 slow_down
     dec velocity_delta                                                ;
 +
-    +do_key inkey_n, 7, 3, fire, 1                                                      ;
-    +do_key inkey_return, 1, 2, check_for_additional_keys, 0
+    +do_key inkey_n, 7, 3, fire, 1                                    ;
+    +do_key inkey_return, 1, 2, check_for_additional_keys, 0          ;
 fire
     inc fire_pressed                                                  ;
 
 check_for_additional_keys
-    +do_key inkey_g, 8, 2, +, 0
+    +do_key inkey_g, 8, 2, +, 0                                       ;
     jmp launch_escape_capsule_starboard                               ;
 +
-    +do_key inkey_f, 9, 2, +, 0
+    +do_key inkey_f, 9, 2, +, 0                                       ;
     jmp launch_escape_capsule_port                                    ;
 +
     lda keyboard_or_joystick                                          ;
@@ -4796,64 +4660,66 @@ return17
     rts                                                               ;
 
 +
-    +do_key inkey_f1, 11, 0, +, 0 ; 2 on electron
+    +do_key inkey_f1, 11, 0, +, 0 ; 2 on electron                     ;
     lda #1                                                            ;
     sta velocity_damper                                               ; velocity dampers on
     rts                                                               ;
 
 +
-    +do_key inkey_2, 12, 1, +, 0 ; q on electron
+    +do_key inkey_2, 12, 1, +, 0 ; q on electron                      ;
     lda #0                                                            ;
     sta rotation_damper                                               ; rotation dampers off
     rts                                                               ;
 
 +
-    +do_key inkey_3, 11, 1, skip_damper_keys, 0 ; w on electron
+    +do_key inkey_3, 11, 1, skip_damper_keys, 0 ; w on electron       ;
     lda #0                                                            ;
     sta velocity_damper                                               ; velocity dampers off
     rts                                                               ;
 
 skip_damper_keys
-    +do_key inkey_v, 9, 3, +, 0
+    +do_key inkey_v, 9, 3, +, 0                                       ;
     inc shields_state_delta                                           ; enable shields
     rts                                                               ;
 
 +
-    +do_key inkey_b, 8, 3, +, 0
+    +do_key inkey_b, 8, 3, +, 0                                       ;
     dec shields_state_delta                                           ; disable shields
     rts                                                               ;
 
 +
-    +do_key inkey_c, 10, 3, +, 0
+    +do_key inkey_c, 10, 3, +, 0                                      ;
     lda #1                                                            ;
     sta starship_automatic_shields                                    ; automatic shields
     rts                                                               ;
-;-------------------------
+
+; ----------------------------------------------------------------------------------
 +
 !if 0 { ; for testing scoring
-    +do_key inkey_6, 7, 0, +, 0
-    lda #10
-    jsr debug_score_points
+    +do_key inkey_6, 7, 0, +, 0                                       ;
+    lda #10                                                           ;
+    jsr debug_score_points                                            ;
 +
-    +do_key inkey_7, 6, 0, +, 0
-    lda #$40
-    sta damage_high
+    +do_key inkey_7, 6, 0, +, 0                                       ;
+    lda #$40                                                          ;
+    sta damage_high                                                   ;
 }
-;-------------------------
+; ----------------------------------------------------------------------------------
 +
-    +do_key inkey_p, 3, 1, return18, 0
+    +do_key inkey_p, 3, 1, return18, 0                                ;
 pause_game
-    +finish_keyboard_read
-    +start_keyboard_read
-    +do_key inkey_space, 0, 3, pause_game, 0
+    +finish_keyboard_read                                             ;
+    +start_keyboard_read                                              ;
+    +do_key inkey_space, 0, 3, pause_game, 0                          ;
 return18
     rts                                                               ;
 
 !if elk=0 {
-    random_data = $4000 ;* and $ff00
+    random_data = $4000                                               ;
 } else {
-    random_data = $d000 ; ROM is cheaper to access than RAM
+    random_data = $d000                                               ; ROM is cheaper to access than RAM
 }
+
 ; ----------------------------------------------------------------------------------
 play_sounds
     lda sound_enabled                                                 ;
@@ -4902,23 +4768,26 @@ skip_sound_for_exploding_enemy_ship
 escape_capsule_not_launched
     jsr consider_torpedo_sound                                        ;
     lda sound_needed_for_low_energy                                   ;
-    bne return18
+    bne return18                                                      ;
 
 ; ----------------------------------------------------------------------------------
 play_starship_engine_sound
-!if elk=0 { ; disabled engine sound. Elk has 1 sound channel and the starship engine sound is interfering with the other sounds
+
+    ; On Elk, disable engine sound. Elk has 1 sound channel and the starship engine
+    ; sound is interfering with the other sounds.
+!if elk=0 {
     lda starship_velocity_low                                         ;
     clc                                                               ;
     adc #$40                                                          ;
-    sta irqtmp                                                      ;
+    sta irqtmp                                                        ;
     lda #0                                                            ;
     adc starship_velocity_high                                        ;
-    asl irqtmp                                                      ;
+    asl irqtmp                                                        ;
     rol                                                               ;
     adc starship_rotation_magnitude                                   ;
     sta sound_10_pitch                                                ;
-    beq skip_ceiling
-    adc #2
+    beq skip_ceiling                                                  ;
+    adc #2                                                            ;
     cmp #$0d                                                          ; Pitch = (velocity_high * 2) + rotation_magnitude
     bcc skip_ceiling                                                  ;
     lda #12                                                           ; volume = -min(pitch, 9) + 1
@@ -4929,7 +4798,7 @@ skip_ceiling
     sta userVIAInterruptEnableRegister                                ; on timer 2
 }
 return19
-    rts
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 play_sound_for_exploding_starship
@@ -4983,7 +4852,7 @@ play_escape_capsule_sound
     lsr                                                               ;
 silent
     ldx #<(sound_8)                                                   ;
-    jsr sound_with_volume                                               ;
+    jsr sound_with_volume                                             ;
     lda escape_capsule_sound_channel                                  ;
     cmp #3                                                            ; has the starship exploded?
     beq return19                                                      ;
@@ -4991,26 +4860,26 @@ consider_torpedo_sound
     lda starship_fired_torpedo                                        ;
     beq skip_starship_torpedo_sound                                   ;
     ldx #<(sound_3)                                                   ;
-    bne do_osword_sound                                               ; always
+    bne do_osword_sound                                               ; ALWAYS branch
 
 skip_starship_torpedo_sound
     lda enemy_ships_collided_with_each_other                          ;
-    beq return19                                                     ;
-    ldx #<(sound_7)
-    bne do_osword_sound ; always
+    beq return19                                                      ;
+    ldx #<(sound_7)                                                   ;
+    bne do_osword_sound                                               ; ALWAYS branch
 
 sound_with_volume
     ; negate and sign-extend the volume
     eor #$ff                                                          ;
     clc                                                               ;
     adc #1                                                            ;
-    sta sounds+2, X ; volume low byte
+    sta sounds+2, x                                                   ; volume low byte
     beq set_volume_high                                               ;
     lda #$ff                                                          ;
 set_volume_high
-    sta sounds+3, X ; volume high byte
+    sta sounds+3, x                                                   ; volume high byte
 do_osword_sound
-    ldy #>(sound_1) ; all sounds in the same page
+    ldy #>(sound_1)                                                   ; all sounds in the same page
     lda #osword_sound                                                 ;
     jmp (wordv)                                                       ;
 
@@ -5026,13 +4895,14 @@ flash_energy_when_low
 consider_warning_sound
     lda starship_energy_divided_by_sixteen                            ;
     cmp #$19                                                          ;
-    bcs invert_energy_text
+    bcs invert_energy_text                                            ;
+
     ; beep has started
     lda starship_has_exploded                                         ;
-    ora escape_capsule_sound_channel
+    ora escape_capsule_sound_channel                                  ;
     ora sound_enabled                                                 ;
-    bne invert_energy_text
-    lda #1
+    bne invert_energy_text                                            ;
+    lda #1                                                            ;
     sta sound_needed_for_low_energy                                   ;
 !if elk=0 {
     lda #$20                                                          ; disable engine interrupt
@@ -5070,34 +4940,19 @@ return20
 energy_is_already_low
     dec energy_flash_timer                                            ;
     cmp #10                                                           ;
-    beq invert_energy_text
+    beq invert_energy_text                                            ;
     cmp #11                                                           ;
-    bne return20
+    bne return20                                                      ;
 nobeep
     ; beep has finished
     lda starship_has_exploded                                         ;
-    ora escape_capsule_sound_channel
+    ora escape_capsule_sound_channel                                  ;
     ora sound_enabled                                                 ;
-    bne return20
-    lda #0
+    bne return20                                                      ;
+    lda #0                                                            ;
     sta sound_needed_for_low_energy                                   ;
-    jmp play_starship_engine_sound
+    jmp play_starship_engine_sound                                    ;
 
-!if 0 {
-; ----------------------------------------------------------------------------------
-enemy_ship_desired_angle_divided_by_eight
-    !byte 0                                                           ;
-number_of_live_starship_torpedoes
-    !byte 0                                                           ;
-starship_fired_torpedo
-    !byte $ea                                                         ;
-scanner_failure_duration
-    !byte 0                                                         ;
-starship_shields_active_before_failure
-    !byte $ea                                                         ;
-starship_torpedo_type
-    !byte 0                                                           ;
-}
 ; ----------------------------------------------------------------------------------
 handle_enemy_ships_cloaking
     lda #maximum_number_of_enemy_ships                                ;
@@ -5228,15 +5083,15 @@ skip27
 
 ; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
 angle_result_table_8
-	!byte $00,$18,$00,$08,$10,$18,$10,$08
+    !byte $00,$18,$00,$08,$10,$18,$10,$08
 angle_result_table_9
-	!byte $1f,$19,$01,$07,$11,$17,$0f,$09
+    !byte $1f,$19,$01,$07,$11,$17,$0f,$09
 angle_result_table_10
-	!byte $1e,$1a,$02,$06,$12,$16,$0e,$0a
+    !byte $1e,$1a,$02,$06,$12,$16,$0e,$0a
 angle_result_table_11
-	!byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
+    !byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
 angle_result_table_12
-	!byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
+    !byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
@@ -5252,10 +5107,10 @@ angle_result_table_12
 accurate_atan2=0
 
 calculate_enemy_ship_angle_to_starship
-    lda temp9
+    lda temp9                                                         ;
 calculate_enemy_ship_angle_to_starship_ycoord_in_a
-    ldy #0
-    sty temp8
+    ldy #0                                                            ;
+    sty temp8                                                         ;
 !if accurate_atan2 {
     sec                                                               ;
     bmi skip_inversion_y3                                             ;
@@ -5264,13 +5119,13 @@ calculate_enemy_ship_angle_to_starship_ycoord_in_a
     clc                                                               ;
 .skip_inversion_y3
     rol temp8                                                         ; note whether inversion occurred
-;    sec                                                               ;
+;    sec                                                              ;
     sbc #$7e                                                          ; difference from centre point (starship)
     sta y_pixels                                                      ;
 
-    lda temp10
+    lda temp10                                                        ;
     bmi skip_inversion_x3                                             ;
-;    sec
+;    sec                                                               ;
     eor #$ff                                                          ;
     sbc #1                                                            ;
     clc                                                               ;
@@ -5287,7 +5142,7 @@ skip_inversion_y3
     rol temp8                                                         ; note whether inversion occurred
     sta y_pixels                                                      ;
 
-    lda temp10
+    lda temp10                                                        ;
     sbc #$7e                                                          ; difference from centre point (starship)
     bpl skip_inversion_x3                                             ;
     eor #$ff                                                          ;
@@ -5308,21 +5163,21 @@ skip_swap
 
     ; use fast 8 bit multiply with fixed constants
     ldy x_pixels                                                      ;
-    tya
-    ; through cunning use of binary search we can narrow down the number of 
+    tya                                                               ;
+    ; through cunning use of binary search we can narrow down the number of
     ; multiplications required to at most one
-    lsr
-    cmp y_pixels  ; 128
-    bcc angle_10_or_greater
-    lsr
-    cmp y_pixels ; 64
-    bcc angle_9_or_greater
-    lsr
-    cmp y_pixels ; 32
-    bcc return_angle_9
-    lsr
-    cmp y_pixels ; 16
-    bcs return_angle_8
+    lsr                                                               ;
+    cmp y_pixels                                                      ; 128
+    bcc angle_10_or_greater                                           ;
+    lsr                                                               ;
+    cmp y_pixels                                                      ; 64
+    bcc angle_9_or_greater                                            ;
+    lsr                                                               ;
+    cmp y_pixels                                                      ; 32
+    bcc return_angle_9                                                ;
+    lsr                                                               ;
+    cmp y_pixels                                                      ; 16
+    bcs return_angle_8                                                ;
 angle_8_or_greater
 !if accurate_atan2 {
     lda squares1_low + 25,y                                           ;
@@ -5332,15 +5187,15 @@ angle_8_or_greater
     lda squares1_high + 25,y                                          ;
     sbc squares2_high + 255-25,y                                      ;
     cmp y_pixels                                                      ;
-    bcc return_angle_9                            ; if (x*25/256 >= y) then angle=8
+    bcc return_angle_9                                                ; if (x*25/256 >= y) then angle=8
 return_angle_8
-    ldy temp8
-    lda angle_result_table_8,y
-    rts
+    ldy temp8                                                         ;
+    lda angle_result_table_8,y                                        ;
+    rts                                                               ;
 return_angle_9
-    ldy temp8
-    lda angle_result_table_9,y
-    rts
+    ldy temp8                                                         ;
+    lda angle_result_table_9,y                                        ;
+    rts                                                               ;
 angle_9_or_greater
 !if accurate_atan2 {
     lda squares1_low + 78,y                                           ;
@@ -5350,17 +5205,17 @@ angle_9_or_greater
     lda squares1_high + 78,y                                          ;
     sbc squares2_high + 255-78,y                                      ;
     cmp y_pixels                                                      ;
-    bcs return_angle_9                            ; if (x*78/256 >= y) then angle=9
+    bcs return_angle_9                                                ; if (x*78/256 >= y) then angle=9
 return_angle_10
-    ldy temp8
-    lda angle_result_table_10,y
-    rts
+    ldy temp8                                                         ;
+    lda angle_result_table_10,y                                       ;
+    rts                                                               ;
 
 angle_10_or_greater
-    adc x_pixels
-    ror
-    cmp y_pixels ; 192
-    bcc angle_11_or_greater
+    adc x_pixels                                                      ;
+    ror                                                               ;
+    cmp y_pixels                                                      ; 192
+    bcc angle_11_or_greater                                           ;
 !if accurate_atan2 {
     lda squares1_low + 137,y                                          ;
     ;sec                                                               ;
@@ -5369,11 +5224,11 @@ angle_10_or_greater
     lda squares1_high + 137,y                                         ;
     sbc squares2_high + 255-137,y                                     ;
     cmp y_pixels                                                      ;
-    bcs return_angle_10                            ; if (x*137/256 >= y) then angle=10
+    bcs return_angle_10                                               ; if (x*137/256 >= y) then angle=10
 return_angle_11
-    ldy temp8
-    lda angle_result_table_11,y
-    rts
+    ldy temp8                                                         ;
+    lda angle_result_table_11,y                                       ;
+    rts                                                               ;
 
 angle_11_or_greater
     ; commented out because of extremely marginal benefit
@@ -5389,11 +5244,11 @@ angle_11_or_greater
     lda squares1_high + 210,y                                         ;
     sbc squares2_high + 255-210,y                                     ;
     cmp y_pixels                                                      ;
-    bcs return_angle_11                            ; if (x*210/256 >= y) then angle=11
+    bcs return_angle_11                                               ; if (x*210/256 >= y) then angle=11
 return_angle_12
-    ldy temp8
-    lda angle_result_table_12,y
-    rts
+    ldy temp8                                                         ;
+    lda angle_result_table_12,y                                       ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 collide_enemy_ships
@@ -5659,18 +5514,18 @@ plot_escape_capsule
     jsr eor_play_area_pixel                                           ;  34012
     inx                                                               ;    7
     jsr eor_two_play_area_pixels_same_y                               ;    8
-    dex
-    dex
-    dex
-    jsr eor_two_play_area_pixels_same_y
-    inx
-    inx
+    dex                                                               ;
+    dex                                                               ;
+    dex                                                               ;
+    jsr eor_two_play_area_pixels_same_y                               ;
+    inx                                                               ;
+    inx                                                               ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     inc y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     ldy escape_capsule_y_pixels                                       ;
-    dey
+    dey                                                               ;
     sty y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ;
     dec y_pixels                                                      ;
@@ -5907,7 +5762,9 @@ turn_enemy_ship_towards_starship_using_screens
 ; ----------------------------------------------------------------------------------
 turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity
     lda enemy_ship_desired_angle_divided_by_eight                     ;
-    bpl turn_enemy_ship_towards_angle_accounting_for_starship_velocity ; always
+    bpl turn_enemy_ship_towards_angle_accounting_for_starship_velocity ; ALWAYS branch
+
+; ----------------------------------------------------------------------------------
 turn_enemy_ship_towards_starship
     jsr calculate_enemy_ship_angle_to_starship                        ;
 turn_enemy_ship_towards_angle_accounting_for_starship_velocity
@@ -6458,15 +6315,15 @@ starship_sprite_11
 ; ----------------------------------------------------------------------------------
 scores_for_destroying_enemy_ships
     ; BCD scores
-    !byte $08   ; first ship type, starship torpedo                           ; how_enemy_ship_was_damaged = 0
+    !byte $08   ; first ship type, starship torpedo                   ; how_enemy_ship_was_damaged = 0
     !byte $12   ; second ship type / cloaked ship, starship torpedo
-    !byte $03   ; first ship type, enemy torpedo                              ; how_enemy_ship_was_damaged = 1
+    !byte $03   ; first ship type, enemy torpedo                      ; how_enemy_ship_was_damaged = 1
     !byte $04   ; second ship type / cloaked ship, enemy torpedo
-    !byte $70   ; first ship type, escape capsule                             ; how_enemy_ship_was_damaged = 2
+    !byte $70   ; first ship type, escape capsule                     ; how_enemy_ship_was_damaged = 2
     !byte $90   ; second ship type / cloaked ship, escape capsule
-    !byte $03   ; first ship type, collision with other enemy ship            ; how_enemy_ship_was_damaged = -1
+    !byte $03   ; first ship type, collision with other enemy ship    ; how_enemy_ship_was_damaged = -1
     !byte $04   ; second ship type / cloaked ship, collision with other enemy ship
-    !byte $02   ; first ship type, collision with starship                    ; how_enemy_ship_was_damaged = -1
+    !byte $02   ; first ship type, collision with starship            ; how_enemy_ship_was_damaged = -1
     !byte $03   ; second ship type / cloaked ship, collision with starship
 
 ; ----------------------------------------------------------------------------------
@@ -6503,13 +6360,13 @@ plot_score
     ldy #30                                                           ;
     jsr tab_to_x_y                                                    ;
 print_score
-    lda score_as_bcd + 2                                     ;
-    jsr plot_two_bcd_digits_with_leading_spaces
+    lda score_as_bcd + 2                                              ;
+    jsr plot_two_bcd_digits_with_leading_spaces                       ;
 print_score2
-    lda score_as_bcd + 1                                     ;
-    jsr plot_two_bcd_digits
-    lda score_as_bcd                                         ;
-    jmp plot_two_bcd_digits
+    lda score_as_bcd + 1                                              ;
+    jsr plot_two_bcd_digits                                           ;
+    lda score_as_bcd                                                  ;
+    jmp plot_two_bcd_digits                                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_scanner_grid
@@ -6575,8 +6432,8 @@ plot_gauge_edges
     lda #$2b                                                          ;
     jsr plot_horizontal_line_xy                                       ;
 
-    ldx #$30
-    ldy #$77
+    ldx #$30                                                          ;
+    ldy #$77                                                          ;
     lda #7                                                            ;
     jsr plot_vertical_line_xy                                         ;
 
@@ -7668,48 +7525,48 @@ row
 
 ; ----------------------------------------------------------------------------------
 debug_plot
-    lda #50
-    sta x_pixels
-    sta temp10
-    lda #128
-    sta y_pixels
-    sta temp9
-    jmp debug_plot_enemy
+    lda #50                                                           ;
+    sta x_pixels                                                      ;
+    sta temp10                                                        ;
+    lda #128                                                          ;
+    sta y_pixels                                                      ;
+    sta temp9                                                         ;
+    jmp debug_plot_enemy                                              ;
 
 ; ----------------------------------------------------------------------------------
 debug_show_rotation_value_text
-    lda #30
-    jsr oswrch
+    lda #30                                                           ;
+    jsr oswrch                                                        ;
 
-    lda temp11
-    ldx #0
+    lda temp11                                                        ;
+    ldx #0                                                            ;
 -
-    cmp #10
-    bcc +
-    inx
-    sec
-    sbc #10
-    jmp -
+    cmp #10                                                           ;
+    bcc +                                                             ;
+    inx                                                               ;
+    sec                                                               ;
+    sbc #10                                                           ;
+    jmp -                                                             ;
 +
-    tay
-    txa
-    clc
-    adc #'0'
-    jsr oswrch
-    tya
-    clc
-    adc #'0'
-    ldy #' '
-    jmp oswrch_ay
+    tay                                                               ;
+    txa                                                               ;
+    clc                                                               ;
+    adc #'0'                                                          ;
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    clc                                                               ;
+    adc #'0'                                                          ;
+    ldy #' '                                                          ;
+    jmp oswrch_ay                                                     ;
 
 key
-    !byte 0
+    !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
 debug_get_key_press
-    lda #15
-    ldx #1
-    jsr osbyte
+    lda #15                                                           ;
+    ldx #1                                                            ;
+    jsr osbyte                                                        ;
 
     lda #osbyte_inkey                                                 ;
     ldx #$ff                                                          ;
@@ -7817,25 +7674,24 @@ debug
 ;   Preserves X,Y
 ; ----------------------------------------------------------------------------------
 is_in_danger_area
-    cmp #100
-    bcs lower_half
+    cmp #100                                                          ;
+    bcs lower_half                                                    ;
 
     ; enemy ship is in upper half of screen, but what about the electron beam?
-    lda irq_counter
-    beq in_danger
+    lda irq_counter                                                   ;
+    beq in_danger                                                     ;
     ; electron beam is in lower half, so no problem
 no_danger
-    sec
-    rts
+    sec                                                               ;
+    rts                                                               ;
 
 lower_half
     ; enemy ship is in lower half of screen, but what about the electron beam?
-    lda irq_counter
-    beq no_danger ; electron beam is in upper half, so no problem
+    lda irq_counter                                                   ;
+    beq no_danger                                                     ; electron beam is in upper half, so no problem
 in_danger
-    clc
-    rts
-
+    clc                                                               ;
+    rts                                                               ;
 }
 
 !if elk=0 {
@@ -7853,11 +7709,11 @@ is_in_danger_area
     lsr                                                               ; A = character row
     sec                                                               ;
     sbc irq_counter                                                   ;
-    cmp #danger_height                                                 ;
+    cmp #danger_height                                                ;
     bcc done1                                                         ;
     sec                                                               ;
     sbc #256-38                                                       ;
-    cmp #danger_height                                                 ;
+    cmp #danger_height                                                ;
 done1
     rts                                                               ;
 }
@@ -7980,17 +7836,17 @@ score_threshold_table
     !byte 2, 3, 4, 7, 13, 20, 30                                      ;
 
 print_escape_capsule_launched_with_qualifier
-    jsr oswrch_ay
-    ; Print " escape capsule was launched "
+    jsr oswrch_ay                                                     ;
+    ; Print " escape capsule was launched "                           ;
     ldx #escape_capsule_was_launched_string                           ;
     jmp print_compressed_string                                       ;
 
 ; ----------------------------------------------------------------------------------
 no_escape_capsule
     ; Print "No escape capsule was launched "
-    lda #'N'
-    ldy #'o'
-    jsr print_escape_capsule_launched_with_qualifier
+    lda #'N'                                                          ;
+    ldy #'o'                                                          ;
+    jsr print_escape_capsule_launched_with_qualifier                  ;
 
     ; Print "before the starship exploded."
     ldx #before_the_starship_exploded_string                          ;
@@ -8010,9 +7866,9 @@ plot_debriefing
     jsr print_compressed_string                                       ;
 
     ; Print command number
-    lda command_number
-    jsr plot_two_bcd_digits_with_no_spaces
-    jsr osnewl
+    lda command_number                                                ;
+    jsr plot_two_bcd_digits_with_no_spaces                            ;
+    jsr osnewl                                                        ;
     jsr plot_line_of_underscores_raw                                  ;
 
     ldy #29                                                           ;
@@ -8026,9 +7882,9 @@ plot_debriefing
     beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
 
     ; Print "An escape capsule was launched"
-    lda #'A'
-    ldy #'n'
-    jsr print_escape_capsule_launched_with_qualifier
+    lda #'A'                                                          ;
+    ldy #'n'                                                          ;
+    jsr print_escape_capsule_launched_with_qualifier                  ;
 
     ; Print one of:
     ;   " and returned safely from the combat zone."
@@ -8046,28 +7902,28 @@ print_experience
     jsr print_compressed_string                                       ;
 
     ; print score with no leading spaces
-    lda score_as_bcd + 2
-    jsr plot_two_bcd_digits_with_no_spaces
-    lda score_as_bcd + 1
-    jsr plot_two_bcd_digits
-    lda score_as_bcd
-    jsr plot_final_two_digits
+    lda score_as_bcd + 2                                              ;
+    jsr plot_two_bcd_digits_with_no_spaces                            ;
+    lda score_as_bcd + 1                                              ;
+    jsr plot_two_bcd_digits                                           ;
+    lda score_as_bcd                                                  ;
+    jsr plot_final_two_digits                                         ;
 
     ; subtract the previous total score from the current total score, to get the amount gained in the last command
-    php
+    php                                                               ;
     sec                                                               ;
     sei                                                               ;
     sed                                                               ; BCD on
-    ldx #0
-    ldy #3
+    ldx #0                                                            ;
+    ldy #3                                                            ;
 -
-    lda score_as_bcd,X
-    sbc previous_score_as_bcd,X
-    sta previous_score_as_bcd,X
-    inx
-    dey
-    bne -
-    plp
+    lda score_as_bcd,X                                                ;
+    sbc previous_score_as_bcd,X                                       ;
+    sta previous_score_as_bcd,X                                       ;
+    inx                                                               ;
+    dey                                                               ;
+    bne -                                                             ;
+    plp                                                               ;
 
     lda escape_capsule_destroyed                                      ;
     eor escape_capsule_launched                                       ; check for 'launched and not destroyed'
@@ -8082,11 +7938,11 @@ print_experience
 
     ; print previous score
     lda previous_score_as_bcd + 2                                     ;
-    jsr plot_two_bcd_digits_with_no_spaces
+    jsr plot_two_bcd_digits_with_no_spaces                            ;
     lda previous_score_as_bcd + 1                                     ;
-    jsr plot_two_bcd_digits
+    jsr plot_two_bcd_digits                                           ;
     lda previous_score_as_bcd                                         ;
-    jsr plot_final_two_digits
+    jsr plot_final_two_digits                                         ;
 
 skip_previous_command_score
     jsr print_dot                                                     ; End with full stop
@@ -8136,12 +7992,12 @@ end_of_calculation
 print_quoted_emotion
     ; print emotion, quote
     tya                                                               ;
-    pha
+    pha                                                               ;
     clc                                                               ;
     adc #emotions_1 - 1                                               ;
     tax                                                               ;
     jsr print_compressed_string                                       ;
-print_quote
+print_quote                                                           ;
     lda #'"'                                                          ;"
     jsr oswrch                                                        ;
 
@@ -8152,8 +8008,8 @@ print_quote
     bcc player_retired                                                ; if (retired) then branch
 
     ; print " and " / " but "
-    bne do_and
-    inx
+    bne do_and                                                        ;
+    inx                                                               ;
 do_and
     jsr print_compressed_string                                       ;
 
@@ -8170,7 +8026,7 @@ player_retired
 
 show_any_retirement_award
     lda #award_outcome_escape_1                                       ;
-    !byte $2c
+    !byte $2c                                                         ; 'BIT abs' opcode to skip next instruction
 show_any_posthumous_award
     lda #award_outcome_die_1                                          ;
     pha
@@ -8200,9 +8056,9 @@ done_award
 +
     tax                                                               ;
     jsr print_compressed_string                                       ;
-    pla
-    clc
-    adc award
+    pla                                                               ;
+    clc                                                               ;
+    adc award                                                         ;
 print_award
     tax                                                               ;
     jsr print_compressed_string                                       ;
@@ -8214,38 +8070,38 @@ print_dot
 ; "After reviewing your ADJECTIVE career, Star-Fleet OUTCOME."
 ;
 ; ADJECTIVE:
-; 	if only one command: "all-too brief"
-; 	if only two commands: "short"
-; 	if three to four: "fairly short"
-; 	if five to six: "fairly long"
-; 	seven to nine: "long"
-; 	else "distinguished"
+;   if only one command: "all-too brief"
+;   if only two commands: "short"
+;   if three to four: "fairly short"
+;   if five to six: "fairly long"
+;   seven to nine: "long"
+;   else "distinguished"
 ;
 ; OUTCOME IF YOU DIE:
 ;
-; 	1. list your name on the Pluto monument
-; 	2. mention you in a tri-vi broadcast
-; 	3. award you the Order of the Badger
-; 	4. award you the Order of the Lion, Second Class
-; 	5. award you the Order of the Lion, First Class
-; 	6. award you the Order of the Lion, First Class, with Oak Leaves
-; 	7. award you the Order of the Lion, First Class, with Oak Leaves and Crossed Blasters
-; 	8. put your face on recruiting posters
-; 	9. build a statue of you on Mars
-; 	10. rename the Academy after you
+;   1. list your name on the Pluto monument
+;   2. mention you in a tri-vi broadcast
+;   3. award you the Order of the Badger
+;   4. award you the Order of the Lion, Second Class
+;   5. award you the Order of the Lion, First Class
+;   6. award you the Order of the Lion, First Class, with Oak Leaves
+;   7. award you the Order of the Lion, First Class, with Oak Leaves and Crossed Blasters
+;   8. put your face on recruiting posters
+;   9. build a statue of you on Mars
+;   10. rename the Academy after you
 ;
 ; OUTCOME IF YOU ESCAPE IN POD:
 ;
-; 	1. court-martial you for cowardice
-; 	2. demote you to worker grade
-; 	3. retrain you as a gardener
-; 	4. assign you to planning staff
-; 	5. grant you a full pension
-; 	6. promote you to Commodore
-; 	7. promote you to Rear-Admiral
-; 	8. promote you to Admiral
-; 	9. promote you to Grand Admiral
-; 	10. elect you President of the Solar Federation
+;   1. court-martial you for cowardice
+;   2. demote you to worker grade
+;   3. retrain you as a gardener
+;   4. assign you to planning staff
+;   5. grant you a full pension
+;   6. promote you to Commodore
+;   7. promote you to Rear-Admiral
+;   8. promote you to Admiral
+;   9. promote you to Grand Admiral
+;   10. elect you President of the Solar Federation
 ; ----------------------------------------------------------------------------------
 ; In BCD
 award_thresholds_low
@@ -8304,16 +8160,16 @@ combat_preparation_screen_key_table
     !byte $89                                                         ;
     !byte $88                                                         ;
 } else {
-    !byte $cf
-    !byte $ce
-    !byte $ee
-    !byte $ed
-    !byte $ec
-    !byte $cb
-    !byte $db
-    !byte $ea
-    !byte $d9
-    !byte $d8
+    !byte $cf                                                         ;
+    !byte $ce                                                         ;
+    !byte $ee                                                         ;
+    !byte $ed                                                         ;
+    !byte $ec                                                         ;
+    !byte $cb                                                         ;
+    !byte $db                                                         ;
+    !byte $ea                                                         ;
+    !byte $d9                                                         ;
+    !byte $d8                                                         ;
 }
 }
 ; ----------------------------------------------------------------------------------
@@ -8349,73 +8205,73 @@ option_address_high_table
 
 ; ----------------------------------------------------------------------------------
 plot_selected_option
-    dey
+    dey                                                               ;
     lda #$1f                                                          ;
     jsr oswrch                                                        ;
     lda #9                                                            ;
     jsr oswrch                                                        ;
-    tya
-    asl
-    jsr oswrch
-    tya
-    and #1
-    eor game_options,x
-    beq +
-    lda #'*' ; more legible than '-'
-    !byte $2c
+    tya                                                               ;
+    asl                                                               ;
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    and #1                                                            ;
+    eor game_options,x                                                ;
+    beq +                                                             ;
+    lda #'*'                                                          ; more legible than '-'
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 +
-    lda #' '
-    jmp oswrch
+    lda #' '                                                          ;
+    jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
 get_key_maybe_its_return
     lda #osbyte_inkey                                                 ;
-    ldx #0
-    ldy #0
+    ldx #0                                                            ;
+    ldy #0                                                            ;
     jsr osbyte                                                        ;
-    cpx #$0d
+    cpx #$0d                                                          ;
 return28
-    rts
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_screen
-    jsr screen_off                                                         ;
+    jsr screen_off                                                    ;
     ldx #combat_preparation_string                                    ;
     jsr print_string_and_finish_screen
 
 plot_selected_options
     ldx #3                                                            ;
-    ldy #13                                                            ;
-plot_selected_options_loop                                    ;
-    jsr plot_selected_option
-    jsr plot_selected_option
+    ldy #13                                                           ;
+plot_selected_options_loop
+    jsr plot_selected_option                                          ;
+    jsr plot_selected_option                                          ;
     dex                                                               ;
     bpl plot_selected_options_loop                                    ;
 get_keypress
-    jsr get_key_maybe_its_return
+    jsr get_key_maybe_its_return                                      ;
     beq return28                                                      ;
-    cpx #'9'+1
-    bcs get_keypress
-    cpx #'0'
-    bcc get_keypress
+    cpx #'9'+1                                                        ;
+    bcs get_keypress                                                  ;
+    cpx #'0'                                                          ;
+    bcc get_keypress                                                  ;
     bne not_f0                                                        ;
 instructions_screen
-    jsr screen_off                                                         ;
+    jsr screen_off                                                    ;
     ldx #instructions_string1                                         ;
     jsr print_compressed_string                                       ;
     ldx #instructions_string2                                         ;
-    jsr print_string_finish_and_wait
-    beq combat_preparation_screen ; always
+    jsr print_string_finish_and_wait                                  ;
+    beq combat_preparation_screen                                     ; ALWAYS branch
 
 not_f0
     cpx #'1'                                                          ;
     bne not_f1                                                        ;
     jsr starfleet_records_screen                                      ;
-    beq combat_preparation_screen ; always
+    beq combat_preparation_screen                                     ; ALWAYS branch
 
 not_f1
     txa                                                               ;
-    and #$0f
+    and #$0f                                                          ;
     lsr                                                               ;
     tay                                                               ;
     txa                                                               ;
@@ -8430,13 +8286,13 @@ not_f1
     lda option_enemy_torpedoes-48,x                                   ;
     ldy #0                                                            ;
     sta (temp0_low),y                                                 ;
-    beq plot_selected_options ; always
+    beq plot_selected_options                                         ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
 starfleet_records_screen
-    jsr screen_off
+    jsr screen_off                                                    ;
 
-    ldx #0
+    ldx #0                                                            ;
 plot_high_scores_loop
     lda #$1f                                                          ;
     jsr oswrch                                                        ;
@@ -8448,20 +8304,20 @@ plot_high_scores_loop
     lsr                                                               ;
     adc #10                                                           ;
 !if elk {
-    pha
+    pha                                                               ;
 }
     jsr oswrch                                                        ;
 !if elk {
-    pla
+    pla                                                               ;
 }
     ldy high_score_table + 3,x                                        ;
     beq leave_after_plotting_underscores                              ;
 
     ; plot index (X/16)
-    lsr
-    adc #44
+    lsr                                                               ;
+    adc #44                                                           ;
     jsr oswrch                                                        ;
-    jsr print_three_spaces
+    jsr print_three_spaces                                            ;
     inx                                                               ;
     inx                                                               ;
     inx                                                               ;
@@ -8475,69 +8331,70 @@ plot_name_loop
     dey                                                               ;
     bne plot_name_loop                                                ;
 
-    jsr print_three_spaces
+    jsr print_three_spaces                                            ;
 
     ; print score
     lda $0000 + high_score_table - 16,x                               ; }
-    jsr plot_two_bcd_digits_with_leading_spaces
+    jsr plot_two_bcd_digits_with_leading_spaces                       ; }
     lda $0000 + high_score_table - 15,x                               ; } using $0000 to ensure full 16 bit addressing
-    jsr plot_two_bcd_digits
+    jsr plot_two_bcd_digits                                           ; }
     lda $0000 + high_score_table - 14,x                               ; }
-    jsr plot_two_bcd_digits
+    jsr plot_two_bcd_digits                                           ;
 
     ; loop over all entries
-    txa
-    bpl plot_high_scores_loop
+    txa                                                               ;
+    bpl plot_high_scores_loop                                         ;
 
 leave_after_plotting_underscores
     ldx #starfleet_records_string                                     ;
 
 print_string_finish_and_wait
-    jsr print_string_and_finish_screen
+    jsr print_string_and_finish_screen                                ;
 wait_for_return
-    jsr get_key_maybe_its_return
-    bne wait_for_return
+    jsr get_key_maybe_its_return                                      ;
+    bne wait_for_return                                               ;
     rts                                                               ;
 
+; ----------------------------------------------------------------------------------
 print_three_spaces
-    ldy #3
+    ldy #3                                                            ;
 -
     lda #9                                                            ;
     jsr oswrch                                                        ;
-    dey
-    bpl -
-    rts
+    dey                                                               ;
+    bpl -                                                             ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_final_two_digits
     ; print two digits, but ensure that at least one zero is printed
     ; this is only ever called with null padding character so we don't need to backspace
-    pha
-    jsr plot_two_bcd_digits
-    pla
-    bne +
+    pha                                                               ;
+    jsr plot_two_bcd_digits                                           ;
+    pla                                                               ;
+    bne +                                                             ;
     cpy #'0'
-    bne print_final_zero ; padding still in place?
+    bne print_final_zero                                              ; padding still in place?
 +
-    rts
+    rts                                                               ;
 plot_two_bcd_digits_with_no_spaces
-    ldy #0 ; null padding. printing this is a no-op
-    !byte $2c
+    ldy #0                                                            ; null padding. printing this is a no-op
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 plot_two_bcd_digits_with_leading_spaces
-    ldy #' '
+    ldy #' '                                                          ;
 plot_two_bcd_digits
-    pha
+    pha                                                               ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
-    jsr plot_one_digit
-    pla
+    jsr plot_one_digit                                                ;
+    pla                                                               ;
     and #$0f                                                          ;
 plot_one_digit
     bne not_zero                                                      ;
     tya                                                               ;
-    bpl leading_zero2                                                 ; always
+    bpl leading_zero2                                                 ; ALWAYS branch
 not_zero
     ldy #'0'                                                          ;
 print_final_zero
@@ -8592,10 +8449,10 @@ move_records_down_a_slot_loop
     jmp move_records_down_a_slot_loop                                 ;
 
 finished_moving_records
-    jsr screen_off
+    jsr screen_off                                                    ;
     ldx #enter_your_name_string                                       ;
     jsr print_compressed_string                                       ;
-    jsr screen_on_with_cursor                                                         ;
+    jsr screen_on_with_cursor                                         ;
 
     ldx #<(input_osword_block)                                        ;
     ldy #>(input_osword_block)                                        ;
@@ -8697,8 +8554,8 @@ end_of_command
     sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
-    sta $242 ; enable keyboard interrupt
-    jsr screen_off                                                         ;
+    sta $242                                                          ; enable keyboard interrupt
+    jsr screen_off                                                    ;
     jsr plot_debriefing                                               ;
     jsr screen_on_and_flush                                           ;
     jsr wait_for_return                                               ;
@@ -8710,13 +8567,13 @@ end_of_command
 ; ----------------------------------------------------------------------------------
 start_next_command
     jsr combat_preparation_screen                                     ;
-    ldy #0
+    ldy #0                                                            ;
 -
-    lda score_as_bcd,Y                                                  ;
-    sta previous_score_as_bcd,Y                                         ;
-    iny
-    cpy #3
-    bne -
+    lda score_as_bcd,Y                                                ;
+    sta previous_score_as_bcd,Y                                       ;
+    iny                                                               ;
+    cpy #3                                                            ;
+    bne -                                                             ;
 change_probabilities_loop
     lda probability_of_new_enemy_ship_being_defensive_about_damage,y  ;
     cmp ultimate_enemy_ship_probabilities,y                           ;
@@ -8734,7 +8591,7 @@ skip_change_of_probability
     adc #change_in_number_of_stars_per_command                        ;
     sta maximum_number_of_stars                                       ;
 skip_change_of_stars
-    jsr screen_off                                                         ;
+    jsr screen_off                                                    ;
     jsr prepare_starship_for_next_command                             ;
     jmp main_game_loop                                                ;
 
@@ -8772,7 +8629,7 @@ skip_floor1
     bcc decrease_velocity                                             ;
 increase_velocity
     inc velocity_delta                                                ;
-    bcs consider_rotation ; always
+    bcs consider_rotation                                             ; ALWAYS branch
 
 decrease_velocity
     dec velocity_delta                                                ;
@@ -8797,58 +8654,60 @@ skip_subtraction
     bcs rotate_clockwise                                              ;
 rotate_anticlockwise
     dec rotation_delta                                                ;
-    bcc return31 ; always
+    bcc return31                                                      ; ALWAYS branch
 
 rotate_clockwise
     inc rotation_delta                                                ;
 return31
     rts                                                               ;
 
+; ----------------------------------------------------------------------------------
 ; avoid returning control characters other than 13 (newline) and 21 (erase)
 ; without this it is trivial to crash the game by entering, e.g., ctrl+V A
 our_rdch
-    jsr $0000
-    cmp #0
-    bmi our_rdch ; skip top bit set chars
+    jsr $0000                                                         ;
+    cmp #0                                                            ;
+    bmi our_rdch                                                      ; skip top bit set chars
+
     ; these are generated by cursor keys and still displayed even if not
     ; accepted into our input string
-    cmp #$20
-    bcs +
-    cmp #$0d
-    beq +
-    cmp #$15
-    bne our_rdch
+    cmp #$20                                                          ;
+    bcs +                                                             ;
+    cmp #$0d                                                          ;
+    beq +                                                             ;
+    cmp #$15                                                          ;
+    bne our_rdch                                                      ;
 +
-    clc
-    rts
+    clc                                                               ;
+    rts                                                               ;
 
 !if elk+antiflicker=2 {
 ; ----------------------------------------------------------------------------------
 ; Only uses A, preserves X,Y
 irq_routine
     ; check master IRQ
-    lda $fe00
-    lsr
-    bcc call_old_irq
+    lda $fe00                                                         ;
+    lsr                                                               ;
+    bcc call_old_irq                                                  ;
 
     ; check DisplayEnd interrupt (vsync)
-    lsr
-    lsr
-    bcc check_rtc
-    lsr irq_counter ; 0 indicates electron beam is in upper half of screen
-    jmp every_vsync
+    lsr                                                               ;
+    lsr                                                               ;
+    bcc check_rtc                                                     ;
+    lsr irq_counter                                                   ; 0 indicates electron beam is in upper half of screen
+    jmp every_vsync                                                   ;
 
 check_rtc
     ; check RTC interrupt (at 100th scanline)
-    lsr
-    bcc call_old_irq
-    rol irq_counter ; 1 indicates electron beam is in lower half of screen
+    lsr                                                               ;
+    bcc call_old_irq                                                  ;
+    rol irq_counter                                                   ; 1 indicates electron beam is in lower half of screen
     ; fall through to call_old_irq
 
 call_old_irq
-    lda irq_accumulator
+    lda irq_accumulator                                               ;
 old_irq1
-    jmp $0000
+    jmp $0000                                                         ;
 
 }
 
@@ -8856,164 +8715,165 @@ old_irq1
 ; ----------------------------------------------------------------------------------
 ; Only uses A, preserves X,Y
 irq_routine
-    bit userVIAInterruptFlagRegister                        ; get interrupt flag register
-    bpl check_vsync                                         ; if (not a user via interrupt) then branch
+    bit userVIAInterruptFlagRegister                                  ; get interrupt flag register
+    bpl check_vsync                                                   ; if (not a user via interrupt) then branch
 
     bvc not_timer1
     ; At the entry point for the program we disabled every interrupt on the user via
     ; except for timer 1, so we know this must be a timer 1 interrupt. We clear it here.
-    lda #$40                                                ;
-    sta userVIAInterruptFlagRegister                        ; clear interrupt
+    lda #$40                                                          ;
+    sta userVIAInterruptFlagRegister                                  ; clear interrupt
 
     ; increment timing counter
-    inc timing_counter                                      ;
+    inc timing_counter                                                ;
 
     ; increment irq_counter by two (to count the number of character rows)
-    lda irq_counter                                         ;
-    clc                                                     ;
-    adc #2                                                  ;
-    cmp #39                                                 ;
-    bcc +                                                   ;
-    lda #0                                                  ;
+    lda irq_counter                                                   ;
+    clc                                                               ;
+    adc #2                                                            ;
+    cmp #39                                                           ;
+    bcc +                                                             ;
+    lda #0                                                            ;
 +
-    sta irq_counter                                         ;
+    sta irq_counter                                                   ;
 irqret
-    lda irq_accumulator                                     ;
-    rti                                                     ;
+    lda irq_accumulator                                               ;
+    rti                                                               ;
 
 not_timer1
-    lda #$ff
-    sta systemVIADirA
+    lda #$ff                                                          ;
+    sta systemVIADirA                                                 ;
 flipbranch
-    bne +
-    clc
-    adc sound_10_volume_low
+    bne +                                                             ;
+    clc                                                               ;
+    adc sound_10_volume_low                                           ;
 +
-    and #$df
-    sta systemVIAOutA_NH
-    sta userVIATimer2CounterLow
-    lda #0
-    sta systemVIAOutB
-    lda engine_sound_shifter 
-    cmp #$80
-    rol engine_sound_shifter
+    and #$df                                                          ;
+    sta systemVIAOutA_NH                                              ;
+    sta userVIATimer2CounterLow                                       ;
+    lda #0                                                            ;
+    sta systemVIAOutB                                                 ;
+    lda engine_sound_shifter                                          ;
+    cmp #$80                                                          ;
+    rol engine_sound_shifter                                          ;
 engine_sound_timer=*+1
-    lda #$0d ; about 7ms
-    bcc +
-    asl
+    lda #$0d                                                          ; about 7ms
+    bcc +                                                             ;
+    asl                                                               ;
 +
-    sta userVIATimer2CounterHigh
+    sta userVIATimer2CounterHigh                                      ;
     ;lda rnd_1
     ;eor timing_counter
     ;beq +
     ;and #$1f
     ;and #$3f
 engine_sound_randomness=*+1
-    ora #$80
-    sta userVIATimer2CounterLow
-    lda flipbranch
-    eor #$20
-    sta flipbranch
+    ora #$80                                                          ;
+    sta userVIATimer2CounterLow                                       ;
+    lda flipbranch                                                    ;
+    eor #$20                                                          ;
+    sta flipbranch                                                    ;
 +
-    lda #8
-    sta systemVIAOutB
-    bne irqret
+    lda #8                                                            ;
+    sta systemVIAOutB                                                 ;
+    bne irqret                                                        ;
 
 ; ----------------------------------------------------------------------------------
 check_vsync
-    lda systemVIAInterruptFlagRegister                      ; get interrupt flag register
-    and #$82                                                ;
-    cmp #$82                                                ; check for vsync
-    bne call_old_irq                                        ; if (not vsync) then branch
+    lda systemVIAInterruptFlagRegister                                ; get interrupt flag register
+    and #$82                                                          ;
+    cmp #$82                                                          ; check for vsync
+    bne call_old_irq                                                  ; if (not vsync) then branch
 
     ; Set timer to fire every 'short time' (set latch)
-    lda #<ShortTimerValue                                   ;
-    sta userVIATimer1LatchLow                               ;
-    lda #>ShortTimerValue                                   ;
-    sta userVIATimer1LatchHigh                              ;
+    lda #<ShortTimerValue                                             ;
+    sta userVIATimer1LatchLow                                         ;
+    lda #>ShortTimerValue                                             ;
+    sta userVIATimer1LatchHigh                                        ;
 
-    lda #34                                                 ; reset count of character rows
-    sta irq_counter                                         ; every vsync
+    lda #34                                                           ; reset count of character rows
+    sta irq_counter                                                   ; every vsync
     jmp every_vsync
 call_old_irq
-    lda irq_accumulator                                     ;
+    lda irq_accumulator                                               ;
 old_irq1
-    jmp $0000
+    jmp $0000                                                         ;
 }
 
+; ----------------------------------------------------------------------------------
 ; Do some things every frame rather than every game tick to improve perceived responsiveness:
 ; * update the static
 ; * flash the energy text and beep
 every_vsync
-    stx xtmp+1
-    sty ytmp+1
+    stx xtmp+1                                                        ;
+    sty ytmp+1                                                        ;
 
-    jsr flash_energy_when_low
-    lda scanner_failure_duration
-    beq skip_static
+    jsr flash_energy_when_low                                         ;
+    lda scanner_failure_duration                                      ;
+    beq skip_static                                                   ;
 !if elk {
     ; only update the static every other frame
-    lda flipbranch
-    eor #$20
-    sta flipbranch
+    lda flipbranch                                                    ;
+    eor #$20                                                          ;
+    sta flipbranch                                                    ;
 flipbranch
-    bne skip_static
+    bne skip_static                                                   ;
 }
 draw_static
-    jsr random_number_generator
-    tay
-	;; most of the time we want white-ish noise as cheaply as we can make it
-	;; but *occasionally* show bursts of periodic noise
-    cpy #$10
-    bcs white
-    lda #update_static_loop-update_static_loop_end
-    !byte $2c
+    jsr random_number_generator                                       ;
+    tay                                                               ;
+    ; most of the time we want white-ish noise as cheaply as we can make it
+    ; but *occasionally* show bursts of periodic noise
+    cpy #$10                                                          ;
+    bcs white                                                         ;
+    lda #update_static_loop-update_static_loop_end                    ;
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 white
-    lda #update_static_loop_white-update_static_loop_end
-    sta update_static_loop_end-1
-    lda rnd_2
-    ldx #$3f
+    lda #update_static_loop_white-update_static_loop_end              ;
+    sta update_static_loop_end-1                                      ;
+    lda rnd_2                                                         ;
+    ldx #$3f                                                          ;
 update_static_loop_white
-    eor random_data,x
+    eor random_data,x                                                 ;
 update_static_loop
-    eor random_data,y
-    sta $5900,x
-    ror
-    sta $5e00,x
-    eor random_data+$100,y
-    sta $61c0,x
-    ror
-    sta $5cc0,x
-    eor random_data+$200,y
-    sta $5f40,x
-    ror
-    sta $5a40,x
-    ror
-    eor random_data+$300,y
-    sta $5b80,x
-    ror
-    sta $6080,x
+    eor random_data,y                                                 ;
+    sta $5900,x                                                       ;
+    ror                                                               ;
+    sta $5e00,x                                                       ;
+    eor random_data+$100,y                                            ;
+    sta $61c0,x                                                       ;
+    ror                                                               ;
+    sta $5cc0,x                                                       ;
+    eor random_data+$200,y                                            ;
+    sta $5f40,x                                                       ;
+    ror                                                               ;
+    sta $5a40,x                                                       ;
+    ror                                                               ;
+    eor random_data+$300,y                                            ;
+    sta $5b80,x                                                       ;
+    ror                                                               ;
+    sta $6080,x                                                       ;
     dex                                                               ;
-    bpl update_static_loop                                        ;
+    bpl update_static_loop                                            ;
 update_static_loop_end
 skip_static
 xtmp
-    ldx #0
+    ldx #0                                                            ;
 ytmp
-    ldy #0
-    jmp call_old_irq
+    ldy #0                                                            ;
+    jmp call_old_irq                                                  ;
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
 ;   X is the index of the string to print
 print_regular_string
-    ldy regular_strings_table,X
-    dey
+    ldy regular_strings_table,X                                       ;
+    dey                                                               ;
 -
-    lda regular_strings_table+1,X
+    lda regular_strings_table+1,X                                     ;
     jsr oswrch                                                        ;
     inx                                                               ;
-    dey
+    dey                                                               ;
     bne -                                                             ;
     rts                                                               ;
 
@@ -9023,16 +8883,19 @@ move_to_next_byte
     bne +                                                             ;
     inc lookup_high                                                   ;
 +
-    dec bytes_left
-    bne get_byte
-    pla ; done with this string
-    pla
-    rts
+    dec bytes_left                                                    ;
+    bne get_byte                                                      ;
+
+    ; done with this string
+    pla                                                               ;
+    pla                                                               ;
+    rts                                                               ;
+
 get_byte
     lda (lookup_low),y                                                ;
-    sec ; set MSB
-    ror
-    bne resume_getting_bits ; always
+    sec                                                               ; set MSB
+    ror                                                               ;
+    bne resume_getting_bits                                           ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
 get_5_bits
@@ -9040,10 +8903,10 @@ get_5_bits
 get_x_bits
     lda #0                                                            ;
     sta result                                                        ;
-    lda lookup_byte
+    lda lookup_byte                                                   ;
 -
-    lsr                                                   ; get result
-    beq move_to_next_byte                                         
+    lsr                                                               ; get result
+    beq move_to_next_byte                                             ;
 resume_getting_bits
     rol result                                                        ;
     dex                                                               ;
@@ -9074,8 +8937,8 @@ print_compressed_string
     bne -                                                             ;
 
 ++
-    sta bytes_left
-    sty lookup_byte ; 0
+    sta bytes_left                                                    ;
+    sty lookup_byte                                                   ; 0
 print_compressed_loop
     jsr get_5_bits                                                    ;
     cmp #31                                                           ;
@@ -9091,33 +8954,33 @@ output_character
 
 extended1
     ldx #7
-    !byte $2c
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 extended2
-    ldx #5
+    ldx #5                                                            ;
     jsr get_x_bits                                                    ;
-    bcc output_character ; always
+    bcc output_character                                              ; ALWAYS branch
 
 token
     jsr get_5_bits                                                    ;
     sec                                                               ;
     sbc #$100 - award_you_the_order_of_the                            ;
     tax                                                               ;
-    ldy #3
+    ldy #3                                                            ;
 -
-    lda lookup_low,Y                                                    ;
-    pha
-    dey
-    bpl -
+    lda lookup_low,Y                                                  ;
+    pha                                                               ;
+    dey                                                               ;
+    bpl -                                                             ;
     jsr print_compressed_string                                       ;
-    ldy #0
--    
+    ldy #0                                                            ;
+-
     pla                                                               ;
     sta lookup_low,Y                                                  ;
-    iny
-    cpy #4
-    bne -
+    iny                                                               ;
+    cpy #4                                                            ;
+    bne -                                                             ;
     ldy #0                                                            ;
-    beq print_compressed_loop ; always
+    beq print_compressed_loop                                         ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
 eor_two_play_area_pixels
@@ -9128,96 +8991,96 @@ eor_two_play_area_pixels_ycoord_in_y
     lda row_table_low,y                                               ;
     sta screen_address_low                                            ;
 eor_two_play_area_pixels_same_y
-    ldy xandf8,x
-    lda xbit_table,x
-    lsr
-    bcs straddle
-    ora xbit_table,x
+    ldy xandf8,x                                                      ;
+    lda xbit_table,x                                                  ;
+    lsr                                                               ;
+    bcs straddle                                                      ;
+    ora xbit_table,x                                                  ;
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     rts                                                               ;
 straddle
-    lda #1
+    lda #1                                                            ;
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
     inx ; second pixel is off screen?
-    beq returna
-    lda #$80
-    ldy xandf8,x
+    beq returna                                                       ;
+    lda #$80                                                          ;
+    ldy xandf8,x                                                      ;
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
 returna
-    dex ; restore
-    rts
+    dex                                                               ; restore
+    rts                                                               ;
 
 ; things we need during the loader must go after here
 ; ----------------------------------------------------------------------------------
 post_reloc
     ; clear screen memory
-    lda #0
-    ldx #0
+    lda #0                                                            ;
+    ldx #0                                                            ;
 clear_loop
-    sta $5800,x
-    inx
-    bne clear_loop
-    inc clear_loop+2
-    bpl clear_loop
+    sta $5800,x                                                       ;
+    inx                                                               ;
+    bne clear_loop                                                    ;
+    inc clear_loop+2                                                  ;
+    bpl clear_loop                                                    ;
 
-    lda #22
-    ldy #4
-    jsr oswrch_ay
+    lda #22                                                           ;
+    ldy #4                                                            ;
+    jsr oswrch_ay                                                     ;
 !if tape {
     ; frontiers loading screen
-    jsr init_frontier_screen
-    ldx #0
+    jsr init_frontier_screen                                          ;
+    ldx #0                                                            ;
 -
-    lda loader_string,X
-    jsr oswrch
-    inx
-    cpx #$32
-    bne -
-    jsr finish_screen
+    lda loader_string,X                                               ;
+    jsr oswrch                                                        ;
+    inx                                                               ;
+    cpx #$32                                                          ;
+    bne -                                                             ;
+    jsr finish_screen                                                 ;
 loader_stars_loop
 loader_string_count
-    ldx #0
-    cpx #$de
-    beq +
-    lda loader_string+$32,X
-    jsr oswrch
-    inc loader_string_count+1
-    bne ++
+    ldx #0                                                            ;
+    cpx #$de                                                          ;
+    beq +                                                             ;
+    lda loader_string+$32,X                                           ;
+    jsr oswrch                                                        ;
+    inc loader_string_count+1                                         ;
+    bne ++                                                            ;
 +
-    ldx #18
-    ldy #12
-    jsr tab_to_x_y
-    ldx #0
+    ldx #18                                                           ;
+    ldy #12                                                           ;
+    jsr tab_to_x_y                                                    ;
+    ldx #0                                                            ;
 -
-    lda timeleft,X
-    ora #48
-    jsr oswrch
-    inx
-    cpx #4
-    bne -
+    lda timeleft,X                                                    ;
+    ora #48                                                           ;
+    jsr oswrch                                                        ;
+    inx                                                               ;
+    cpx #4                                                            ;
+    bne -                                                             ;
 ++
     jsr update_frontier_stars                                         ;
-    lda partno
-    bne loader_stars_loop
-    jsr init_late
-    jmp print_string_after_loading
+    lda partno                                                        ;
+    bne loader_stars_loop                                             ;
+    jsr init_late                                                     ;
+    jmp print_string_after_loading                                    ;
 } else {
-    jmp start
+    jmp start                                                         ;
 }
 
 print_string_and_finish_screen
-    jsr print_compressed_string
+    jsr print_compressed_string                                       ;
 finish_screen
-    jsr plot_underscores_at_0_3
+    jsr plot_underscores_at_0_3                                       ;
 screen_on_and_flush
-    jsr screen_on
+    jsr screen_on                                                     ;
 flush
-    lda #osbyte_flush_buffer_class
-    ldx #1
-    jmp (bytev)
+    lda #osbyte_flush_buffer_class                                    ;
+    ldx #1                                                            ;
+    jmp (bytev)                                                       ;
 
 ; ----------------------------------------------------------------------------------
 plot_underscores_at_0_3
@@ -9239,81 +9102,81 @@ plot_line_of_underscores_loop
 ; ----------------------------------------------------------------------------------
 !if (elk=0) {
 screen_off
-    lda #$f0
-    jsr writeR8
-    lda #12
-    jmp oswrch
+    lda #$f0                                                          ;
+    jsr writeR8                                                       ;
+    lda #12                                                           ;
+    jmp oswrch                                                        ;
 screen_on_with_cursor
-    lda #0
-    !byte $2c
+    lda #0                                                            ;
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 screen_on
-    lda #$c0
+    lda #$c0                                                          ;
 writeR8
-    pha
-    lda #19
-    jsr osbyte
-    ldx #8
-    pla
-    ora $291
-    sei
-    stx $fe00
-    sta $fe01
-    cli
-    rts
+    pha                                                               ;
+    lda #19                                                           ;
+    jsr osbyte                                                        ;
+    ldx #8                                                            ;
+    pla                                                               ;
+    ora $291                                                          ;
+    sei                                                               ;
+    stx $fe00                                                         ;
+    sta $fe01                                                         ;
+    cli                                                               ;
+    rts                                                               ;
 } else {
 screen_off
-    lda #$ff
-    ldx #$10
-    jsr writepal
-    jmp $cb9d ; clear screen
+    lda #$ff                                                          ;
+    ldx #$10                                                          ;
+    jsr writepal                                                      ;
+    jmp $cb9d                                                         ; clear screen
 screen_on_with_cursor
-    ldx #0
-    !byte $2c
+    ldx #0                                                            ;
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 screen_on
-    ldx #$10
-    lda #$11
+    ldx #$10                                                          ;
+    lda #$11                                                          ;
 writepal
-    stx $d0
-    sta $804
-    sta $805
-    ldy $240
+    stx $d0                                                           ;
+    sta $804                                                          ;
+    sta $805                                                          ;
+    ldy $240                                                          ;
 -
-    cpy $240
-    beq -
-    sta $fe08
-    sta $fe09
+    cpy $240                                                          ;
+    beq -                                                             ;
+    sta $fe08                                                         ;
+    sta $fe09                                                         ;
     rts
 fastwrch
     ; we deliberately don't save A here as it's rarely required
-    stx xtmp2+1
-    sty ytmp2+1
-    jsr $c433
+    stx xtmp2+1                                                       ;
+    sty ytmp2+1                                                       ;
+    jsr $c433                                                         ;
 xtmp2
-    ldx #0
+    ldx #0                                                            ;
 ytmp2
-    ldy #0
-    rts    
+    ldy #0                                                            ;
+    rts                                                               ;
 }
 
 init_frontier_screen
     ; initialise stars for frontiers rotating globe
 init_frontier_x_coords
-    lda #$5e
-    ldx #0
-    stx starship_rotation_eor
-    jsr init_first_frontier_coord
-    ldy #31
+    lda #$5e                                                          ;
+    ldx #0                                                            ;
+    stx starship_rotation_eor                                         ;
+    jsr init_first_frontier_coord                                     ;
+    ldy #31                                                           ;
 -
-    jsr init_frontier_x_coord
-    dey
-    bpl -
+    jsr init_frontier_x_coord                                         ;
+    dey                                                               ;
+    bpl -                                                             ;
 -
-    iny
-    jsr init_frontier_x_coord
-    bpl -
+    iny                                                               ;
+    jsr init_frontier_x_coord                                         ;
+    bpl -                                                             ;
     jsr initialise_frontier_stars                                     ;
 
-    jsr screen_off                                                         ;
+    jsr screen_off                                                    ;
 
     ; rotate stars
     lda #$80                                                          ;
@@ -9335,20 +9198,20 @@ init_frontier_x_coords
 
 ; ----------------------------------------------------------------------------------
 plot_frontier_stars
-    dec num_frontier_star_updates ; plot performs a rotation
-    lda #<eor_frontier_pixel
-    !byte $2c
+    dec num_frontier_star_updates                                     ; plot performs a rotation
+    lda #<eor_frontier_pixel                                          ;
+    !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 plot_stars
-    lda #<eor_play_area_pixel
+    lda #<eor_play_area_pixel                                         ;
 plot_stars_with_function_address
-    sta maybe_unplot_star+1
-    sta plot_star+1
-    lda #$2c ; BIT abs
-    sta maybe_unplot_star ; skip unplotting
-    jsr update_stars
-    lda #$20 ; JSR abs
-    sta maybe_unplot_star
-    rts
+    sta maybe_unplot_star+1                                           ;
+    sta plot_star+1                                                   ;
+    lda #$2c                                                          ; 'BIT abs' opcode
+    sta maybe_unplot_star                                             ; skip unplotting
+    jsr update_stars                                                  ;
+    lda #$20                                                          ; 'JSR abs' opcode
+    sta maybe_unplot_star                                             ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 update_stars
@@ -9387,7 +9250,7 @@ skip5
 update_frontier_stars
     ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
     dec num_frontier_star_updates                                     ;
-    bne update_stars
+    bne update_stars                                                  ;
 
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
@@ -9396,11 +9259,11 @@ initialise_frontier_stars
     !error "alignment error"
 }
     sta temp0_low                                                     ;
-    tax
-    tay
+    tax                                                               ;
+    tay                                                               ;
     lda #>star_table                                                  ;
     sta temp0_high                                                    ;
-    jsr skip
+    jsr skip                                                          ;
 initialise_stars_loop
     lda frontier_star_positions_x,x                                   ;
     jsr init_star_both
@@ -9410,7 +9273,7 @@ initialise_stars_loop
     sta num_frontier_star_updates                                     ;
     rts                                                               ;
 init_star_both
-    jsr init_star
+    jsr init_star                                                     ;
     lda frontier_star_positions_y,x                                   ;
 init_star
     sta (temp0_low),y                                                 ;
@@ -9487,7 +9350,7 @@ sm_sine_a4 = * + 1
     ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
 sm_sine_b1 = * + 1
     lda squares1_low+$0a,y                                            ;
-    ;sec ; C is already set                                                              ;
+    ;sec ; C is already set                                           ;
 sm_sine_b2 = * + 1
     sbc squares2_low+$f5,y                                            ;
     sta prod_low                                                      ;
@@ -9522,24 +9385,24 @@ multiply_object_position_by_starship_rotation_cosine
 
     ; 8x8 multiply 'Y * starship_rotation_cosine', result in A (high byte only needed)
 sm_cosine_a1 = * + 1
-    lda squares1_low+$ce,y                                                ;
+    lda squares1_low+$ce,y                                            ;
     sec                                                               ;
 sm_cosine_a2 = * + 1
-    sbc squares2_low+$31,y                                                ;
+    sbc squares2_low+$31,y                                            ;
 sm_cosine_a3 = * + 1
-    lda squares1_high+$ce,y                                               ;
+    lda squares1_high+$ce,y                                           ;
 sm_cosine_a4 = * + 1
-    sbc squares2_high+$31,y                                               ;
+    sbc squares2_high+$31,y                                           ;
 
-;    sec ; C is already set                                               ;
+;    sec ; C is already set                                           ;
     sbc temp8                                                         ;
-;    bcs +                                                             ;
-;    dec temp8                                                         ;
+;    bcs +                                                            ;
+;    dec temp8                                                        ;
 ;+
 ;    clc ; C is already clear                                         ;
     adc temp_x                                                        ;
     bcs return1                                                       ;
-;    inc temp8                                                         ;
+;    inc temp8                                                        ;
     dec temp8                                                         ;
 return1
     rts                                                               ;
@@ -9666,10 +9529,6 @@ add_starship_velocity_to_position
 rotated_x_correction_lsb
     !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
 
-;rotated_x_correction_screens
-;    !byte 0, 0, 1, 2, 3, 4
-;rotated_y_correction_screens
-;    !byte 0, 1, 2, 3, 4, 5
 rotated_x_correction_screens
     !byte 0
 rotated_y_correction_screens
@@ -9692,14 +9551,14 @@ rotated_y_correction_pixels
 frontier_x_deltas
     !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
 init_frontier_x_coord
-    clc
-    adc frontier_x_deltas,y
-    sta frontier_star_positions_x,x
-    inx
+    clc                                                               ;
+    adc frontier_x_deltas,y                                           ;
+    sta frontier_star_positions_x,x                                   ;
+    inx                                                               ;
 init_first_frontier_coord
-    sta frontier_star_positions_x,x
-    inx
-    rts
+    sta frontier_star_positions_x,x                                   ;
+    inx                                                               ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 tab_to_x_y
@@ -9801,9 +9660,9 @@ return
 eor_frontier_pixel
     lda y_pixels                                                      ;
     ;clc ; C is already clear
-    adc #48
-    tay
-    bne eor_play_area_pixel_ycoord_in_y
+    adc #48                                                           ;
+    tay                                                               ;
+    bne eor_play_area_pixel_ycoord_in_y                               ;
 
 ; ----------------------------------------------------------------------------------
 ; version that plots to scanner area
@@ -9829,14 +9688,14 @@ eor_pixel_xcoord_in_x
 }
 !if tape {
 loader_copy_start
-    !src "source/loader2.asm"
+    !src "source/loader2.asm"                                         ;
 loader_copy_end
 }
 entry_point
 
 init_early
-    ldx #$ff  ; we want all the stack
-    txs
+    ldx #$ff                                                          ; we want all the stack
+    txs                                                               ;
     lda #234                                                          ; disable tube
     jsr osbyte_zeroxy                                                 ;
     lda #200                                                          ; clear memory
@@ -9852,8 +9711,8 @@ init_early
     jsr osbyte                                                        ; (and also A0-A7)
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
-    jsr osbyte_zeroy
-    tya
+    jsr osbyte_zeroy                                                  ;
+    tya                                                               ;
     bpl noshadow                                                      ; if it's >$7FFF we need to
     lda #114                                                          ; disable shadow screen
     ldx #1                                                            ; (we can't do this unconditionally
@@ -9863,14 +9722,14 @@ done
 !if tape {
     ; copy it
 ;!warn "loader len = ",loader_end-loader_start
-    ldy #loader_end-loader_start
+    ldy #loader_end-loader_start                                      ;
 -
-    lda loader_copy_start-1,Y
-    sta loader_start-1,Y
-    dey
-    bne -
+    lda loader_copy_start-1,Y                                         ;
+    sta loader_start-1,Y                                              ;
+    dey                                                               ;
+    bne -                                                             ;
 
-    jsr irqdecr_init
+    jsr irqdecr_init                                                  ;
 }
 
 ; ----------------------------------------------------------------------------------
@@ -9878,45 +9737,45 @@ done
 ; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
 ; ----------------------------------------------------------------------------------
 create_square_tables
-    ldx #0
-    txa
-    !byte $c9           ; CMP #immediate - skip TYA and clear carry flag
+    ldx #0                                                            ;
+    txa                                                               ;
+    !byte $c9                                                         ; 'CMP #immediate' opcode - skip TYA and clear carry flag
 lb1
-    tya
-    adc #0
+    tya                                                               ;
+    adc #0                                                            ;
 ml1
-    sta squares1_high,x
-    tay
-    cmp #$40
-    txa
-    ror
+    sta squares1_high,x                                               ;
+    tay                                                               ;
+    cmp #$40                                                          ;
+    txa                                                               ;
+    ror                                                               ;
 ml9
-    adc #0
-    sta ml9+1
-    inx
+    adc #0                                                            ;
+    sta ml9+1                                                         ;
+    inx                                                               ;
 ml0
-    sta squares1_low,x
-    bne lb1
-    inc ml0+2
-    inc ml1+2
-    clc
-    iny
-    bne lb1
+    sta squares1_low,x                                                ;
+    bne lb1                                                           ;
+    inc ml0+2                                                         ;
+    inc ml1+2                                                         ;
+    clc                                                               ;
+    iny                                                               ;
+    bne lb1                                                           ;
 
     ; create second table of squares
-    ldx #$00
-    ldy #$ff
+    ldx #$00                                                          ;
+    ldy #$ff                                                          ;
 -
-    lda squares1_high + 1,x
-    sta squares2_high + $100,x
-    lda squares1_high,x
-    sta squares2_high,y
-    lda squares1_low + 1,x
-    sta squares2_low + $100,x
-    lda squares1_low,x
-    sta squares2_low,y
-    dey
-    inx
+    lda squares1_high + 1,x                                           ;
+    sta squares2_high + $100,x                                        ;
+    lda squares1_high,x                                               ;
+    sta squares2_high,y                                               ;
+    lda squares1_low + 1,x                                            ;
+    sta squares2_low + $100,x                                         ;
+    lda squares1_low,x                                                ;
+    sta squares2_low,y                                                ;
+    dey                                                               ;
+    inx                                                               ;
 bne -
 ;    rts
 
@@ -9926,13 +9785,13 @@ create_other_tables
     ;    !for i, 0, 255 {
     ;        !byte (i & $f8)
     ;    }
-    ldx #0
+    ldx #0                                                            ;
 -
-    txa
-    and #$f8
-    sta xandf8,x
-    inx
-    bne -
+    txa                                                               ;
+    and #$f8                                                          ;
+    sta xandf8,x                                                      ;
+    inx                                                               ;
+    bne -                                                             ;
 
     ; create xbit_table:
     ;    !for i, 0, 255 {
@@ -9943,16 +9802,16 @@ create_other_tables
     ;    !for i, 0, 255 {
     ;        !byte ($80 >> (i & 7)) XOR 255
     ;    }
-    lda #$80
-    ldx #0
+    lda #$80                                                          ;
+    ldx #0                                                            ;
 -
-    sta xbit_table,x
-    lsr
-    bcc +
-    lda #$80
+    sta xbit_table,x                                                  ;
+    lsr                                                               ;
+    bcc +                                                             ;
+    lda #$80                                                          ;
 +
-    inx
-    bne -
+    inx                                                               ;
+    bne -                                                             ;
 
     ; make row tables:
     ; row_table_low
@@ -9964,52 +9823,28 @@ create_other_tables
     ;         !byte >($5800 + (i & 7) + (i/8) * $0140)
     ;     }
 
-    ldy #0
-    lda #$58
+    ldy #0                                                            ;
+    lda #$58                                                          ;
 row_table_loop2
-    ldx #7
+    ldx #7                                                            ;
 row_table_loop
-    sty row_table_low
-    sta play_area_row_table_high
-    iny
-    inc row_table_loop+1
-    inc row_table_loop+4
-    dex
-    bpl row_table_loop
-    pha
-    tya
-    clc
-    adc #$38
-    tay
-    pla
-    adc #1
-    bpl row_table_loop2
-
-;;     ; zero tables that need zeroing
-;;     lda #0
-;;     tax
-;; zero_loop
-;; !for i, >uninitialized_data_start, >uninitialized_data_end+1 {
-;;     sta i, x
-;; }
-;;     inx
-;;     bne zero_loop
-
-;     rts
-
-;	jsr create_square_tables                                          ;
-;    jsr create_other_tables                                           ;
-!if 0 {
-    ; copy strings to $0d01, with RTI at $d00 (Elk: copy to $700)
-    ldx #regular_strings_end - regular_strings_start
--
-    lda regular_strings_start-1,x                                     ;
-    sta $0d00-1,x                                                     ;
+    sty row_table_low                                                 ;
+    sta play_area_row_table_high                                      ;
+    iny                                                               ;
+    inc row_table_loop+1                                              ;
+    inc row_table_loop+4                                              ;
     dex                                                               ;
-    bne -                                                             ;
-} else {
-    ldx #0
-}
+    bpl row_table_loop                                                ;
+    pha                                                               ;
+    tya                                                               ;
+    clc                                                               ;
+    adc #$38                                                          ;
+    tay                                                               ;
+    pla                                                               ;
+    adc #1                                                            ;
+    bpl row_table_loop2                                               ;
+
+    ldx #0                                                            ;
 !if tape {
 -
     lda loader_string_copy,x                                          ;
@@ -10023,32 +9858,33 @@ row_table_loop
 
 !if tape {
 -
-    lda #1
-    cmp partno
-    bne -
-    jmp post_reloc
+    lda #1                                                            ;
+    cmp partno                                                        ;
+    bne -                                                             ;
+    jmp post_reloc                                                    ;
 }
+
 ; ----------------------------------------------------------------------------------
 init_late
     ; clear zp vars
-    lda #0
-    ldx #zp_end-zp_start
+    lda #0                                                            ;
+    ldx #zp_end-zp_start                                              ;
 -
-    sta zp_start-1,x
-    dex
-    bne -
+    sta zp_start-1,x                                                  ;
+    dex                                                               ;
+    bne -                                                             ;
     ; and any other zp oddballs
-    sta sound_needed_for_low_energy
-    sta energy_flash_timer
-    sta starship_torpedo_type
-    sta scanner_failure_duration
+    sta sound_needed_for_low_energy                                   ;
+    sta energy_flash_timer                                            ;
+    sta starship_torpedo_type                                         ;
+    sta scanner_failure_duration                                      ;
 
     lda #$ca                                                          ;
     sta rnd_1                                                         ; seed random numbers
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
     sta starship_shields_active ; for some reason this needs initializing
-    lda #$ff
+    lda #$ff                                                          ;
     sta starship_energy_divided_by_sixteen ; disable low energy flashing
 
     ; zero highscore table
@@ -10060,11 +9896,11 @@ init_late
     bpl -                                                             ;
 
     ; zero starship torpedo table
-    ldx #107
+    ldx #107                                                          ;
 -
-    sta starship_torpedoes_table,x
-    dex
-    bpl -
+    sta starship_torpedoes_table,x                                    ;
+    dex                                                               ;
+    bpl -                                                             ;
 
 !if (elk=0) or (elk+antiflicker=2) {
     ; set up timer
@@ -10077,14 +9913,14 @@ init_late
 
 !if elk {
     ; page in keyboard ROM
-    lda #8
-    jsr $e3a0
+    lda #8                                                            ;
+    jsr $e3a0                                                         ;
 } else {
 !if rom_writes {
     ; page in BASIC to minimize the chance of scribbling over whatever may be in SWRAM
-    lda $24b
-    sta $f4
-    sta $fe30
+    lda $24b                                                          ;
+    sta $f4                                                           ;
+    sta $fe30                                                         ;
 }
 }
 !if elk=0 {
@@ -10103,9 +9939,9 @@ init_late
 !if (elk=0) or (elk+antiflicker=2) {
     ; set up our own IRQ routine to increment a timer
     lda irq1_vector_low                                               ;
-    sta old_irq1+1
+    sta old_irq1+1                                                    ;
     lda irq1_vector_high                                              ;
-    sta old_irq1+2
+    sta old_irq1+2                                                    ;
 
     lda #<irq_routine                                                 ;
     sta irq1_vector_low                                               ;
@@ -10128,54 +9964,54 @@ init_late
 }
 
 set_rdchv
-    lda $210
-    sta our_rdch+1
-    lda $211
-    sta our_rdch+2
+    lda $210                                                          ;
+    sta our_rdch+1                                                    ;
+    lda $211                                                          ;
+    sta our_rdch+2                                                    ;
 
-    lda #<our_rdch
-    sta $210
-    lda #>our_rdch
-    sta $211
+    lda #<our_rdch                                                    ;
+    sta $210                                                          ;
+    lda #>our_rdch                                                    ;
+    sta $211                                                          ;
     ; set beep sound to sound_6 why not
     ; hopefully players will have learned to avoid doing
-    ; things that make this sound :) 
-    lda #$12
-    sta $263
-    lda #$18
-    sta $264
-    lda #$bc
-    sta $265
+    ; things that make this sound :)
+    lda #$12                                                          ;
+    sta $263                                                          ;
+    lda #$18                                                          ;
+    sta $264                                                          ;
+    lda #$bc                                                          ;
+    sta $265                                                          ;
     ; because bit 4 of channel is not respected we need to set duration as short as possible,
     ; except on the electron, where this cuts off the sound prematurely.
 !if elk {
-    lda #$3
+    lda #$3                                                           ;
 } else {
-    lda #$1
+    lda #$1                                                           ;
 }
-    sta $266
+    sta $266                                                          ;
 
     lda #11                                                           ; disable key repeat
     jsr osbyte_zeroxy                                                 ;
     lda #'0'                                                          ; function keys
     sta $271                                                          ; generate ASCII 0-9
-    sta $272
-    sta $273
-    sta $274
+    sta $272                                                          ;
+    sta $273                                                          ;
+    sta $274                                                          ;
     lda #osbyte_set_cursor_editing                                    ; cursor keys
     ldx #1                                                            ; generate ASCII
     jsr osbyte                                                        ; 136-139
 !if tape {
-    rts
+    rts                                                               ;
 } else {
-    jmp post_reloc
+    jmp post_reloc                                                    ;
 }
 
 osbyte_zeroxy
-    ldx #0
+    ldx #0                                                            ;
 osbyte_zeroy
-    ldy #0
-    jmp (bytev)
+    ldy #0                                                            ;
+    jmp (bytev)                                                       ;
 !if (tape!=0) & (* >= $5800) {
     !error "code overflowed by ",*-$5800, " bytes"
 }
@@ -10205,14 +10041,14 @@ shield_state_string1_end
 
 ; ----------------------------------------------------------------------------------
 shield_state_string2
-    !byte shield_state_string2_end - shield_state_string2
+    !byte shield_state_string2_end - shield_state_string2             ;
     !byte $1f, $22, $18                                               ;
     !text " OFF"                                                      ;
 shield_state_string2_end
 
 ; ----------------------------------------------------------------------------------
 shield_state_string3
-    !byte shield_state_string3_end - shield_state_string3
+    !byte shield_state_string3_end - shield_state_string3             ;
     !byte $1f, $22, $18                                               ;
     !text "AUTO"                                                      ;
 shield_state_string3_end
@@ -10263,10 +10099,10 @@ escape_capsule_launched_string
     !byte $1f, 33, 23                                                 ; TAB(33, 23); "ESCAPE"
     !text "ESCAPE"                                                    ; TAB(32.5,24);"CAPSULE"
     !byte $1f, 34, 24                                                 ; TAB(32, 25); "LAUNCHED"
-    !text "    "
-    !byte 5,25,4,$10,4,$ff,0
+    !text "    "                                                      ;
+    !byte 5,25,4,$10,4,$ff,0                                          ;
     !text "CAPSULE"                                                   ;
-    !byte 25,4,0,4,$df,0
+    !byte 25,4,0,4,$df,0                                              ;
     !text "LAUNCHED"                                                  ;
     !byte 4
 escape_capsule_launched_string_end
@@ -10291,11 +10127,7 @@ command_move_string_end
 } ; end macro m_regular_strings
 
 regular_strings_start
-
-;!pseudopc $0d00 {
-;    rti                                                               ; put RTI at $0d00
     +m_regular_strings
-;}
 
 regular_strings_end
 !if * >= $5800 {
