@@ -7,18 +7,22 @@ mkdir -p build/disk
 # And tape
 mkdir -p build/tape
 
+# Disassemble the original binary (commented out since we are well beyond that point now)
 #python starcommand.py -a >build/temp.asm
 #python tools/post_process.py <build/temp.asm >starcommand_acme.asm
 
+# Calculate the best text compression
 python3 tools/text_compression.py --input source/sc_text.txt --output build/sc_text.a
 
 function sym {
+    # Look up the value of a symbol in a symbols file created by acme
     local name=$1
     local filename=$2
     grep build/$filename.symbols.txt -e '.*'$name | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/'
 }
 
 function exo_region {
+    # Compress part of a binary file using Exomizer into a .exo file, extracting the start, end, load, and exec values from the symbol file
     local filename=$1
     local startsym=$2
     local endsym=$3
@@ -37,18 +41,19 @@ function exo_region {
 function build_exe {
     local elk=$1
     local tape=$2
-    local filename=$3
-    acme --symbollist build/$filename.symbols.txt -r build/$filename.report.txt -Delk=$elk -Dtape=$tape -o build/disk/$filename source/starcommand_acme.asm
-    sort -o build/symbols.txt build/$filename.symbols.txt
+    local output_filename=$3
+
+    acme --symbollist build/$output_filename.symbols.txt -r build/$output_filename.report.txt -Delk=$elk -Dtape=$tape -o build/disk/$output_filename source/starcommand_acme.asm
+    sort -o build/symbols.txt build/$output_filename.symbols.txt
 
     # Find entry point in symbols
-    entry_point=$(sym entry_point $filename)
+    entry_point=$(sym entry_point $output_filename)
 
     # and load address
-    load_addr=$(sym load_addr $filename)
+    load_addr=$(sym load_addr $output_filename)
 
     # Create INF file
-    echo "$.$filename     FFFF$load_addr FFFF$entry_point" >build/disk/$filename.inf
+    echo "$.$output_filename     FFFF$load_addr FFFF$entry_point" >build/disk/$output_filename.inf
 }
 
 function build_tape {
@@ -56,13 +61,18 @@ function build_tape {
     local tape=$2
     local filename=$3
 
-    # split into early and late
+    # The main binary is split into three sequential regions:
+    #   load_addr -> post_reloc                 filename.3      ; the bulk of the exe (loaded last)
+    #   post_reloc -> loader_copy_start         filename.2      ; enough code to spin a globe
+    #   loader_copy_start -> eof                filename.1      ; initial load just to get started (includes init_early, relocates loader code, and sets an IRQ 1 handler while loading from tape)
+
+    # Each reqion is compressed individually
     exo_region $filename loader_copy_start eof build/tape/$filename.1
     exo_region $filename post_reloc loader_copy_start build/tape/$filename.2
-    #exomizer302 level -q text.o@0x1a00 -o build/tape/$filename.3
     exo_region $filename load_addr post_reloc build/tape/$filename.3
 
-    acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/exo.asm
+    # We assemble the decompression and initial loading code
+    acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/tape.asm
 }
 
 # Build !BOOT image
@@ -93,6 +103,7 @@ mkdir -p build/tape
 build_tape 0 1 STAR.tape
 build_tape 1 1 STARELK.tape
 
+# Convert tape files into UEF files
 perl tools/maketape.pl build/tape/loader.STAR.tape build/tape/STAR.tape.?.exo >STAR2022.uef
 perl tools/maketape.pl build/tape/loader.STARELK.tape build/tape/STARELK.tape.?.exo >STARELK.uef
 

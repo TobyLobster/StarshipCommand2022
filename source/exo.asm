@@ -12,7 +12,6 @@ LITERAL_SEQUENCES_NOT_USED = 0
 ; shorter and slightly faster code.
 MAX_SEQUENCE_LENGTH_256 = 0
 
-* = $401
 ; -------------------------------------------------------------------
 ; zero page addresses used
 ; -------------------------------------------------------------------
@@ -33,7 +32,7 @@ tabl_bi = decrunch_table
 tabl_lo = decrunch_table + 52
 tabl_hi = decrunch_table + 104
 tabl_bit = $3CB
-	
+
         ;; refill bits is always inlined
 !macro mac_refill_bits {
         pha
@@ -323,5 +322,3 @@ decr_exit
 ; -------------------------------------------------------------------
 ; end of decruncher
 ; -------------------------------------------------------------------
-
-!source "source/tape.asm"

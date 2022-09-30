@@ -1,6 +1,6 @@
 ; ----------------------------------------------------------------------------------
 ;
-; Starship Command 2022 (for the BBC Micro and Electron)
+; Starship Command 2022 (v2) (for the BBC Micro, Master and Electron)
 ;
 ; An update to the original Starship Command (1983) by Peter Irvin.
 ;
@@ -9016,22 +9016,26 @@ returna
 ; things we need during the loader must go after here
 ; ----------------------------------------------------------------------------------
 post_reloc
-    ; clear screen memory
-    lda #0                                                            ;
-    ldx #0                                                            ;
-clear_loop
-    sta $5800,x                                                       ;
-    inx                                                               ;
-    bne clear_loop                                                    ;
-    inc clear_loop+2                                                  ;
-    bpl clear_loop                                                    ;
+; clear screen memory
+;    lda #0                                                            ;
+;    ldx #0                                                            ;
+;clear_loop
+;    sta $5800,x                                                       ;
+;    inx                                                               ;
+;    bne clear_loop                                                    ;
+;    inc clear_loop+2                                                  ;
+;    bpl clear_loop                                                    ;
 
+    ; MODE 4
     lda #22                                                           ;
     ldy #4                                                            ;
     jsr oswrch_ay                                                     ;
+
 !if tape {
     ; frontiers loading screen
     jsr init_frontier_screen                                          ;
+
+    ; show initial loading text
     ldx #0                                                            ;
 -
     lda loader_string,X                                               ;
@@ -9040,6 +9044,8 @@ clear_loop
     cpx #$32                                                          ;
     bne -                                                             ;
     jsr finish_screen                                                 ;
+
+    ; show rest of message progressively over time, then update the timer
 loader_stars_loop
 loader_string_count
     ldx #0                                                            ;
@@ -9050,24 +9056,33 @@ loader_string_count
     inc loader_string_count+1                                         ;
     bne ++                                                            ;
 +
+    ; update the timer
     ldx #18                                                           ;
     ldy #12                                                           ;
     jsr tab_to_x_y                                                    ;
     ldx #0                                                            ;
 -
-    lda timeleft,X                                                    ;
+    lda time_left,X                                                   ;
     ora #48                                                           ;
     jsr oswrch                                                        ;
     inx                                                               ;
     cpx #4                                                            ;
     bne -                                                             ;
 ++
+    ; update the globe
     jsr update_frontier_stars                                         ;
-    lda partno                                                        ;
+
+    ; loop until everything has loaded
+    lda part_number                                                   ;
     bne loader_stars_loop                                             ;
+
+    ; do any remaining initialisation
     jsr init_late                                                     ;
+
+    ; continue with the globe spinning
     jmp print_string_after_loading                                    ;
 } else {
+    ; if on disk, do the regular globe initialisation
     jmp start                                                         ;
 }
 
@@ -9251,6 +9266,7 @@ update_frontier_stars
     ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
     dec num_frontier_star_updates                                     ;
     bne update_stars                                                  ;
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
@@ -9719,9 +9735,10 @@ init_early
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
 done
+
 !if tape {
-    ; copy it
-;!warn "loader len = ",loader_end-loader_start
+    ; copy tape loader code into page 5
+    ; !warn "loader len = ",loader_end-loader_start
     ldy #loader_end-loader_start                                      ;
 -
     lda loader_copy_start-1,Y                                         ;
@@ -9729,6 +9746,7 @@ done
     dey                                                               ;
     bne -                                                             ;
 
+    ; start the animated loading
     jsr irqdecr_init                                                  ;
 }
 
@@ -9776,8 +9794,8 @@ ml0
     sta squares2_low,y                                                ;
     dey                                                               ;
     inx                                                               ;
-bne -
-;    rts
+    bne -                                                             ;
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 create_other_tables
@@ -9844,8 +9862,9 @@ row_table_loop
     adc #1                                                            ;
     bpl row_table_loop2                                               ;
 
-    ldx #0                                                            ;
 !if tape {
+    ; copy strings for the loader
+    ldx #0                                                            ;
 -
     lda loader_string_copy,x                                          ;
     sta loader_string,x                                               ;
@@ -9857,10 +9876,13 @@ row_table_loop
     jsr initialise_envelopes                                          ;
 
 !if tape {
+    ; wait for first part to load from tape before starting the globe spinning
 -
     lda #1                                                            ;
-    cmp partno                                                        ;
+    cmp part_number                                                   ;
     bne -                                                             ;
+
+    ; start the globe spinning
     jmp post_reloc                                                    ;
 }
 
@@ -9873,6 +9895,7 @@ init_late
     sta zp_start-1,x                                                  ;
     dex                                                               ;
     bne -                                                             ;
+
     ; and any other zp oddballs
     sta sound_needed_for_low_energy                                   ;
     sta energy_flash_timer                                            ;
@@ -9883,9 +9906,9 @@ init_late
     sta rnd_1                                                         ; seed random numbers
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
-    sta starship_shields_active ; for some reason this needs initializing
+    sta starship_shields_active                                       ; for some reason this needs initializing
     lda #$ff                                                          ;
-    sta starship_energy_divided_by_sixteen ; disable low energy flashing
+    sta starship_energy_divided_by_sixteen                            ; disable low energy flashing
 
     ; zero highscore table
     lda #0                                                            ;
