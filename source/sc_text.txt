@@ -6,23 +6,23 @@ combat_experience_heading_string
 
 ; ----------------------------------------------------------------------------------
 escape_capsule_was_launched_string
-    !text 137," was launched"                             ;
+    !text 137," was launched"                                         ;
 
 ; ----------------------------------------------------------------------------------
 before_the_starship_exploded_string
-    !text 140,"before",143,142," exploded."                             ;
+    !text 140,"before",143,142," exploded."                           ;
 
 ; ----------------------------------------------------------------------------------
 and_returned_safely_string
-    !text 144,"  returned safely from",143,"combat zone."              ;
+    !text 144,"  returned safely from",143,"combat zone."             ;
 
 ; ----------------------------------------------------------------------------------
 but_collided_string
-    !text 145,"  collided with an enemy ship."                       ;
+    !text 145,"  collided with an enemy ship."                        ;
 
 ; ----------------------------------------------------------------------------------
 combat_experience_rating_string
-    !text 140,140,155, " Your official combat experience",140        ;
+    !text 140,140,155, " Your official combat experience",140         ;
     !text "rating is now recorded as "                                ;
 
 ; ----------------------------------------------------------------------------------
@@ -55,7 +55,7 @@ emotions_8
 
 ; ----------------------------------------------------------------------------------
 they_allow_string
-    !text "they",140,"allow",146,143,154," of another",140,142,"."         ;
+    !text "they",140,"allow",146,143,154," of another",140,142,"."    ;
 
 ; ----------------------------------------------------------------------------------
 and_they_retire_you_string
@@ -123,115 +123,115 @@ award_outcome_escape_10
 
 ; ----------------------------------------------------------------------------------
 instructions_string1
-    !byte 159
-    !byte 149,"C",151,"TROLS",147                                   ;
+    !byte 159                                                           ;
+    !byte 149,"C",151,"TROLS",147                                       ;
     !byte 31, 13  , 5                                                   ;
     !text "Z",153,"Rotate left"                                         ;
     !byte 31, 13  , 6                                                   ;
     !text "X",153,"Rotate right"                                        ;
     !byte 155                                                           ;
-    !text "Return or N",153,"Fire",139                                 ;
+    !text "Return or N",153,"Fire",139                                  ;
     !byte 31, 7  , 8                                                    ;
     !text " : or M",153,"Thrust"                                        ;
-    !byte 31, 7  , 9                                                  ;
+    !byte 31, 7  , 9                                                    ;
     !text " / or ,",153,"Brake"                                         ;
-    !byte 140,155                                                ;
-    !text "F",153,"Launch port",137                                    ;
-    !byte 155                                                ;
-    !text "G",153,"Launch starboard",137                               ;
-    !byte $1f, 0  , 14                                                ;
+    !byte 140,155                                                       ;
+    !text "F",153,"Launch port",137                                     ;
+    !byte 155                                                           ;
+    !text "G",153,"Launch starboard",137                                ;
+    !byte $1f, 0  , 14                                                  ;
     !text "All",143,"above may operate simultaneously"                  ;
-    !text "Alternatively, ",151,"E of",143,"following may "                  ;
-    !text "be depressed:"                                          ;
+    !text "Alternatively, ",151,"E of",143,"following may "             ;
+    !text "be depressed:"                                               ;
 instructions_string2
-    !byte 140,155                                                ;
+    !byte 140,155                                                       ;
     !text "B",153,"Shields ",151," / Scanners",152                      ;
-    !byte 155                                                ;
+    !byte 155                                                           ;
     !text "V",153,"Scanners ",151," / Shields",152                      ;
-    !byte 155                                                ;
+    !byte 155                                                           ;
     !text "C",153,"Auto-Changeover ",151                                ;
-    !byte 140,155                                                ;
-    !text "f0 -  Rotation",138," ",151                               ;
-    !byte 155                                                ;
-    !text "2",153,"Rotation",138,152,                                  ;
-    !byte 155                                                ;
-    !text "f1 -  Velocity",138," ",151                               ;
-    !byte 155                                                ;
-    !text "3",153,"Velocity",138,152,                                  ;
-    !byte $1f, 13 , 27                                                ;
+    !byte 140,155                                                       ;
+    !text "f0 -  Rotation",138," ",151                                  ;
+    !byte 155                                                           ;
+    !text "2",153,"Rotation",138,152,                                   ;
+    !byte 155                                                           ;
+    !text "f1 -  Velocity",138," ",151                                  ;
+    !byte 155                                                           ;
+    !text "3",153,"Velocity",138,152,                                   ;
+    !byte $1f, 13 , 27                                                  ;
     !text       "P",153,"Pause"                                         ;
-    !byte $1f, 9  , 28                                                ;
+    !byte $1f, 9  , 28                                                  ;
     !text   "Space",153,"Resume"                                        ;
     !byte 158
 
 ; ----------------------------------------------------------------------------------
 combat_preparation_string
-    !byte 159
-    !text "COMBAT PREPARATI",151,147                                ;
-    !byte $1f, 6 , 6                                                  ; TAB(6 , 7)
-    !text "f0  View ",142," controls"                                 ;
-    !byte 156                                                  ; TAB(6 , 9)
-    !text "f1  View",134,"records"                                    ;
-    !byte 156                                                 ; TAB(6 , 11)
-    !text "f2  Enable"                                                ;
-    !byte 156                                                 ; TAB(6 , 13)
-    !text "f3  Disable"                                               ;
-    !byte 156                                                 ; TAB(6 , 15)
-    !text "f4  Small"                                                 ;
-    !byte 156                                                 ; TAB( 6, 17)
-    !text "f5  Large"                                                 ;
-    !byte 156                                                 ; TAB( 6, 19)
-    !text "f6  Small"                                                 ;
-    !byte 156                                                 ; TAB( 6, 21)
-    !text "f7  Large"                                                 ;
-    !byte 156                                                 ; TAB( 6, 23)
-    !text "f8  Keyboard"                                              ;
-    !byte 156                                                 ; TAB( 6, 25)
-    !text "f9  Joystick"                                              ;
-    !byte $1f, 17, 11                                                 ; TAB(17, 12)
-    !text "}the sound effects"                                        ;
-    !byte $1f, 17, 15                                                 ; TAB(17, 16)
-    !text "}",142,139                                            ;
-    !byte $1f, 17, 19                                                 ; TAB(17, 20)
-    !text "}enemy", 139                                              ;
+    !byte 159                                                           ;
+    !text "COMBAT PREPARATI",151,147                                    ;
+    !byte $1f, 6 , 6                                                    ; TAB(6 , 7)
+    !text "f0  View ",142," controls"                                   ;
+    !byte 156                                                           ; TAB(6 , 9)
+    !text "f1  View",134,"records"                                      ;
+    !byte 156                                                           ; TAB(6 , 11)
+    !text "f2  Enable"                                                  ;
+    !byte 156                                                           ; TAB(6 , 13)
+    !text "f3  Disable"                                                 ;
+    !byte 156                                                           ; TAB(6 , 15)
+    !text "f4  Small"                                                   ;
+    !byte 156                                                           ; TAB( 6, 17)
+    !text "f5  Large"                                                   ;
+    !byte 156                                                           ; TAB( 6, 19)
+    !text "f6  Small"                                                   ;
+    !byte 156                                                           ; TAB( 6, 21)
+    !text "f7  Large"                                                   ;
+    !byte 156                                                           ; TAB( 6, 23)
+    !text "f8  Keyboard"                                                ;
+    !byte 156                                                           ; TAB( 6, 25)
+    !text "f9  Joystick"                                                ;
+    !byte $1f, 17, 11                                                   ; TAB(17, 12)
+    !text "}the sound effects"                                          ;
+    !byte $1f, 17, 15                                                   ; TAB(17, 16)
+    !text "}",142,139                                                   ;
+    !byte $1f, 17, 19                                                   ; TAB(17, 20)
+    !text "}enemy", 139                                                 ;
     !byte 158
 
 ; ----------------------------------------------------------------------------------
 starfleet_records_string
     !byte 159
-    !text "STAR-FLEET RECORDS",147                                ;
-    !byte $1f, 4  , 6                                                 ;
-    !text    "Below is a list of",143,"most highly",140               ;
-    !text "rated of",134,8,"'s past ",154,"ers."                    ;
+    !text "STAR-FLEET RECORDS",147                                      ;
+    !byte $1f, 4  , 6                                                   ;
+    !text    "Below is a list of",143,"most highly",140                 ;
+    !text "rated of",134,8,"'s past ",154,"ers."                        ;
     !byte 158
 
 ; ----------------------------------------------------------------------------------
 enter_your_name_string
-    !byte $1f,  0, 10                                                 ;
-    !text "Enter",157,"name for",134,"records."                        ;
-    !byte $1f, 13, 16                                                 ;
-    !text "-------------"                                             ;
-    !byte $1f, 13, 15                                                 ;
+    !byte $1f,  0, 10                                                   ;
+    !text "Enter",157,"name for",134,"records."                         ;
+    !byte $1f, 13, 16                                                   ;
+    !text "-------------"                                               ;
+    !byte $1f, 13, 15                                                   ;
 
 ; ----------------------------------------------------------------------------------
 the_frontiers_string
-    !byte $1f, 3, 5                                                   ; TAB
-    !text    "The frontiers of space are frequently"                  ;
-    !text "penetrated by hostile alien ships. These"                  ;
-    !text "are tackled by battle ",142,"s,",143,13,10                 ;
-    !text 154," of which is given to deserving  "                  ;
-    !text "captains from",143,8,134,8,"."                             ;
+    !byte $1f, 3, 5                                                     ; TAB
+    !text    "The frontiers of space are frequently"                    ;
+    !text "penetrated by hostile alien ships. These"                    ;
+    !text "are tackled by battle ",142,"s,",143,13,10                   ;
+    !text 154," of which is given to deserving  "                       ;
+    !text "captains from",143,8,134,8,"."                               ;
 
-    !byte $1f, 11,  2                                                 ; TAB
-    !text 149," ",150                                                 ;
-    !byte $1f,  4, 31                                                 ; TAB
-    !text "2022 Edition by TobyLobster (v2)"                               ;
+    !byte $1f, 11,  2                                                   ; TAB
+    !text 149," ",150                                                   ;
+    !byte $1f,  4, 31                                                   ; TAB
+    !text "2022 Edition by TobyLobster (v2)"                            ;
 
 begin_first_command_string
-    !byte $1f,  3, 11                                                 ; TAB
-    !text "   To begin",157,"first ",154,", "                       ;
-    !byte $1f, 12, 12                                                 ; TAB
-    !text "p",141
+    !byte $1f,  3, 11                                                   ; TAB
+    !text "   To begin",157,"first ",154,", "                           ;
+    !byte $1f, 12, 12                                                   ; TAB
+    !text "p",141                                                       ;
 
 ; ----------------------------------------------------------------------------------
 ; Shortcut phrases
@@ -290,7 +290,7 @@ newline_and_space
 
 ; 141
 ress_return_string
-    !text "ress <RETURN>"                                            ;
+    !text "ress <RETURN>"
 
 ; 142
 starship_string
@@ -363,5 +363,5 @@ press_return_string
 
 ; 159
 title_string
-    !byte $1f, 5  , 2                                                   ;
+    !byte $1f, 5  , 2                                                 ;
     !text 147

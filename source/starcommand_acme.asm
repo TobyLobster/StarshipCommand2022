@@ -49,7 +49,7 @@
 ;     if set, enemy ship retreats when directly in front of the starship
 ;
 ;   * fires cluster torpedoes (more likely in later commands)
-;     if set, fires groups of four torpedoes at once
+;     if set, fires multiple torpedoes at once
 ;
 ;   * second enemy type, capable of cloaking (more likely in later commands)
 ;     if set, can become invisible
@@ -234,6 +234,7 @@ elk=0           ; 0xC0DE: 0=Beeb version, 1=Elk version
 }
 antiflicker=1   ; 0xC0DE: affects Elk version only (0=off, 1=on) reduces flicker a little but slows down the game (?)
 cheat=0         ; 0xC0DE: 0=no cheat, 1=cheat (no damage to starship)
+cheat_score=0   ; key '6' gives you score, '7' kills you
 
 ; ----------------------------------------------------------------------------------
 ; gameplay constants
@@ -4717,7 +4718,7 @@ skip_damper_keys
 
 ; ----------------------------------------------------------------------------------
 +
-!if 0 { ; for testing scoring
+!if cheat_score { ; for testing scoring
     +do_key inkey_6, 7, 0, +, 0                                       ;
     lda #10                                                           ;
     jsr debug_score_points                                            ;
@@ -4730,16 +4731,20 @@ skip_damper_keys
 +
     +do_key inkey_p, 3, 1, return18, 0                                ;
 pause_game
-    ; turn off engine sound
-    lda #$20                                                          ; disable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+!if elk=0 {
+    ; turn off engine sound for pause mode
+    jsr disable_engine_interrupt                                      ;
+}
+
 pause_game_loop
     +finish_keyboard_read                                             ;
     +start_keyboard_read                                              ;
     +do_key inkey_space, 0, 3, pause_game_loop, 0                     ;
-    ; turn on engine sound
-    lda #$a0                                                          ; enable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+
+!if elk=0 {
+    ; turn on engine sound after pause is finished
+    jsr enable_engine_interrupt                                       ;
+}
 return18
     rts                                                               ;
 
@@ -4749,6 +4754,21 @@ return18
 } else {
     ; Electron
     random_data = $d000                                               ; ROM is cheaper to access than RAM
+}
+
+; ----------------------------------------------------------------------------------
+!if elk=0 {
+enable_engine_interrupt
+    ; turn on engine sound
+    lda #$a0                                                          ; enable engine interrupt
+    bne +                                                             ; ALWAYS branch
+
+disable_engine_interrupt
+    ; turn off engine sound
+    lda #$20                                                          ; disable engine interrupt
++
+    sta userVIAInterruptEnableRegister                                ; on timer 2
+    rts                                                               ;
 }
 
 ; ----------------------------------------------------------------------------------
@@ -4825,8 +4845,7 @@ play_starship_engine_sound
 skip_ceiling
     ldx #<(sound_10)                                                  ;
     jsr sound_with_volume                                             ;
-    lda #$a0                                                          ; enable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+    jsr enable_engine_interrupt                                       ;
 }
 return19
     rts                                                               ;
@@ -4834,8 +4853,7 @@ return19
 ; ----------------------------------------------------------------------------------
 play_sound_for_exploding_starship
 !if elk=0 {
-    lda #$20                                                          ; disable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+    jsr disable_engine_interrupt                                      ;
 }
     lda starship_explosion_countdown                                  ;
     sec                                                               ;
@@ -4872,8 +4890,7 @@ play_escape_capsule_sound
     ora #$10                                                          ; flush channel; play sound immediately
     sta sound_8                                                       ;
 !if elk=0 {
-    lda #$20                                                          ; disable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+    jsr disable_engine_interrupt                                      ;
 }
     lda self_destruct_countdown                                       ;
     and #1                                                            ;
@@ -4936,8 +4953,7 @@ consider_warning_sound
     lda #1                                                            ;
     sta sound_needed_for_low_energy                                   ;
 !if elk=0 {
-    lda #$20                                                          ; disable engine interrupt
-    sta userVIAInterruptEnableRegister                                ; on timer 2
+    jsr disable_engine_interrupt                                      ;
 }
     ldx #<(sound_9)                                                   ;
     jsr do_osword_sound                                               ;
@@ -8160,34 +8176,6 @@ adjective_table
                                     ; 10+ commands: "distinguished"
 
 ; ----------------------------------------------------------------------------------
-!if 0 {
-; ----------------------------------------------------------------------------------
-combat_preparation_screen_key_table
-!if elk=0 {
-    !byte $df                                                         ;
-    !byte $8e                                                         ;
-    !byte $8d                                                         ;
-    !byte $8c                                                         ;
-    !byte $eb                                                         ;
-    !byte $8b                                                         ;
-    !byte $8a                                                         ;
-    !byte $e9                                                         ;
-    !byte $89                                                         ;
-    !byte $88                                                         ;
-} else {
-    !byte $cf                                                         ;
-    !byte $ce                                                         ;
-    !byte $ee                                                         ;
-    !byte $ed                                                         ;
-    !byte $ec                                                         ;
-    !byte $cb                                                         ;
-    !byte $db                                                         ;
-    !byte $ea                                                         ;
-    !byte $d9                                                         ;
-    !byte $d8                                                         ;
-}
-}
-; ----------------------------------------------------------------------------------
 game_options
 option_sound
     !byte 0                                                           ;
@@ -10220,6 +10208,6 @@ envelope4
 
 !if tape {
 loader_string_copy
-    !bin "text.o"
+    !bin "build/text.o"
 }
 eof

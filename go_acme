@@ -81,7 +81,7 @@ acme -o build/disk/\!BOOT source/boot.asm
 # Create INF file for !BOOT
 echo "$.!BOOT     FFFF0180 FFFF0180" >build/disk/\!BOOT.inf
 
-acme -o text.o --setpc 0 source/sc_loader_text.txt
+acme -o build/text.o --setpc 0 source/sc_loader_text.txt
 
 # Beeb disc version
 build_exe 0 0 STAR
