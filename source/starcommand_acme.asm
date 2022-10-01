@@ -300,7 +300,7 @@ base_regeneration_rate_for_starship                                 = 12
 base_damage_to_enemy_ship_from_other_collision                      = 20
 change_in_number_of_stars_per_command                               = -2
 
-danger_height                           = 8
+danger_height                                                       = 8
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
@@ -340,9 +340,25 @@ inkey_6                                 = $cb
 inkey_7                                 = $db
 
 ; OS memory locations
-irq_accumulator                         = $fc
-irq1_vector_low                         = $0204
-irq1_vector_high                        = $0205
+irq_accumulator                         = $fc           ;
+
+irq1_vector_low                         = $204          ;
+irq1_vector_high                        = $205          ;
+bytev                                   = $20a          ;
+wordv                                   = $20c          ;
+rdchv                                   = $210          ;
+verticalSyncCounter                     = $240          ;
+enableKeyboardInterruptProcessingFlag   = $242          ;
+basicROMNumber                          = $24b          ; page BASIC in for ROM writes
+
+; reusing this flag makes the OS not beep during high score entry when we have sound disabled
+sound_enabled                           = $262          ; OS sound suppression flag
+soundBELLChannel                        = $263          ; sound channel for CTRL-G
+soundBELLAmplitudeEnvelope              = $264          ; sound amp or envelope for CTRL-G
+soundBELLPitch                          = $265          ; sound pitch for CTRL-G
+soundBELLDuration                       = $266          ; sound duration for CTRL-G
+functionAndCursorKeyCodes               = $26d          ; function key translations
+vduInterlaceValue                       = $291          ;
 
 videoULAPaletteRegister                 = $fe21         ; Video ULA palette register
 
@@ -378,8 +394,6 @@ oswrch                                  = $ffcb         ; nvwrch avoids an indir
 osnewl                                  = $ffe7
 osword                                  = $fff1
 osbyte                                  = $fff4
-bytev                                   = $20a
-wordv                                   = $20c
 
 ; ----------------------------------------------------------------------------------
 ; zero page
@@ -580,11 +594,6 @@ allowed_another_command                 = award + 1
 ; ----------------------------------------------------------------------------------
 ; memory locations
 ; ----------------------------------------------------------------------------------
-
-; OS sound suppression flag
-; reusing this flag makes the OS not beep during high score entry
-; when we have sound disabled
-sound_enabled = $262
 
 ; High score table.
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
@@ -2062,8 +2071,10 @@ plot_enemy_torpedo
     lda (temp0_low),y                                                 ;
     sta y_pixels                                                      ;
 enemy_torpedo_type_instruction
-    jmp eor_play_area_pixel                                           ; self modifying code
-    ; ... actually JSR if (option_enemy_torpedoes == 1)
+    jsr eor_play_area_pixel                                           ; self modifying code
+    ; ... actually JMP if option_enemy_torpedoes is zero, (for small enemy torpedoes)
+
+    ; draw the large enemy torpedoes
     inx                                                               ;
     jsr eor_play_area_pixel_same_y                                    ;
     inc y_pixels                                                      ;
@@ -4719,9 +4730,16 @@ skip_damper_keys
 +
     +do_key inkey_p, 3, 1, return18, 0                                ;
 pause_game
+    ; turn off engine sound
+    lda #$20                                                          ; disable engine interrupt
+    sta userVIAInterruptEnableRegister                                ; on timer 2
+pause_game_loop
     +finish_keyboard_read                                             ;
     +start_keyboard_read                                              ;
-    +do_key inkey_space, 0, 3, pause_game, 0                          ;
+    +do_key inkey_space, 0, 3, pause_game_loop, 0                     ;
+    ; turn on engine sound
+    lda #$a0                                                          ; enable engine interrupt
+    sta userVIAInterruptEnableRegister                                ; on timer 2
 return18
     rts                                                               ;
 
@@ -7223,7 +7241,7 @@ prepare_starship_for_next_command
     sta previous_starship_automatic_shields                           ;
     sta sound_needed_for_low_energy                                   ;
     sta energy_flash_timer                                            ;
-    sta $242 ; disable keyboard interrupt
+    sta enableKeyboardInterruptProcessingFlag                         ; disable keyboard interrupt
     lda #4                                                            ;
     sta starship_velocity_high                                        ;
     lda #0                                                            ;
@@ -8176,7 +8194,7 @@ option_sound
 option_starship_torpedoes
     !byte 0                                                           ;
 option_enemy_torpedoes
-    !byte 0                                                           ;
+    !byte 1                                                           ;
 option_keyboard_joystick
     !byte 0                                                           ;
 
@@ -8185,8 +8203,8 @@ options_values_to_write
     !byte 1                                                           ;
     !byte 0                                                           ;
     !byte 1                                                           ;
-    !byte $4c                                                         ;
-    !byte $20                                                         ;
+    !byte $4c                                                         ; JMP opcode
+    !byte $20                                                         ; JSR opcode
     !byte 0                                                           ;
     !byte 2                                                           ;
 option_address_low_table
@@ -8267,22 +8285,24 @@ not_f0
     beq combat_preparation_screen                                     ; ALWAYS branch
 
 not_f1
-    txa                                                               ;
-    and #$0f                                                          ;
-    lsr                                                               ;
+    txa                                                               ; Translate ASCII '2'-'9'
+    and #$0f                                                          ; into option number
+    lsr                                                               ; Y=1-4
     tay                                                               ;
     txa                                                               ;
-    and #1                                                            ;
-;    cmp game_options - 1,y                                            ;
-;    beq check_next_key                                                ;
+    and #1                                                            ; 0=switch off, 1=switch on
+
+    ; calculate destination address for the new option
     sta game_options - 1,y                                            ;
     lda option_address_low_table - 1,y                                ;
     sta temp0_low                                                     ;
     lda option_address_high_table - 1,y                               ;
     sta temp0_high                                                    ;
-    lda option_enemy_torpedoes-48,x                                   ;
+
+    ; write the new option value
+    lda options_values_to_write-'0'-2,x                               ; read new value from table
     ldy #0                                                            ;
-    sta (temp0_low),y                                                 ;
+    sta (temp0_low),y                                                 ; write to destination address
     beq plot_selected_options                                         ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
@@ -8551,7 +8571,7 @@ end_of_command
     sta energy_flash_timer                                            ;
     lda #$ff
     sta starship_energy_divided_by_sixteen                            ; disable energy low
-    sta $242                                                          ; enable keyboard interrupt
+    sta enableKeyboardInterruptProcessingFlag                         ; enable keyboard interrupt
     jsr screen_off                                                    ;
     jsr plot_debriefing                                               ;
     jsr screen_on_and_flush                                           ;
@@ -9113,6 +9133,7 @@ plot_line_of_underscores_loop
 
 ; ----------------------------------------------------------------------------------
 !if (elk=0) {
+    ; BBC/Master
 screen_off
     lda #$f0                                                          ;
     jsr writeR8                                                       ;
@@ -9129,13 +9150,14 @@ writeR8
     jsr osbyte                                                        ;
     ldx #8                                                            ;
     pla                                                               ;
-    ora $291                                                          ;
+    ora vduInterlaceValue                                             ; OR in TV interlace
     sei                                                               ;
     stx $fe00                                                         ;
     sta $fe01                                                         ;
     cli                                                               ;
     rts                                                               ;
 } else {
+    ; Electron
 screen_off
     lda #$ff                                                          ;
     ldx #$10                                                          ;
@@ -9151,9 +9173,9 @@ writepal
     stx $d0                                                           ;
     sta $804                                                          ;
     sta $805                                                          ;
-    ldy $240                                                          ;
+    ldy verticalSyncCounter                                           ;
 -
-    cpy $240                                                          ;
+    cpy verticalSyncCounter                                           ;
     beq -                                                             ;
     sta $fe08                                                         ;
     sta $fe09                                                         ;
@@ -9932,13 +9954,15 @@ init_late
 }
 
 !if elk {
+    ; Electron
     ; page in keyboard ROM
     lda #8                                                            ;
     jsr $e3a0                                                         ;
 } else {
+    ; BBC/Master
 !if rom_writes {
     ; page in BASIC to minimize the chance of scribbling over whatever may be in SWRAM
-    lda $24b                                                          ;
+    lda basicROMNumber                                                ;
     sta $f4                                                           ;
     sta $fe30                                                         ;
 }
@@ -9984,24 +10008,24 @@ init_late
 }
 
 set_rdchv
-    lda $210                                                          ;
+    lda rdchv                                                         ;
     sta our_rdch+1                                                    ;
-    lda $211                                                          ;
+    lda rdchv+1                                                       ;
     sta our_rdch+2                                                    ;
 
     lda #<our_rdch                                                    ;
-    sta $210                                                          ;
+    sta rdchv                                                         ;
     lda #>our_rdch                                                    ;
-    sta $211                                                          ;
+    sta rdchv+1                                                       ;
     ; set beep sound to sound_6 why not
     ; hopefully players will have learned to avoid doing
     ; things that make this sound :)
     lda #$12                                                          ;
-    sta $263                                                          ;
+    sta soundBELLChannel                                              ;
     lda #$18                                                          ;
-    sta $264                                                          ;
+    sta soundBELLAmplitudeEnvelope                                    ;
     lda #$bc                                                          ;
-    sta $265                                                          ;
+    sta soundBELLPitch                                                ;
     ; because bit 4 of channel is not respected we need to set duration as short as possible,
     ; except on the Electron, where this cuts off the sound prematurely.
 !if elk {
@@ -10009,15 +10033,15 @@ set_rdchv
 } else {
     lda #$1                                                           ;
 }
-    sta $266                                                          ;
+    sta soundBELLDuration                                             ;
 
     lda #11                                                           ; disable key repeat
     jsr osbyte_zeroxy                                                 ;
     lda #'0'                                                          ; function keys
-    sta $271                                                          ; generate ASCII 0-9
-    sta $272                                                          ;
-    sta $273                                                          ;
-    sta $274                                                          ;
+    sta functionAndCursorKeyCodes + 4                                 ; generate ASCII 0-9
+    sta functionAndCursorKeyCodes + 5                                 ;
+    sta functionAndCursorKeyCodes + 6                                 ;
+    sta functionAndCursorKeyCodes + 7                                 ;
     lda #osbyte_set_cursor_editing                                    ; cursor keys
     ldx #1                                                            ; generate ASCII
     jsr osbyte                                                        ; 136-139
