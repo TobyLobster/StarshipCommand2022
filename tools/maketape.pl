@@ -1,12 +1,14 @@
 #!/usr/bin/perl -w
 use Digest::CRC qw[crc];
-print "UEF File!\x00\x0a\x00";
-chunk(0x110,pack"v",500);               # carrier
+print "UEF File!\x00\x0a\x00";          # magic string, zero terminator and UEF 0.10 version number
+chunk(0x110,pack"v",500);               # carrier tone
+chunk(0x100,0xdc);                      # one dummy byte
+chunk(0x110,pack"v",500);               # carrier tone
 my $loader=shift;
 open F, "<$loader" or die "$loader: $!";
 undef $/; # slurp
 $data=<F>;
-$data2=substr($data,0,255);             # decompression code, 255 bytes
+$data2=substr($data,0,255);             # the first 255 bytes is decompression code
 $data=substr($data,255);                # remainder of program
 $fn="STAR2022";
 $load=0xffff0500;
@@ -25,16 +27,16 @@ while (my $main=shift) {
     open F, "<$main" or die "$main: $!";
     $raw .= <F>;
 }
-chunk(0x100,$header.$data);             # main code
-chunk(0x110,pack"v",50);                # carrier
-chunk(0x100,$data2.$raw);               # decompression code
-chunk(0x110,pack"v",500);               # carrier
+chunk(0x100,$header.$data);             # header and binary data
+chunk(0x110,pack"v",50);                # carrier tone
+chunk(0x100,$data2.$raw);               # decompression code and other binary files
+chunk(0x110,pack"v",500);               # carrier tone
 
-sub file {
-    my $fn=shift;
-    open F, "<$fn" or die "$fn: $!";
-    $raw.=<F>;
-}
+#sub file {
+#    my $fn=shift;
+#    open F, "<$fn" or die "$fn: $!";
+#    $raw.=<F>;
+#}
 
 sub chunk {
     my ($id,$data)=@_;

@@ -1080,7 +1080,7 @@ sound_4
     !byte 2, 0                                                        ; envelope 2
     !byte $c0, 0                                                      ; pitch 192
 !if elk {
-    ; echo effect is totally wasted on electron
+    ; echo effect is totally wasted on Electron
     !byte $4, 0                                                      ; duration 4
 } else {
     !byte $1f, 0                                                      ; duration 31
@@ -2687,18 +2687,22 @@ downrightfix
     bne rightfix2                                                     ; if (y != 8) then only fix right
 
     ; fix both
-    ldx #0                                                            ;
+    ldx #0                                                            ; fix right
     lda #$48                                                          ;
-    bne downfix_with_offset                                           ;
+    bne downfix_with_offset                                           ; fix down with offset (ALWAYS branch)
 
 downleftfix
     cpx #$ff                                                          ;
-    bne downfix                                                       ;
+    bne downfix                                                       ; if (x != 255) then left doesn't need fixing (down does)
+
+    ; left needs fixing. does down need fixing too?
     cpy #8                                                            ;
-    bne leftfix2                                                      ;
-    ldx #7                                                            ;
+    bne leftfix2                                                      ; if (y != 8) then down doesn't need fixing (left does)
+
+    ; fix down and left
+    ldx #7                                                            ; fix left
     lda #$38                                                          ;
-    bne downfix_with_offset                                           ;
+    bne downfix_with_offset                                           ; fix down with offset (ALWAYS branch)
 
 upfix
     lda #$100-$40                                                     ;
@@ -2740,25 +2744,29 @@ offscreen_up
 
 upleftfix
     cpx #$ff                                                          ;
-    bne upfix                                                         ;
+    bne upfix                                                         ; if (x != 255) then left doesn't need fixing (but up does)
+
+    ; left needs fixing. does up need fixing too?
     cpy #$ff                                                          ;
-    bne leftfix2                                                      ;
-    ldx #7                                                            ;
+    bne leftfix2                                                      ; if (y != 255) then up doesn't need fixing (but left does)
+
+    ; fix both
+    ldx #7                                                            ; fix left
     lda #$100-$40-$8                                                  ;
-    bne upfix_with_offset                                             ;
+    bne upfix_with_offset                                             ; fix up with offset (ALWAYS branch)
 
 uprightfix
     cpx #8                                                            ;
-    bne upfix                                                         ; if (x != 8) then right doesn't need fixing
+    bne upfix                                                         ; if (x != 8) then right doesn't need fixing (but up does)
 
-    ; fix right. does down need fixing too?
-    ldx #0                                                            ;
+    ; fix right. does up need fixing too?
+    ldx #0                                                            ; fix right
     cpy #$ff                                                          ;
-    bne rightfix2                                                     ; if (y != 255) then only fix right
+    bne rightfix2                                                     ; if (y != 255) then fix right
 
     ; fix up.
     lda #$100-$40+$8                                                  ;
-    bne upfix_with_offset                                             ;
+    bne upfix_with_offset                                             ; fix up with offset (ALWAYS branch)
 
 
 ; ----------------------------------------------------------------------------------
@@ -4592,8 +4600,10 @@ check_for_keypresses
     +start_keyboard_read                                              ;
     jmp check_for_additional_keys                                     ;
 
+; ----------------------------------------------------------------------------------
 !macro do_key .inkey_value, .row, .col, .skip, .invert {
 !if elk {
+    ; Electron
 .rom_address   = $bfff - (1<<.row)
 .bitmask       = 1<<.col
     lda .rom_address                                                  ;
@@ -4604,6 +4614,7 @@ check_for_keypresses
     beq .skip                                                         ;
 }
 } else {
+    ; BBC/Master
     lda #255-.inkey_value                                             ;
     sta $fe4f                                                         ;
     lda $fe4f                                                         ;
@@ -4653,26 +4664,26 @@ is_keyboard
     lda rotation_delta                                                ;
     ora velocity_delta                                                ;
     bne return17                                                      ; dampers only work when not accelerating / turning
-    +do_key inkey_f0, 12, 0, +, 0 ; 1 on electron
+    +do_key inkey_f0, 12, 0, +, 0                                     ; '1' on Electron
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on
 return17
     rts                                                               ;
 
 +
-    +do_key inkey_f1, 11, 0, +, 0 ; 2 on electron                     ;
+    +do_key inkey_f1, 11, 0, +, 0                                     ; '2' on Electron
     lda #1                                                            ;
     sta velocity_damper                                               ; velocity dampers on
     rts                                                               ;
 
 +
-    +do_key inkey_2, 12, 1, +, 0 ; q on electron                      ;
+    +do_key inkey_2, 12, 1, +, 0                                      ; 'Q' on Electron
     lda #0                                                            ;
     sta rotation_damper                                               ; rotation dampers off
     rts                                                               ;
 
 +
-    +do_key inkey_3, 11, 1, skip_damper_keys, 0 ; w on electron       ;
+    +do_key inkey_3, 11, 1, skip_damper_keys, 0                       ; 'W' on Electron
     lda #0                                                            ;
     sta velocity_damper                                               ; velocity dampers off
     rts                                                               ;
@@ -4715,8 +4726,10 @@ return18
     rts                                                               ;
 
 !if elk=0 {
+    ; BBC/Master
     random_data = $4000                                               ;
 } else {
+    ; Electron
     random_data = $d000                                               ; ROM is cheaper to access than RAM
 }
 
@@ -5481,12 +5494,6 @@ escape_capsule_collided_with_enemy_ship
     lda #maximum_number_of_enemy_ships                                ;
     sec                                                               ;
     sbc enemy_ships_still_to_consider                                 ;
-    sta x_pixels                                                      ;
-    asl                                                               ;
-    asl                                                               ;
-    adc x_pixels                                                      ;
-    asl                                                               ;
-    adc x_pixels                                                      ;
     tax                                                               ;
     lda enemy_ships_energy,x                                          ;
     beq enemy_ship_is_already_exploding                               ;
@@ -5494,16 +5501,12 @@ escape_capsule_collided_with_enemy_ship
     sta enemy_ships_energy,x                                          ;
     jsr explode_enemy_ship                                            ;
 enemy_ship_is_already_exploding
-    ldy #0                                                            ;
-    sty escape_capsule_on_screen                                      ;
     jsr plot_expiring_torpedo                                         ;
     lda #1                                                            ;
     sta escape_capsule_destroyed                                      ;
-    rts                                                               ;
-
 mark_escape_capsule_as_off_screen
-    lda #0                                                            ;
-    sta escape_capsule_on_screen                                      ;
+    ldy #0                                                            ;
+    sty escape_capsule_on_screen                                      ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -5552,15 +5555,10 @@ fire_enemy_torpedo_cluster
     dec output_pixels                                                 ;
     dec output_pixels                                                 ; torpedo_y = enemy_ship_y + cos(angle) - 2
     jsr add_single_torpedo_to_enemy_torpedo_cluster                   ;
+    dec output_pixels                                                 ; torpedo_y = enemy_ship_y + cos(angle) - 3
     inc output_fraction                                               ;
-    inc output_fraction                                               ; torpedo_x = enemy_ship_x + sin(angle)
-    dec output_pixels                                                 ;
-    dec output_pixels                                                 ; torpedo_y = enemy_ship_y + cos(angle) - 4
-    jsr add_single_torpedo_to_enemy_torpedo_cluster                   ;
     inc output_fraction                                               ;
-    inc output_fraction                                               ; torpedo_x = enemy_ship_x + sin(angle) + 2
-    inc output_pixels                                                 ;
-    inc output_pixels                                                 ; torpedo_y = enemy_ship_y + cos(angle) - 2
+    inc output_fraction                                               ; torpedo_x = enemy_ship_x + sin(angle) + 1
     jsr add_single_torpedo_to_enemy_torpedo_cluster                   ;
     sec                                                               ; torpedo was fired
     rts                                                               ;
@@ -7571,8 +7569,7 @@ debug_get_key_press
     lda #osbyte_inkey                                                 ;
     ldx #$ff                                                          ;
     ldy #$7f                                                          ;
-    jsr osbyte                                                        ;
-    rts                                                               ;
+    jmp osbyte                                                        ;
 
 ; ----------------------------------------------------------------------------------
 debug
@@ -10006,7 +10003,7 @@ set_rdchv
     lda #$bc                                                          ;
     sta $265                                                          ;
     ; because bit 4 of channel is not respected we need to set duration as short as possible,
-    ; except on the electron, where this cuts off the sound prematurely.
+    ; except on the Electron, where this cuts off the sound prematurely.
 !if elk {
     lda #$3                                                           ;
 } else {
