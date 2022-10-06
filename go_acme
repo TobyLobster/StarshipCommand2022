@@ -18,7 +18,7 @@ function sym {
     # Look up the value of a symbol in a symbols file created by acme
     local name=$1
     local filename=$2
-    grep build/$filename.symbols.txt -e '.*'$name | sed 's/.*\$\([0-9a-f][0-9a-f][0-9a-f][0-9a-f]\).*/\1/'
+    grep build/$filename.symbols.txt -e '.*'$name | sed -r 's/.*\$([0-9a-f]{1,4}).*/\1/'
 }
 
 function exo_region {
@@ -44,7 +44,7 @@ function build_exe {
     local output_filename=$3
 
     acme --symbollist build/$output_filename.symbols.txt -r build/$output_filename.report.txt -Delk=$elk -Dtape=$tape -o build/disk/$output_filename source/starcommand_acme.asm
-    sort -o build/symbols.txt build/$output_filename.symbols.txt
+    sort -o build/$output_filename.symbols.txt build/$output_filename.symbols.txt
 
     # Find entry point in symbols
     entry_point=$(sym entry_point $output_filename)
@@ -52,27 +52,31 @@ function build_exe {
     # and load address
     load_addr=$(sym load_addr $output_filename)
 
+    # free space
+    free_space=$(sym free_space $output_filename)
+    printf '%5d bytes free for %s\n' '0x'$free_space $output_filename
+
     # Create INF file
     echo "$.$output_filename     FFFF$load_addr FFFF$entry_point" >build/disk/$output_filename.inf
 }
 
 function build_tape {
     local elk=$1
-    local tape=$2
-    local filename=$3
+    local filename=$2
 
     # The main binary is split into three sequential regions:
     #   load_addr -> post_reloc                 filename.3      ; the bulk of the exe (loaded last)
     #   post_reloc -> loader_copy_start         filename.2      ; enough code to spin a globe
     #   loader_copy_start -> eof                filename.1      ; initial load just to get started (includes init_early, relocates loader code, and sets an IRQ 1 handler while loading from tape)
 
-    # Each reqion is compressed individually
+    # Each region is compressed individually
     exo_region $filename loader_copy_start eof build/tape/$filename.1
     exo_region $filename post_reloc loader_copy_start build/tape/$filename.2
     exo_region $filename load_addr post_reloc build/tape/$filename.3
 
-    # We assemble the decompression and initial loading code
+    # We assemble tape.asm, the decompression and initial loading code
     acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/tape.asm
+    sort -o build/tape.$filename.symbols.txt build/tape.$filename.symbols.txt
 }
 
 # Build !BOOT image
@@ -81,6 +85,7 @@ acme -o build/disk/\!BOOT source/boot.asm
 # Create INF file for !BOOT
 echo "$.!BOOT     FFFF0180 FFFF0180" >build/disk/\!BOOT.inf
 
+# Text that appears while loading
 acme -o build/text.o --setpc 0 source/sc_loader_text.txt
 
 # Beeb disc version
@@ -100,8 +105,8 @@ cd ../..
 
 # prepare tape versions
 mkdir -p build/tape
-build_tape 0 1 STAR.tape
-build_tape 1 1 STARELK.tape
+build_tape 0 STAR.tape
+build_tape 1 STARELK.tape
 
 # Convert tape files into UEF files
 perl tools/maketape.pl build/tape/loader.STAR.tape build/tape/STAR.tape.?.exo >STAR2022.uef

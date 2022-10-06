@@ -33,10 +33,10 @@ loader_start
 ; main stack to continue updating the globe etc. The main stack code will continue until
 ; an interrupt indicating the next byte from tape has arrived (see get_crunched_byte_irq).
 ; This updates the time remaining, and switches back to the decrunch stack to continue
-; the decompression.
+; the decompression with the newly acquired byte.
 ;
 ; Effectively the decompression routine is running under the IRQ interrupt (after the
-; first byte), and this does some fancy stack manipulation to manage the control of flow.
+; first byte), and this does some fancy stack manipulation to manage the control flow.
 ; ----------------------------------------------------------------------------------
 get_crunched_byte
     ; remember flags and registers
@@ -238,7 +238,7 @@ time_left
     !byte '1' - '0'                 ; Digits of the time remaining
     !byte ':' - '0'                 ;
     !byte '3' - '0'                 ;
-    !byte '0' - '0'                 ;
+    !byte '2' - '0'                 ;
 
 timer
     !byte 120                       ; ticks down each interrupt

@@ -18,14 +18,14 @@ As always, nothing written here is meant to denigrate the original work from 198
 * Electron version - many thanks to [0xC0DE](https://twitter.com/0xC0DE6502) for making the required changes.
 * Many thanks to Tom (hexwab) for excellent and extensive efforts, including:
     - A much more realistic engine sound
-    - Optimisations pushed a lot further, with faster maths routines, and faster plotting for ship, enemy, torpedo, debris etc. 
+    - Optimisations pushed a lot further, with faster maths routines, and faster plotting for ship, enemy, torpedo, debris etc.
     - A fix for the flicker reduction code.
     - Compression to speed up tape loading.
     - An animated loading screen for tape builds (a very nice bonus feature).
     - Other minor fixes.
 
 ## Dependencies
-To implement the compression for tape builds, Exomizer is used. If you want to build the game, you will need a copy of Exomizer 3.0.2. For some reason the latest version doesn't work the same way, so this earlier version is needed. This is available from [here](https://bitbucket.org/magli143/exomizer/wiki/Home). 
+To implement the compression for tape builds, Exomizer is used. If you want to build the game, you will need a copy of Exomizer 3.0.2. For some reason the latest version doesn't work the same way, so this earlier version is needed. This is available from [here](https://bitbucket.org/magli143/exomizer/wiki/Home).
 
 ## Technical Changes
 
@@ -158,7 +158,7 @@ Note that in this new version, the X register holds x_pixels, and is preserved a
 ### Fast arc plotting
 We have a routine that draws an entire circle, pixel by pixel. It is an unrolled loop. We jump into this routine at the appropriate starting point for the arc we want to draw, having already modified the code to write an RTS instruction at the point we want to stop drawing. This (a) minimises the cycle cost of working out what coordinates to incement or decrement to get the the next pixel and (b) also removes the overhead of a loop counter and branch instruction.
 
-In fact it draws more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length. 
+In fact it draws more than one complete circle, so you can join just at the end of one circle and still draw an arc of reasonable length.
 
 ```
 plus_angle0
@@ -178,7 +178,18 @@ plus_angle42
     rts
 ```
 
-Update: This has now been optimised further (thanks to hexwab). Instead of calling a generic pixel plotting routine each time, the screen address is maintained as we go. We can then handle adjacent horizontal pixel plots as a single change to a byte (where possible) instead of performing multiple calls to a generic pixel plotting routine.
+Update: This has now been optimised further (thanks to hexwab). Instead of calling a generic pixel plotting routine (`jsr eor_play_area_pixel`) for each pixel, the current screen address is maintained as we go. The X and Y registers hold the X and Y offsets 0-7 within the current character cell on screen and the accumulator holds the current byte to write to the screen. For instance to move right, we do:
+
+```
+    inx
+    cpx #8
+    bne +
+    jsr rightfix
++
+    eor xbit_table,X
+```
+
+The accumulator byte is only written to the screen when the current screen address needs to change.
 
 ### The secret bonus
 Just before your command is judged by Star-Fleet, a secret random bonus of 0-39 is added to your score. This luck can make all the difference as to whether you get another command. With bonus added:
