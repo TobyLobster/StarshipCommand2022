@@ -899,7 +899,7 @@ sine_table
 ; ----------------------------------------------------------------------------------
 ; Align to page boundary for speed
 
-plot_table_offset
+plot_table_offset_low
     !byte <plus_angle0
     !byte <plus_angle1
     !byte <plus_angle2
@@ -944,7 +944,7 @@ plot_table_offset
     !byte <plus_angle41
     !byte <plus_angle42
 !align 255, 0
-plot_table_offset2
+plot_table_offset_high
     !byte >plus_angle0
     !byte >plus_angle1
     !byte >plus_angle2
@@ -2575,17 +2575,17 @@ plot_segment_loop
 ; ----------------------------------------------------------------------------------
 plot_segment_unrolled
     ldx segment_angle                                                 ; based on start angle,
-    lda plot_table_offset,x                                           ; look up in a table
+    lda plot_table_offset_low,x                                       ; look up in a table
     sta jump_address                                                  ; the address we jump to (low byte)
-    lda plot_table_offset2,x                                          ; look up in a table
+    lda plot_table_offset_high,x                                      ; look up in a table
     sta jump_address+1                                                ; the address we jump to (high byte)
     txa                                                               ;
     clc                                                               ;
     adc segment_length                                                ; add the segment length
     tax                                                               ;
-    lda plot_table_offset-1,x                                         ;
+    lda plot_table_offset_low-1,x                                     ;
     sta codeptr_low                                                   ;
-    lda plot_table_offset2-1,x                                        ;
+    lda plot_table_offset_high-1,x                                    ;
     sta codeptr_high                                                  ;
     ldy #0                                                            ;
     lda (codeptr_low),y                                               ;
@@ -3838,7 +3838,7 @@ starship_explosion_piece_ageing_table
 initialise_stars_at_random_positions
     lda maximum_number_of_stars                                       ;
     sta stars_still_to_consider                                       ;
-    ldy #index_of_stars                                               ;
+    ldy #index_of_in_game_stars                                       ;
 initialise_stars_at_random_positions_loop
     jsr random_number_generator                                       ;
     lda rnd_1                                                         ;
@@ -5426,6 +5426,7 @@ initialise_game_screen
     jsr plot_scanner_grid                                             ;
     jsr plot_command_number                                           ;
 !if do_debug = 0 {
+    ldy #index_of_in_game_stars                                       ;
     jsr plot_and_rotate_in_game_stars                                 ;
 }
     jsr plot_top_and_right_edge_of_long_range_scanner_without_text    ;
@@ -7215,6 +7216,7 @@ prepare_starship_for_next_command
 
     ; fill enemy ship cache
     jsr fill_enemy_cache                                              ;
+    jsr zero_objects                                                  ;
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
     jsr initialise_game_screen                                        ;
@@ -7726,6 +7728,7 @@ post_wait_for_timer
 }
 
     jsr plot_enemy_ships                                              ;
+    ldy #index_of_in_game_stars                                       ;
     jsr update_stars                                                  ;
     jsr handle_enemy_ships_cloaking                                   ;
     inc how_enemy_ship_was_damaged                                    ; # 0 = collision with starship torpedoes
@@ -9154,6 +9157,7 @@ init_frontier_screen
     ; initialise stars update code to use frontier stars
     dec num_frontier_star_updates                                     ; plot performs a rotation
     lda #<eor_frontier_pixel                                          ;
+    ldy #index_of_frontier_stars                                      ;
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 plot_and_rotate_in_game_stars
     lda #<eor_play_area_pixel                                         ;
@@ -9162,7 +9166,7 @@ plot_and_rotate_in_game_stars
 
     ; plot but don't unplot (for this first update)
     lda #$2c                                                          ; 'BIT abs' opcode
-    sta maybe_unplot_star                                             ; skip unplotting
+    sta maybe_unplot_star                                             ; to skip unplotting
 
     ; update and plot the stars
     jsr update_stars                                                  ;
@@ -9175,10 +9179,9 @@ plot_and_rotate_in_game_stars
 
 ; ----------------------------------------------------------------------------------
 update_stars
+    sty current_object_index                                          ;
     lda maximum_number_of_stars                                       ;
     sta stars_still_to_consider                                       ;
-    ldy #index_of_stars                                               ;
-    sty current_object_index                                          ;
 update_stars_loop
     ldy current_object_index                                          ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
@@ -9190,7 +9193,7 @@ maybe_unplot_star
     lda object_table_ypixels,y                                        ;
     sta y_pixels                                                      ;
 plot_star
-    jsr eor_play_area_pixel                                           ; plot
+    jsr eor_play_area_pixel                                           ; plot. Target of self modifying code.
     inc current_object_index                                          ;
     dec stars_still_to_consider                                       ;
     bne update_stars_loop                                             ;
@@ -9199,13 +9202,14 @@ plot_star
 ; ----------------------------------------------------------------------------------
 update_frontier_stars
     ; each full rotation of the globe, we reset the stars to stop them drifting out of alignment over time.
+    ldy #index_of_frontier_stars                                      ;
     dec num_frontier_star_updates                                     ;
     bne update_stars                                                  ;
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
-    ldy #index_of_stars                                               ;
+    ldy #index_of_frontier_stars                                      ;
     sty current_object_index                                          ;
     ldx #0                                                            ;
 initialise_stars_loop
@@ -9695,6 +9699,18 @@ oswrch_ay
     jmp oswrch                                                        ;
 
 ; ----------------------------------------------------------------------------------
+zero_objects
+    lda #0                                                            ;
+    tax                                                               ;
+-
+    sta object_tables_start,x                                         ;
+    sta object_tables_start + 256,x                                   ;
+    sta object_tables_end - 256,x                                     ;
+    dex                                                               ;
+    bne -                                                             ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
 ; Everything from here is *only* used while loading
 ; ----------------------------------------------------------------------------------
 
@@ -9731,15 +9747,7 @@ init_late
     bne -                                                             ;
 
     ; zero object tables
-    lda #0                                                            ;
-    tax                                                               ;
--
-    sta object_tables_start,x                                         ;
-    sta object_tables_start + 256,x                                   ;
-    sta object_tables_start + 512,x                                   ;
-    sta object_tables_end - 256,x                                     ;
-    dex                                                               ;
-    bne -                                                             ;
+    jsr zero_objects                                                  ;
 
 !if (elk=0) or (elk+antiflicker=2) {
     ; set up timer
@@ -9853,67 +9861,66 @@ init_late
 }
 
 ; ----------------------------------------------------------------------------------
-; Objects are:
-;
-; 1 escape capsule              (25 bytes)
-; 24 enemy torpedos             (24  * 6 = 144 bytes)
-; 24 starship torpedo heads     (24  * 5 = 120 bytes)
-; 24 starship torpedo tails     (24  * 4 =  96 bytes)
-; 128 stars                     (128 * 4 = 512 bytes)
-
-index_of_escape_capsule         = 0
-index_of_enemy_torpedoes        = 1
-index_of_starship_torpedo_heads = index_of_enemy_torpedoes + maximum_number_of_enemy_torpedoes
-index_of_starship_torpedo_tails = index_of_starship_torpedo_heads + maximum_number_of_starship_torpedoes
-index_of_stars                  = index_of_starship_torpedo_tails + maximum_number_of_starship_torpedoes
-
-max_objects = index_of_stars + maximum_number_of_frontier_stars
-
-object_tables_start
-
-object_table_angle          = object_tables_start
-object_table_time_to_live   = object_table_angle + 1 + maximum_number_of_enemy_torpedoes                 ; only escape capsule and enemy torpedoes have an angle
-object_table_xfraction      = object_table_time_to_live + max_objects - maximum_number_of_frontier_stars ; everything except the stars has a 'time to live'. Wow, that's deep.
-object_table_xpixels        = object_table_xfraction + max_objects                                       ; every object has a position
-object_table_yfraction      = object_table_xpixels + max_objects
-object_table_ypixels        = object_table_yfraction + max_objects
-object_tables_end           = object_table_ypixels + max_objects
-
-!if ((object_tables_end - object_tables_start) < $300) {
-    !error "object table too small for initialisation code in init_late"
-}
-!if ((object_tables_end - object_tables_start) > $400) {
-    !error "object table too big for initialisation code in init_late"
-}
-
-escape_capsule_on_screen  = object_table_time_to_live
-escape_capsule_x_fraction = object_table_xfraction
-escape_capsule_x_pixels   = object_table_xpixels
-escape_capsule_y_fraction = object_table_yfraction
-escape_capsule_y_pixels   = object_table_ypixels
-
-free_space1 = $5800 - object_tables_end
-!if (object_tables_end > $5800) {
-    !error "code overflowed by ", object_tables_end-$5800, " bytes"
-}
-
-; ----------------------------------------------------------------------------------
 !if tape {
 loader_copy_start
     !src "source/loader2.asm"                                         ;
 loader_copy_end
 }
 
-free_space2 = $5800 - *
+; ----------------------------------------------------------------------------------
+; Objects are
+;
+; When in game:
+;
+; 1 escape capsule              (5 bytes)
+; 24 enemy torpedos             (24  * 6 = 144 bytes)
+; 24 starship torpedo heads     (24  * 5 = 120 bytes)
+; 24 starship torpedo tails     (24  * 4 =  96 bytes)
+;                        TOTAL: 365 bytes
+;
+; Or, when in front end:
+;
+; 128 frontier stars            (128 * 4 = 512 bytes)
 
-!if (* > $5800) {
-    !error "code overflowed by ", *-$5800, " bytes"
+index_of_frontier_stars         = 0
+
+index_of_escape_capsule         = 0
+index_of_enemy_torpedoes        = index_of_escape_capsule + 1
+index_of_starship_torpedo_heads = index_of_enemy_torpedoes + maximum_number_of_enemy_torpedoes
+index_of_starship_torpedo_tails = index_of_starship_torpedo_heads + maximum_number_of_starship_torpedoes
+index_of_in_game_stars          = index_of_starship_torpedo_tails + maximum_number_of_starship_torpedoes
+
+max_in_game_objects = index_of_in_game_stars + maximum_number_of_stars_in_game
+
+; This allows for all in game objects OR 128 frontier stars
+max_objects = 128
+
+object_tables_start
+
+object_table_angle          = object_tables_start
+object_table_time_to_live   = object_table_angle + 1 + maximum_number_of_enemy_torpedoes    ; only escape capsule and enemy torpedoes have an angle
+object_table_xfraction      = object_table_time_to_live + index_of_in_game_stars            ; everything except the stars has a 'time to live'. Wow, that's deep.
+object_table_xpixels        = object_table_xfraction    + max_objects                       ; every object has a position
+object_table_yfraction      = object_table_xpixels      + max_objects
+object_table_ypixels        = object_table_yfraction    + max_objects
+object_tables_end           = object_table_ypixels      + max_objects
+
+!if ((object_tables_end - object_tables_start) < $200) {
+    !error "object table too small for initialisation code in init_late"
+}
+!if ((object_tables_end - object_tables_start) > $300) {
+    !error "object table too big for initialisation code in init_late"
 }
 
-!if (free_space1 < free_space2) {
-    free_space = free_space1
-} else {
-    free_space = free_space2
+escape_capsule_on_screen  = object_table_time_to_live + index_of_escape_capsule
+escape_capsule_x_fraction = object_table_xfraction    + index_of_escape_capsule
+escape_capsule_x_pixels   = object_table_xpixels      + index_of_escape_capsule
+escape_capsule_y_fraction = object_table_yfraction    + index_of_escape_capsule
+escape_capsule_y_pixels   = object_table_ypixels      + index_of_escape_capsule
+
+free_space = $5800 - object_tables_end
+!if (object_tables_end > $5800) {
+    !error "code overflowed by ", object_tables_end-$5800, " bytes"
 }
 
 entry_point
