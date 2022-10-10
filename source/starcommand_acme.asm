@@ -624,6 +624,9 @@ enemy_ships_type                        = $0400 +  8 * maximum_number_of_enemy_s
 enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $0448
 enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $0450
 
+; stride
+stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
+
 ; 64 table entries. Each entry has a high byte and a low byte.
 ; The first  32 entries are the address of each angle of the first enemy type.
 ; The second 32 entries are the address of each angle of the second enemy type.
@@ -633,42 +636,46 @@ enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_s
 enemy_address_high                      = enemy_address_low + 64                        ; i.e. starts at $0498
 enemy_address_high_end                  = enemy_address_high + 64                       ; i.e. end    at $04d7
 
-enemy_cache_a                           = $4d8
-    ; (x, y, start_angle, length) = 4 bytes
-    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
-; to $758
+enemy_cache_a                           = enemy_address_high_end
+    ; (x, y, start_angle, length)   = 4 bytes
+    ; 4 bytes * 5 arcs * 32 angles  = 640 bytes
+    ; to $758
 
 frontier_star_positions_y               = enemy_cache_a + 640                           ; to $7d8
-unused2 = frontier_star_positions_y + 128                                               ; UNUSED: 40 bytes free to $800
 
-stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
+unused1 = frontier_star_positions_y + 128                                               ; UNUSED: 40 bytes free to $800
+
+; $0800-$08ff   reserved for sound system
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
-squares1_high                           = $0b00  ; } (1k total)
-
-nmi_routine                             = $0d00
-starship_explosion_table                = $0d01  ; (192 bytes) randomised when needed.
+squares1_high                           = $0b00  ; } (1024 bytes total)
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
-squares2_high                           = $1000  ; } (1k total)
-row_table_low                           = $1200
-play_area_row_table_high                = $1300
+squares2_high                           = $1000  ; } (1024 bytes total)
+
+row_table_low                           = $1200  ; }
+play_area_row_table_high                = $1300  ; } tables of constants (1024 bytes)
 xandf8                                  = $1400  ; }
-xbit_table                              = $1500  ; } tables of constants (768 bytes)
+xbit_table                              = $1500  ; }
 
 ; in front end:
 frontier_star_positions_x               = $1600  ; 192 bytes.
+unused2 = frontier_star_positions_x + 192        ; space in front end only
 loader_string                           = $1700
 
 ; in game:
 enemy_explosion_tables                  = $1600
 enemy_cache_b                           = enemy_explosion_tables + maximum_number_of_enemy_ships * 64
     ; (x, y, start_angle, length) = 4 bytes
-    ; 4 bytes * 6 arcs * 32 angles = 768 bytes
+    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
 
-end_of_tables = enemy_cache_b + 768
+end_of_tables = enemy_cache_b + 640
 ;!warn "end of tables: ", end_of_tables
 
+unused3 = end_of_tables                 ; 128 bytes free
+unused3_end = unused3 + 128             ;
+
+; addresses on-screen
 starship_top_screen_address             = $6b38
 starship_bottom_screen_address          = $6c78
 energy_screen_address                   = $6e48
@@ -682,7 +689,7 @@ ShortTimerValue  = 16*64 - 2
 ; code and data
 ; ----------------------------------------------------------------------------------
 
-* = end_of_tables
+* = unused3_end
 
 load_addr
 
@@ -2893,14 +2900,14 @@ continue
     ldx #0
     lda starship_rotation                                             ;
     bmi skip_inversion3                                               ;
-    dex
+    dex                                                               ;
     eor #$ff                                                          ;
     adc #1                                                            ;
 skip_inversion3
     adc #$80                                                          ;
     tay                                                               ;
     sta starship_rotation_magnitude                                   ;
-    stx starship_rotation_eor
+    stx starship_rotation_eor                                         ;
     lda starship_rotation_sine_table,y                                ;
     sta starship_rotation_sine_magnitude                              ;
     lda starship_rotation_cosine_table,y                              ;
@@ -4006,16 +4013,8 @@ skip21
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_starship_explosion_piece
-    ldy #0                                                            ;
-    lda (temp0_low),y                                                 ;
-    and #$c0                                                          ;
-    sta temp8                                                         ;
-    ldy #2                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta temp11                                                        ;
-    lda explosion_bits_still_to_consider                              ;
-    and #$1f                                                          ;
+sine_and_cosine_times_radius
+    ; calculate sine
     tax                                                               ;
     lda sine_table,x                                                  ;
     bpl skip_inversion_sine                                           ;
@@ -4023,14 +4022,16 @@ plot_starship_explosion_piece
     clc                                                               ;
     adc #1                                                            ;
 skip_inversion_sine
-    sta x_pixels                                                      ;
+    sta x_pixels                                                      ; sine
+
+    ; calculate cosine
     lda cosine_table,x                                                ;
     bpl skip_inversion_cosine                                         ;
     eor #$1f                                                          ;
     clc                                                               ;
     adc #1                                                            ;
 skip_inversion_cosine
-    sta y_pixels                                                      ;
+    sta y_pixels                                                      ; cosine
 
     ; 3-bit multiplication of sine by radius, A = (x_pixels * temp11)/8
     lda #0                                                            ;
@@ -4057,24 +4058,23 @@ skip_inversion_cosine
     beq skip_uninversion_sine                                         ;
     eor #$ff                                                          ;
 skip_uninversion_sine
-    eor #$80                                                          ;
-    sta x_pixels                                                      ;
+    sta x_pixels                                                      ; x_pixels = radius * sin(piece)
 
     ; 3-bit multiplication of cosine by radius, A = (y_pixels * temp11)/8
     lda #0                                                            ;
-    lsr y_pixels                                                      ; sine
+    lsr y_pixels                                                      ; cosine
     bcc +                                                             ;
     clc                                                               ;
     adc temp11                                                        ; radius
 +
     ror                                                               ;
-    lsr y_pixels                                                      ; sine
+    lsr y_pixels                                                      ; cosine
     bcc +                                                             ;
     clc                                                               ;
     adc temp11                                                        ; radius
 +
     ror                                                               ;
-    lsr y_pixels                                                      ; sine
+    lsr y_pixels                                                      ; cosine
     bcc +                                                             ;
     clc                                                               ;
     adc temp11                                                        ; radius
@@ -4085,17 +4085,43 @@ skip_uninversion_sine
     beq skip_uninversion_cosine                                       ;
     eor #$ff                                                          ;
 skip_uninversion_cosine
-    eor #$80                                                          ;
-    sta y_pixels                                                      ; y = radius * cos(piece)
-    dey                                                               ;
+    sta y_pixels                                                      ; y_pixels = radius * cos(piece)
+    rts                                                               ;
+
+
+; ----------------------------------------------------------------------------------
+plot_starship_explosion_piece
+    ldy #0                                                            ; Y=0
     lda (temp0_low),y                                                 ;
+    and #$c0                                                          ;
+    sta temp8                                                         ; age
+    ldy #2                                                            ; Y=2
+    lda (temp0_low),y                                                 ;
+    sta temp11                                                        ; radius
+
+    lda explosion_bits_still_to_consider                              ;
+    and #$1f                                                          ;
+
+    jsr sine_and_cosine_times_radius                                  ;
+
+    lda x_pixels                                                      ;
+    eor #$80                                                          ;
+    sta x_pixels                                                      ; x_pixels = radius * sin(piece)
+
+    lda y_pixels                                                      ;
+    eor #$80                                                          ;
+    sta y_pixels                                                      ; y_pixels = radius * cos(piece)
+
+    dey                                                               ; Y=1
+    lda (temp0_low),y                                                 ; segment angle or ageing rate
     bpl plot_variable_size_fragment                                   ;
-    lda temp8                                                         ;
-    clc                                                               ;
+
+    ; plot segment
+    lda temp8                                                         ; age
+    asl                                                               ;
     rol                                                               ;
     rol                                                               ;
-    rol                                                               ;
-    sta segment_angle_change_per_pixel                                ;
+    sta segment_angle_change_per_pixel                                ; angle_change = age*8
     eor #3                                                            ;
     clc                                                               ;
     adc #1                                                            ;
@@ -4103,8 +4129,8 @@ skip_uninversion_cosine
     rol                                                               ;
     sta segment_length                                                ;
     inc segment_angle_change_per_pixel                                ;
-    iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    iny                                                               ; Y=2
+    lda (temp0_low),y                                                 ; radius
     and #$1f                                                          ;
     sta segment_angle                                                 ;
     lda x_pixels                                                      ;
@@ -4113,18 +4139,12 @@ skip_uninversion_cosine
     sta temp9                                                         ;
     jmp plot_segment                                                  ;
 
-
-;   -101
-; -1  h
-;  0 gab
-;  1 fdc
-;  2  e
 ; ----------------------------------------------------------------------------------
 plot_variable_size_fragment
-    ldx x_pixels
-    lda temp8                                                         ;
-    cmp #$c0                                                          ;
-    beq plot_1x1
+    ldx x_pixels                                                      ;
+    lda temp8                                                         ; determine the size of the piece from
+    cmp #$c0                                                          ; the top two bits of the 'temp8' byte
+    beq plot_1x1                                                      ;
     lda temp8                                                         ;
     bmi plot_2x1                                                      ;
     bne plot_2x2
@@ -4364,86 +4384,22 @@ plot_enemy_explosion_fragment
     lsr                                                               ;
     lsr                                                               ;
     sta temp11                                                        ;
-
-    ; calculate sine
     tya                                                               ;
     lsr                                                               ;
-    tax                                                               ;
-    lda sine_table,x                                                  ;
-    bpl skip_inversion_sine1                                          ;
-    eor #$1f                                                          ;
-    clc                                                               ;
-    adc #1                                                            ;
-skip_inversion_sine1
-    sta x_pixels                                                      ; sine
 
-    ; calculate cosine
-    lda cosine_table,x                                                ;
-    bpl skip_inversion_cosine1                                        ;
-    eor #$1f                                                          ;
-    clc                                                               ;
-    adc #1                                                            ;
-skip_inversion_cosine1
-    sta y_pixels                                                      ; cosine
+    jsr sine_and_cosine_times_radius                                  ;
 
-    ; 3-bit multiplication of sine by radius, A = (x_pixels * temp11)/8
-    lda #0                                                            ;
-    lsr x_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-    lsr x_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-    lsr x_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-
-    ldx x_pixels                                                      ;
-    beq skip_uninversion_sine1                                        ;
-    eor #$ff                                                          ;
-skip_uninversion_sine1
+    lda x_pixels                                                      ; x = origin_x + radius * sin(piece)
     clc                                                               ;
     adc temp10                                                        ;
-    sta x_pixels                                                      ; x = origin_x + radius * sin(piece)
+    sta x_pixels                                                      ;
 
-    ; 3-bit multiplication of cosine by radius, A = (y_pixels * temp11)/8
-    lda #0                                                            ;
-    lsr y_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-    lsr y_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-    lsr y_pixels                                                      ; sine
-    bcc +                                                             ;
-    clc                                                               ;
-    adc temp11                                                        ; radius
-+
-    ror                                                               ;
-
-    ldx y_pixels                                                      ;
-    beq skip_uninversion_cosine1                                      ;
-    eor #$ff                                                          ;
-skip_uninversion_cosine1
+    lda y_pixels                                                      ; y = origin_y + radius * cos(piece)
     clc                                                               ;
     adc temp9                                                         ;
-    sta y_pixels                                                      ; y = origin_y + radius * cos(piece)
-    sty temp11                                                        ;
+    sta y_pixels                                                      ;
+
+    sty temp11                                                        ; remember Y
 
     ; draw a dot or two, or four
     ldx x_pixels                                                      ;
@@ -4476,7 +4432,6 @@ plot_2x2_a
     inc y_pixels                                                      ;
     beq leave_after_restoring_y                                       ; wrapped?
     ; fall through...
-
 plot_2x1_a
     jsr eor_two_play_area_pixels                                      ;
 leave_after_restoring_y
@@ -4484,7 +4439,7 @@ leave_after_restoring_y
     rts                                                               ;
 plot_1x1_a
     jsr eor_play_area_pixel                                           ;
-    ldy temp11                                                        ;
+    ldy temp11                                                        ; recall Y
 return16
     rts                                                               ;
 
@@ -9708,6 +9663,9 @@ zero_objects
     bne -                                                             ;
     rts                                                               ;
 
+starship_explosion_table        ; (192 bytes) randomised when needed.
+starship_explosion_table_end = starship_explosion_table + 192
+
 ; ----------------------------------------------------------------------------------
 ; Everything from here is *only* used while loading
 ; ----------------------------------------------------------------------------------
@@ -9835,20 +9793,25 @@ loader_copy_start
 loader_copy_end
 }
 
+; make sure we leave enough room for the explosion table
+!if (* < starship_explosion_table_end) {
+    * = starship_explosion_table_end
+}
+
 ; ----------------------------------------------------------------------------------
 ; Objects are
 ;
 ; When in game:
 ;
-; 1 escape capsule              (5 bytes)
-; 24 enemy torpedos             (24  * 6 = 144 bytes)
-; 24 starship torpedo heads     (24  * 5 = 120 bytes)
-; 24 starship torpedo tails     (24  * 4 =  96 bytes)
+; 1 escape capsule              (5 bytes)               angle, time to live, position
+; 24 enemy torpedos             (24  * 6 = 144 bytes)   angle, time to live, position
+; 24 starship torpedo heads     (24  * 5 = 120 bytes)          time to live, position
+; 24 starship torpedo tails     (24  * 4 =  96 bytes)                        position
 ;                        TOTAL: 365 bytes
 ;
 ; Or, when in front end:
 ;
-; 128 frontier stars            (128 * 4 = 512 bytes)
+; 128 frontier stars            (128 * 4 = 512 bytes)                        position
 
 index_of_frontier_stars         = 0
 
@@ -9858,26 +9821,33 @@ index_of_starship_torpedo_heads = index_of_enemy_torpedoes + maximum_number_of_e
 index_of_starship_torpedo_tails = index_of_starship_torpedo_heads + maximum_number_of_starship_torpedoes
 index_of_in_game_stars          = index_of_starship_torpedo_tails + maximum_number_of_starship_torpedoes
 
-max_in_game_objects = index_of_in_game_stars + maximum_number_of_stars_in_game
+maximum_objects_with_angles         = 1 + maximum_number_of_enemy_torpedoes
+maximum_objects_with_time_to_live   = 1 + maximum_number_of_enemy_torpedoes + maximum_number_of_starship_torpedoes
+
+maximum_in_game_objects = index_of_in_game_stars + maximum_number_of_stars_in_game
 
 ; This allows for all in game objects OR 128 frontier stars
-max_objects = 128
+!if (maximum_number_of_frontier_stars >= maximum_in_game_objects) {
+    maximum_objects = maximum_number_of_frontier_stars
+} else {
+    maximum_objects = maximum_in_game_objects
+}
 
 object_tables_start
 
 object_table_angle          = object_tables_start
-object_table_time_to_live   = object_table_angle + 1 + maximum_number_of_enemy_torpedoes    ; only escape capsule and enemy torpedoes have an angle
-object_table_xfraction      = object_table_time_to_live + index_of_in_game_stars            ; everything except the stars has a 'time to live'. Wow, that's deep.
-object_table_xpixels        = object_table_xfraction    + max_objects                       ; every object has a position
-object_table_yfraction      = object_table_xpixels      + max_objects
-object_table_ypixels        = object_table_yfraction    + max_objects
-object_tables_end           = object_table_ypixels      + max_objects
+object_table_time_to_live   = object_table_angle + maximum_objects_with_angles              ; only escape capsule and enemy torpedoes have an angle
+object_table_xfraction      = object_table_time_to_live + maximum_objects_with_time_to_live ; everything except the stars has a 'time to live'. Wow, that's deep.
+object_table_xpixels        = object_table_xfraction    + maximum_objects                   ; every object has a position
+object_table_yfraction      = object_table_xpixels      + maximum_objects
+object_table_ypixels        = object_table_yfraction    + maximum_objects
+object_tables_end           = object_table_ypixels      + maximum_objects
 
 !if ((object_tables_end - object_tables_start) < $200) {
-    !error "object table too small for initialisation code in init_late"
+    !error "object table too small. Adjust initialisation code in init_late. Size",(object_tables_end - object_tables_start)
 }
 !if ((object_tables_end - object_tables_start) > $300) {
-    !error "object table too big for initialisation code in init_late"
+    !error "object table too big.  Adjust initialisation code in init_late. Size",(object_tables_end - object_tables_start)
 }
 
 escape_capsule_on_screen  = object_table_time_to_live + index_of_escape_capsule
@@ -9893,7 +9863,7 @@ free_space = $5800 - object_tables_end
 
 entry_point
 ; ----------------------------------------------------------------------------------
-; Everything from here is *only* used while loading *before* 'MODE 4' wipes $5800 upwards
+; Everything from here is *only* used while loading *before* 'MODE 4' in post_reloc
 ; ----------------------------------------------------------------------------------
 init_early
     ldx #$ff                                                          ; we want all the stack
@@ -9911,8 +9881,6 @@ init_early
     ldx #12                                                           ; so we can safely use
     ldy #255                                                          ; page D
     jsr osbyte                                                        ; (and also A0-A7)
-    lda #$40                                                          ; 'RTI' opcode
-    sta nmi_routine                                                   ; store at $0d00
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy                                                  ;
