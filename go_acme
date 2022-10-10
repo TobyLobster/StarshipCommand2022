@@ -18,7 +18,7 @@ function sym {
     # Look up the value of a symbol in a symbols file created by acme
     local name=$1
     local filename=$2
-    grep build/$filename.symbols.txt -e '.*'$name | sed -r 's/.*\$([0-9a-f]{1,4}).*/\1/'
+    grep build/$filename.symbols.txt -e '\t'$name'[^A-Za-z0-9]' | sed -r 's/.*\$([0-9A-Fa-f]{1,4}).*/\1/'
 }
 
 function exo_region {

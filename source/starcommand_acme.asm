@@ -180,7 +180,7 @@
 ;      ....8421 current torpedo cooldown
 ;      8421.... maximum torpedo cooldown
 ;
-; Enemy torpedoes are stored in array 'enemy_torpedoes_table', 6 bytes per torpedo:
+; Enemy torpedoes are stored 6 bytes per torpedo:
 ;
 ;        +0 time to live (in frames)
 ;        +1 x_fraction
@@ -189,7 +189,7 @@
 ;        +4 y_pixels
 ;        +5 angle
 ;
-; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
+; Starship torpedoes are stored 9 bytes per torpedo:
 ;
 ;        +0 time to live (in frames)
 ;        +1 x_fraction for head of torpedo
@@ -201,7 +201,7 @@
 ;        +7 y_fraction
 ;        +8 y_pixels
 ;
-; Stars are stored in array 'star_table', 4 bytes per star:
+; Stars are stored 4 bytes per star:
 ;
 ;        +0 x_fraction
 ;        +1 x_pixels
@@ -244,10 +244,10 @@ game_speed                                                          = 32
 
 starship_explosion_size                                             = 64
 maximum_number_of_stars_in_game                                     = 17
+maximum_number_of_frontier_stars                                    = 128
 maximum_number_of_explosions                                        = 8
 maximum_number_of_enemy_ships                                       = 8
 maximum_number_of_starship_torpedoes                                = 24
-bytes_per_starship_torpedo                                          = 9
 maximum_number_of_enemy_torpedoes                                   = 24
 maximum_starship_velocity                                           = 4
 size_of_enemy_ship_for_collisions_between_enemy_ships               = 8
@@ -407,6 +407,8 @@ c                                       = $01
 prod_low                                = $02
 t                                       = $03   ; } same location
 num_frontier_star_updates               = $03   ; }
+torpedo_dir                             = $03   ; }
+
 
 starship_rotation_eor                   = $04
 starship_velocity_high                  = $05
@@ -420,13 +422,12 @@ stars_still_to_consider                 = $0b   ; }
 explosion_bits_still_to_consider        = $0b   ; } same location
 enemy_ships_still_to_consider           = $0b   ; }
 
-lookup_low                              = $0c
-lookup_high                             = $0d
-lookup_byte                             = $0e
-bytes_left                              = $0f
+lookup_low                              = $0c   ; used in decompressing text, and initialising the enemy cache
+lookup_high                             = $0d   ;
+lookup_byte                             = $0e   ;
+bytes_left                              = $0f   ;
 
-temp_x                                  = $10   ; } same location
-torpedo_dir                             = $10   ; }
+temp_x                                  = $10
 temp_y                                  = $11
 
 object_x_fraction                       = $12
@@ -476,11 +477,12 @@ enemy_low                               = $2d
 enemy_high                              = $2e
 plot_enemy_progress                     = $2f
 
-result                                  = $30
+result                                  = $30   ; used in decompressing text
 end_low                                 = $31
 end_high                                = $32
 starship_low                            = $33   ; }
 cache_start_low                         = $33   ; } same location
+current_enemy_torpedo_object_index      = $33   ; }
 
 starship_high                           = $34   ; }
 cache_start_high                        = $34   ; } same location
@@ -571,6 +573,11 @@ sound_needed_for_low_energy             = $e2
 energy_flash_timer                      = $e3
 starship_collided_with_enemy_ship       = $e4
 velocity_gauge_position                 = $e5
+
+current_object_index                    = $e8
+torpedo_head_index                      = $f2
+torpedo_tail_index                      = $f3
+
 rotation_gauge_position                 = $f5
 enemy_ship_desired_angle_divided_by_eight = $f6
 number_of_live_starship_torpedoes       = $f7
@@ -601,9 +608,10 @@ allowed_another_command                 = award + 1
 ; High score table.
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
 high_score_table                        = $0100
+high_score_table_end                    = $0180
 input_buffer                            = $0180
 
-; enemy data $0400-$04ff
+; enemy data $0400-$0758
 enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $0400
 enemy_ships_previous_x_fraction         = $0400 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $0408
 enemy_ships_previous_x_pixels           = $0400 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $0410
@@ -630,13 +638,16 @@ enemy_cache_a                           = $4d8
     ; 4 bytes * 5 arcs * 32 angles = 640 bytes
 ; to $758
 
-enemy_torpedoes_table                   = enemy_cache_a + 640
-; length 144: to 7e8
+frontier_star_positions_y               = enemy_cache_a + 640                           ; to $7d8
+unused2 = frontier_star_positions_y + 128                                               ; UNUSED: 40 bytes free to $800
 
 stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
 squares1_high                           = $0b00  ; } (1k total)
+
+nmi_routine                             = $0d00
+starship_explosion_table                = $0d01  ; randomised when needed. 63 bytes unused
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
 squares2_high                           = $1000  ; } (1k total)
@@ -644,21 +655,14 @@ row_table_low                           = $1200
 play_area_row_table_high                = $1300
 xandf8                                  = $1400  ; }
 xbit_table                              = $1500  ; } tables of constants (768 bytes)
-    ; table to hold the star data while in game
-    ; and also on the frontiers screen (which is larger,
-    ; so we overwrite the following tables)
-star_table                              = $1600
-frontier_star_positions_x               = $1900
 
-loader_string                           = $1a00
+; in front end:
+frontier_star_positions_x               = $1600  ; 192 bytes.
+loader_string                           = $1700
 
-starship_explosion_table                = star_table + maximum_number_of_stars_in_game * 4
-     ; randomised when needed
-     ; also used for updating stars in "frontiers" screen
-
-enemy_explosion_tables                  = starship_explosion_table + 192
-
-enemy_cache_b                           = enemy_explosion_tables + 512
+; in game:
+enemy_explosion_tables                  = $1600
+enemy_cache_b                           = enemy_explosion_tables + maximum_number_of_enemy_ships * 64
     ; (x, y, start_angle, length) = 4 bytes
     ; 4 bytes * 6 arcs * 32 angles = 768 bytes
 
@@ -671,6 +675,7 @@ energy_screen_address                   = $6e48
 
 ; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
 ; Each frame is 312 pixel rows. Interrupt every sixteen pixel rows.
+; This is used to track the electron gun to avoid flicker.
 ShortTimerValue  = 16*64 - 2
 
 ; ----------------------------------------------------------------------------------
@@ -1181,7 +1186,7 @@ start
     lda #$0a                                                          ;
     sta starship_rotation_sine_magnitude                              ;
     jsr init_self_modifying_bytes_for_starship_rotation               ;
-    jsr init_frontier_screen
+    jsr init_frontier_screen                                          ;
     ldx #the_frontiers_string                                         ;
     jsr print_compressed_string                                       ;
 print_string_after_loading
@@ -1509,159 +1514,133 @@ apply_starship_velocity_to_enemy_ship
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_starship_torpedoes
-    lda #maximum_number_of_starship_torpedoes                         ;
-    sta torpedoes_still_to_consider                                   ;
-    lda #<starship_torpedoes_table                                    ;
-    sta temp0_low                                                     ;
-    lda #>starship_torpedoes_table                                    ;
-    sta temp0_high                                                    ;
-    lda #<(starship_torpedoes_table+4)                                ;
-    sta temp1_low                                                     ;
-    lda #>(starship_torpedoes_table+4)                                ;
-    sta temp1_high                                                    ;
-plot_starship_torpedoes_loop
-    ldy #0                                                            ;
-    lda (temp0_low),y                                                 ;
+update_starship_torpedoes
+    ldy #index_of_starship_torpedo_tails                              ; object index for start of starship torpedo tails
+    sty torpedo_tail_index                                            ;
+    ldy #index_of_starship_torpedo_heads                              ; object index for start of starship torpedo heads
+    sty torpedo_head_index                                            ;
+
+update_starship_torpedoes_loop
+    ldy torpedo_head_index                                            ;
+    lda object_table_time_to_live,y                                   ;
     bne torpedo_present                                               ;
     jmp update_next_torpedo                                           ;
 
 torpedo_present
+    ; Decrease torpedo time to live
+    lda object_table_time_to_live,y                                   ;
     sec                                                               ;
-    sbc #1                                                            ; Decrease torpedo time to live
-    sta (temp0_low),y                                                 ;
+    sbc #1                                                            ;
+    sta object_table_time_to_live,y                                   ;
+
     bne torpedo_still_alive                                           ;
     dec number_of_live_starship_torpedoes                             ;
+
     jsr plot_expiring_torpedo                                         ;
     jmp update_next_torpedo                                           ;
 
 torpedo_still_alive
-    jsr plot_starship_torpedo                                         ;
+    jsr plot_starship_torpedo                                         ; unplot old torpedo
 
-    ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
-    ;
-    ;        +0 time to live (frames)
-    ;        +1 x_fraction for head of torpedo
-    ;        +2 x_pixels
-    ;        +3 y_fraction
-    ;        +4 y_pixels
-    ;        +5 x_fraction for tail of torpedo
-    ;        +6 x_pixels
-    ;        +7 y_fraction
-    ;        +8 y_pixels
-
-    ldy #1                                                            ;
+    ; Starship torpedoes have a time to live and a position (x,y pixel and x,y fraction)
+    ldy torpedo_head_index                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
-    ldy #5                                                            ;
+    ldy torpedo_tail_index                                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
 
     ; update head of torpedo
 
-    ; 1. first find difference between head and tail position
-    ; 2. multiply by four to get velocity
-    ; 3. store in (output_fraction, output_pixels)
-    ldy #1                                                            ; Y=1
-    lda (temp0_low),y                                                 ; x fraction for head of torpedo
+    ; find the difference between head and tail position
+    ; multiply by four to get velocity
+    ; store in (output_fraction, output_pixels)
+
+    ; x coordinates
+    ldy torpedo_head_index                                            ;
+    ldx torpedo_tail_index                                            ;
+    lda object_table_xfraction,y                                      ; x fraction for head of torpedo
     sec                                                               ;
-    sbc (temp1_low),y                                                 ; x fraction for tail of torpedo
+    sbc object_table_xfraction,x                                      ; x fraction for tail of torpedo
     sta output_pixels                                                 ;
 
-    iny                                                               ; Y=2
-    lda (temp0_low),y                                                 ; x pixels for head of torpedo
-    sbc (temp1_low),y                                                 ; x pixels for tail of torpedo
+    ; get velocity
+    lda object_table_xpixels,y                                        ; x pixels for head of torpedo
+    sbc object_table_xpixels,x                                        ; x pixels for tail of torpedo
     asl output_pixels                                                 ; }
     rol                                                               ; }
-    asl output_pixels                                                 ; } store difference * 4
+    asl output_pixels                                                 ; } store difference * 4 = velocity
     rol                                                               ; }
     sta output_fraction                                               ; }
 
-    iny                                                               ; Y=3
-    lda (temp0_low),y                                                 ; y fraction for head of torpedo
+    ; y coordinates
+    lda object_table_yfraction,y                                      ; y fraction for head of torpedo
     sec                                                               ;
-    sbc (temp1_low),y                                                 ; y fraction for tail of torpedo
+    sbc object_table_yfraction,x                                      ; y fraction for tail of torpedo
     sta temp9                                                         ;
-    iny                                                               ; Y=4
-    lda (temp0_low),y                                                 ;
-    sbc (temp1_low),y                                                 ;
+    lda object_table_ypixels,y                                        ; y pixels for head of torpedo
+    sbc object_table_ypixels,x                                        ; y pixels for tail of torpedo
     asl temp9                                                         ; }
     rol                                                               ; }
-    asl temp9                                                         ; } store difference * 4
+    asl temp9                                                         ; } store difference * 4 = velocity
     rol                                                               ; }
     sta temp10                                                        ; }
 
-    ldy #1                                                            ; Y=1
-    lda (temp0_low),y                                                 ; x fraction for head of torpedo
+    ; update head: position += velocity
+    lda object_table_xfraction,y                                      ; x fraction for head of torpedo
     clc                                                               ;
     adc output_pixels                                                 ; add difference
-    sta (temp0_low),y                                                 ; store
-    iny                                                               ; Y=2
-    lda (temp0_low),y                                                 ; x pixels for head of torpedo
+    sta object_table_xfraction,y                                      ; store
+    lda object_table_xpixels,y                                        ; x pixels for head of torpedo
     adc output_fraction                                               ; add difference
-    sta (temp0_low),y                                                 ; store
+    sta object_table_xpixels,y                                        ; store
 
-    iny                                                               ; Y=3
-    lda (temp0_low),y                                                 ; y fraction for head of torpedo
+    lda object_table_yfraction,y                                      ; y fraction for head of torpedo
     clc                                                               ;
     adc temp9                                                         ; add difference
-    sta (temp0_low),y                                                 ; store
+    sta object_table_yfraction,y                                      ; store
 
-    iny                                                               ; Y=4
-    lda (temp0_low),y                                                 ; y pixels for head of torpedo
+    lda object_table_ypixels,y                                        ; y pixels for head of torpedo
     adc temp10                                                        ; add difference
-    sta (temp0_low),y                                                 ; store
+    sta object_table_ypixels,y                                        ; store
 
-    ; now update tail
-    ldy #1                                                            ; Y=1
-    lda (temp1_low),y                                                 ; x fraction for tail of torpedo
+    ; update tail: position += velocity
+    lda object_table_xfraction,x                                      ; x fraction for tail of torpedo
     clc                                                               ;
     adc output_pixels                                                 ; add difference
-    sta (temp1_low),y                                                 ; store
+    sta object_table_xfraction,x                                      ; store
 
-    iny                                                               ; Y=2
-    lda (temp1_low),y                                                 ; x pixels for tail of torpedo
+    lda object_table_xpixels,x                                        ; x pixels for tail of torpedo
     adc output_fraction                                               ; add difference
-    sta (temp1_low),y                                                 ; store
+    sta object_table_xpixels,x                                        ; store
 
-    iny                                                               ; Y=3
-    lda (temp1_low),y                                                 ; y fraction for tail of torpedo
+    lda object_table_yfraction,x                                      ; y fraction for tail of torpedo
     clc                                                               ;
     adc temp9                                                         ; add difference
-    sta (temp1_low),y                                                 ; store
+    sta object_table_yfraction,x                                      ; store
 
-    iny                                                               ; Y=4
-    lda (temp1_low),y                                                 ; y pixels for tail of torpedo
+    lda object_table_ypixels,x                                        ; y pixels for tail of torpedo
     adc temp10                                                        ; add difference
-    sta (temp1_low),y                                                 ; store
+    sta object_table_ypixels,x                                        ; store
 
     jsr check_for_collision_with_enemy_ships                          ;
     bcs update_next_torpedo                                           ;
-    ldy #0                                                            ;
-    lda (temp0_low),y                                                 ;
+
+    ldy torpedo_head_index                                            ;
+    ldx torpedo_tail_index                                            ; probably redundant
+    lda object_table_time_to_live,y                                   ;
     cmp #2                                                            ;
-    bcs unplot_torpedo                                                ;
+    bcs plot_torpedo_at_new_position                                  ;
     jsr plot_expiring_torpedo                                         ;
-    sec                                                               ;
-    bcs update_next_torpedo                                           ;
-unplot_torpedo
+    jmp update_next_torpedo                                           ;
+
+plot_torpedo_at_new_position
     jsr plot_starship_torpedo                                         ;
 update_next_torpedo
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #9                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip3                                                         ;
-    inc temp0_high                                                    ;
-skip3
-    lda temp1_low                                                     ;
-    clc                                                               ;
-    adc #9                                                            ;
-    sta temp1_low                                                     ;
-    bcc skip4                                                         ;
-    inc temp1_high                                                    ;
-skip4
-    dec torpedoes_still_to_consider                                   ;
+    inc torpedo_tail_index                                            ;
+    inc torpedo_head_index                                            ;
+    ldy torpedo_head_index                                            ;
+    cpy #index_of_starship_torpedo_heads + maximum_number_of_starship_torpedoes ;
     beq return2                                                       ;
-    jmp plot_starship_torpedoes_loop                                  ;
+    jmp update_starship_torpedoes_loop                                ;
 
 return2
     rts                                                               ;
@@ -1669,125 +1648,101 @@ return2
 ; ----------------------------------------------------------------------------------
 fire_starship_torpedo
     ldx #0                                                            ;
-    stx torpedo_dir                                                   ;
+    stx torpedo_dir                                                   ; loop counter - three directions of spray
+
 fire_torpedo_loop
+    ; find a free slot
     lda number_of_live_starship_torpedoes                             ;
     cmp #maximum_number_of_starship_torpedoes                         ;
     bcs return3                                                       ;
     inc number_of_live_starship_torpedoes                             ;
     inc starship_fired_torpedo                                        ;
-    lda #<starship_torpedoes_table                                    ;
-    sta temp0_low                                                     ;
-    lda #>starship_torpedoes_table                                    ;
-    sta temp0_high                                                    ;
-    ldy #0                                                            ;
+    ldy #index_of_starship_torpedo_heads                              ;
+    ldx #index_of_starship_torpedo_tails                              ;
 loop5
-    lda (temp0_low),y                                                 ;
+    lda object_table_time_to_live,y                                   ;
     beq found_empty_torpedo_slot                                      ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #9                                                            ;
-    sta temp0_low                                                     ;
-    bcc loop5                                                         ;
-    inc temp0_high                                                    ;
+    inx                                                               ;
+    iny                                                               ;
     bne loop5                                                         ;
 return3
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 found_empty_torpedo_slot
-    ; Starship torpedoes are stored in array 'starship_torpedoes_table', 9 bytes per torpedo:
-    ;
-    ;        +0 time to live (in frames)
-    ;        +1 x_fraction for head of torpedo
-    ;        +2 x_pixels
-    ;        +3 y_fraction
-    ;        +4 y_pixels
-    ;        +5 x_fraction for tail of torpedo
-    ;        +6 x_pixels
-    ;        +7 y_fraction
-    ;        +8 y_pixels
+    sty torpedo_head_index                                            ; for plot_starship_torpedo
+    stx torpedo_tail_index                                            ; for plot_starship_torpedo
 
     lda #starship_torpedoes_time_to_live                              ;
-    sta (temp0_low),y                                                 ; set time to live for starship torpedo
+    sta object_table_time_to_live,y                                   ; set time to live for starship torpedo
 
-    ; set up temp1 to point to the tail position, four bytes beyond temp0 (the head position)
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp1_low                                                     ;
-    lda temp0_high                                                    ;
-    adc #0                                                            ;
-    sta temp1_high                                                    ;
-
-    iny                                                               ;
+    stx temp_x                                                        ; store x
     ldx torpedo_dir                                                   ;
-    lda torpedo_dir_table,x                                           ;
-    sta (temp0_low),y                                                 ; head x fraction
-    lda #$7f
-    sta (temp1_low),y                                                 ; tail x fraction
-    iny                                                               ;
-    lda #$7f
-    sta (temp0_low),y                                                 ; head x pixels
-    sta (temp1_low),y                                                 ; tail x pixels
-    iny                                                               ;
+    lda torpedo_dir_table,x                                           ; get x fraction for current direction of spray
+    ldx temp_x                                                        ; recall x
+
+    sta object_table_xfraction,y                                      ; head x fraction
+    lda #$7f                                                          ;
+    sta object_table_xfraction,x                                      ; tail x fraction
+    lda #$7f                                                          ;
+    sta object_table_xpixels,y                                        ; head x pixels
+    sta object_table_xpixels,x                                        ; tail x pixels
     lda #$80                                                          ;
-    sta (temp0_low),y                                                 ; head y fraction
+    sta object_table_yfraction,y                                      ; head y fraction
     lda #$90                                                          ;
-    sta (temp1_low),y                                                 ; tail y fraction
-    iny                                                               ;
+    sta object_table_yfraction,x                                      ; tail y fraction
     lda #$75                                                          ;
-    sta (temp0_low),y                                                 ; head y pixels
+    sta object_table_ypixels,y                                        ; head y pixels
     lda #$77                                                          ;
-    sta (temp1_low),y                                                 ; tail y pixels
+    sta object_table_ypixels,x                                        ; tail y pixels
     lda #0                                                            ;
     sta how_enemy_ship_was_damaged                                    ;
     jsr check_for_collision_with_enemy_ships                          ;
     bcs next_torpedo_fire                                             ;
+
     jsr plot_starship_torpedo                                         ;
 next_torpedo_fire
-    inc torpedo_dir
-    ldx torpedo_dir
-    cpx #3
-    bcc fire_torpedo_loop
-    rts
+    inc torpedo_dir                                                   ;
+    ldx torpedo_dir                                                   ;
+    cpx #3                                                            ;
+    bcc fire_torpedo_loop                                             ;
+    rts                                                               ;
 
+; ----------------------------------------------------------------------------------
 torpedo_dir_table
     !byte $40, $7f, $c0
 
-    ; -21012
-    ;  .OOO.
-    ;  OOOOO
-    ;   OOO
+    ;   -21012
+    ; -1 .ffg.
+    ;  0 aabbc
+    ;  1 .edd.
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
-    ldy #2                                                            ;
-    lda (temp0_low),y                                                 ;
-    tax                                                               ; x coordinate
-    ldy #4                                                            ;
-    lda (temp0_low),y                                                 ;
+    ldx object_table_xpixels,y                                        ; x coordinate
+    lda object_table_ypixels,y                                        ; y coordinate
     sta y_pixels                                                      ;
+
     dex                                                               ;
     dex                                                               ;
-    jsr eor_two_play_area_pixels                                      ;
+    jsr eor_two_play_area_pixels                                      ; aa
     inx                                                               ;
     inx                                                               ;
-    jsr eor_two_play_area_pixels_same_y                               ;
+    jsr eor_two_play_area_pixels_same_y                               ; bb
     inx                                                               ;
     inx                                                               ;
-    jsr eor_play_area_pixel_same_y                                    ;
+    jsr eor_play_area_pixel_same_y                                    ; c
     dex                                                               ;
     dex                                                               ;
     inc y_pixels                                                      ;
-    jsr eor_two_play_area_pixels                                      ;
+    jsr eor_two_play_area_pixels                                      ; dd
     dex                                                               ;
-    jsr eor_play_area_pixel_same_y                                    ;
+    jsr eor_play_area_pixel_same_y                                    ; e
     dec y_pixels                                                      ;
     dec y_pixels                                                      ;
-    jsr eor_two_play_area_pixels                                      ;
+    jsr eor_two_play_area_pixels                                      ; ff
     inx                                                               ;
     inx                                                               ;
-    jmp eor_play_area_pixel_same_y                                    ;
+    jmp eor_play_area_pixel_same_y                                    ; g
 
 ; ----------------------------------------------------------------------------------
 unplot_long_range_scanner_if_shields_inactive
@@ -1840,51 +1795,52 @@ plot_big_torpedo
 
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
+
     ; Head of torpedo
-    ldy #2                                                            ;
-    lda (temp0_low),y                                                 ;
-    tax                                                               ; x coordinate
-    ldy #4                                                            ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ; y coordinate
-    lda starship_torpedo_type
-    bne plot_big_torpedo
+    ldy torpedo_head_index                                            ; current torpedo head
+    ldx object_table_xpixels,y                                        ; x coordinate
+    lda object_table_ypixels,y                                        ; y coordinate
+    sta y_pixels                                                      ;
+    lda starship_torpedo_type                                         ;
+    bne plot_big_torpedo                                              ;
 
 small_starship_torpedoes
     jsr eor_play_area_pixel                                           ; Plot pixel for head of torpedo
+
     ; Tail of torpedo
-    ldy #2                                                            ;
-    lda (temp1_low),y                                                 ;
+    ldy torpedo_tail_index                                            ; current torpedo tail
+    lda object_table_xpixels,y                                        ;
     sta x_pixels                                                      ;
     tax                                                               ; x coordinate
-    ldy #4                                                            ;
-    lda (temp1_low),y                                                 ;
+    lda object_table_ypixels,y                                        ;
     sta y_pixels                                                      ; y coordinate
     jsr eor_play_area_pixel                                           ; Plot pixel for tail of torpedo
 
     ; Middle of torpedo
     ; Add head and tail positions and divide by two to get the middle point between them
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    clc                                                               ;
-    adc (temp1_low),y                                                 ; for the carry flag
+    ldy torpedo_head_index                                            ; current torpedo head
+    ldx torpedo_tail_index                                            ; current torpedo tail
 
-    iny                                                               ; Y=2
-    lda (temp0_low),y                                                 ;
+    ; y coordinate
+    lda object_table_yfraction,y                                      ;
+    clc                                                               ;
+    adc object_table_yfraction,x                                      ; for the carry flag
+
+    lda object_table_ypixels,y                                        ;
+    adc y_pixels                                                      ;
+    ror                                                               ;
+    sta y_pixels                                                      ; y coordinate
+
+    ; x coordinate
+    lda object_table_xfraction,y                                      ;
+    clc                                                               ;
+    adc object_table_xpixels,x                                        ; for the carry flag
+
+    lda object_table_xpixels,y                                        ;
     adc x_pixels                                                      ;
     ror                                                               ;
     tax                                                               ; x coordinate
 
-    iny                                                               ; Y=3
-    lda (temp0_low),y                                                 ;
-    clc                                                               ;
-    adc (temp1_low),y                                                 ; for the carry flag
-
-    iny                                                               ; Y=4
-    lda (temp0_low),y                                                 ;
-    adc y_pixels                                                      ;
-    ror                                                               ;
-    sta y_pixels                                                      ; y coordinate
     jmp eor_play_area_pixel                                           ; Plot pixel for middle of torpedo
 
 ; ----------------------------------------------------------------------------------
@@ -1924,55 +1880,53 @@ update_enemy_torpedoes
     sta how_enemy_ship_was_damaged                                    ; 1 = collision with their torpedoes
     lda #maximum_number_of_enemy_torpedoes                            ;
     sta torpedoes_still_to_consider                                   ;
-    lda #<enemy_torpedoes_table                                       ;
-    sta temp0_low                                                     ;
-    lda #>enemy_torpedoes_table                                       ;
-    sta temp0_high                                                    ;
+    ldy #index_of_enemy_torpedoes                                     ;
 update_enemy_torpedoes_loop
-    ldy #0                                                            ;
-    lda (temp0_low),y                                                 ;
+    sty current_enemy_torpedo_object_index                            ;
+    sty current_object_index                                          ;
+    lda object_table_time_to_live,y                                   ;
     bne enemy_torpedo_in_slot                                         ;
     jmp move_to_next_enemy_torpedo                                    ;
 
 ; ----------------------------------------------------------------------------------
 enemy_torpedo_in_slot
+    ; Decrease torpedo time to live
+    lda object_table_time_to_live,y                                   ;
     sec                                                               ;
-    sbc #1                                                            ; Decrease torpedo time to live
-    sta (temp0_low),y                                                 ;
+    sbc #1                                                            ;
+    sta object_table_time_to_live,y                                   ;
+
     bne enemy_torpedo_still_alive                                     ;
-    jsr plot_expiring_torpedo                                         ;
+    jsr plot_expiring_torpedo                                         ; unplot expiring torpedo
     jmp move_to_next_enemy_torpedo                                    ;
 
 enemy_torpedo_still_alive
-    jsr plot_enemy_torpedo                                            ;
-    ldy #1                                                            ;
+    jsr plot_enemy_torpedo                                            ; unplot torpedo
+    ldy current_enemy_torpedo_object_index                            ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
-    ldy #5                                                            ;
-    lda (temp0_low),y                                                 ;
+    lda object_table_angle,y                                          ;
     clc                                                               ;
     adc starship_angle_delta                                          ;
-    sta (temp0_low),y                                                 ;
+    sta object_table_angle,y                                          ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
     tax                                                               ;
-    dey                                                               ;
     lda cosine_table,x                                                ;
     clc                                                               ;
-    adc (temp0_low),y                                                 ;
-    sta (temp0_low),y                                                 ;
+    adc object_table_ypixels,y                                        ;
+    sta object_table_ypixels,y                                        ;
     sec                                                               ;
     sbc y_pixels                                                      ;
     bcs skip_inversion2                                               ;
     eor #$ff                                                          ;
 skip_inversion2
-    cmp #$40                                                          ; Remove torpedo if off screen
-    bcs remove_torpedo                                                ;
-    ldy #2                                                            ;
+    cmp #$40                                                          ;
+    bcs remove_torpedo                                                ; Remove torpedo if off screen
     lda sine_table,x                                                  ;
     clc                                                               ;
-    adc (temp0_low),y                                                 ;
-    sta (temp0_low),y                                                 ;
+    adc object_table_xpixels,y                                        ;
+    sta object_table_xpixels,y                                        ;
     sec                                                               ;
     sbc x_pixels                                                      ;
     bcs skip_uninversion2                                             ;
@@ -1982,19 +1936,17 @@ skip_uninversion2
     bcc consider_collisions                                           ;
 remove_torpedo
     lda #0                                                            ;
-    tay                                                               ;
-    sta (temp0_low),y                                                 ;
+    sta object_table_time_to_live,y                                   ;
     jmp move_to_next_enemy_torpedo                                    ;
 
 ; ----------------------------------------------------------------------------------
 consider_collisions
-    lda (temp0_low),y                                                 ; torpedo_x_pixels
+    lda object_table_xpixels,y                                        ; torpedo_x_pixels
     cmp #starship_maximum_x_for_collisions_with_enemy_torpedoes       ;
     bcs enemy_torpedo_missed_starship                                 ;
     cmp #starship_minimum_x_for_collisions_with_enemy_torpedoes       ;
     bcc enemy_torpedo_missed_starship                                 ;
-    ldy #4                                                            ;
-    lda (temp0_low),y                                                 ; torpedo_y_pixels
+    lda object_table_ypixels,y                                        ; torpedo_y_pixels
     cmp #starship_maximum_y_for_collisions_with_enemy_torpedoes       ;
     bcs enemy_torpedo_missed_starship                                 ;
     cmp #starship_minimum_y_for_collisions_with_enemy_torpedoes       ;
@@ -2003,32 +1955,27 @@ consider_collisions
     inc enemy_torpedo_hits_against_starship                           ;
     lda #damage_from_enemy_torpedo                                    ;
     jsr incur_damage                                                  ;
-    ldy #0                                                            ;
     lda #1                                                            ;
-    sta (temp0_low),y                                                 ; Remove torpedo next turn
+    ldy current_object_index                                          ;
+    sta object_table_time_to_live,y                                   ; remove torpedo next turn
     jmp move_to_next_enemy_torpedo                                    ;
 
 enemy_torpedo_missed_starship
     jsr check_for_collision_with_enemy_ships                          ;
     bcs move_to_next_enemy_torpedo                                    ;
-    ldy #0                                                            ;
-    lda (temp0_low),y                                                 ;
+
+    lda object_table_time_to_live,y                                   ;
     cmp #2                                                            ;
     bcs enemy_torpedo_ok                                              ;
     jsr plot_expiring_torpedo                                         ; torpedo has a final frame as a larger explosion
     jmp move_to_next_enemy_torpedo                                    ;
 
 enemy_torpedo_ok
-    jsr plot_enemy_torpedo                                            ;
+    jsr plot_enemy_torpedo                                            ; plot torpedo
 move_to_next_enemy_torpedo
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #6                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip8                                                         ;
-    inc temp0_high                                                    ;
-skip8
-    dec torpedoes_still_to_consider                                   ;
+    inc current_enemy_torpedo_object_index                            ;
+    ldy current_enemy_torpedo_object_index                            ;
+    cpy #index_of_enemy_torpedoes + maximum_number_of_enemy_torpedoes ;
     beq finished_updating_torpedoes                                   ;
     jmp update_enemy_torpedoes_loop                                   ;
 
@@ -2037,12 +1984,12 @@ finished_updating_torpedoes
 
 ; ----------------------------------------------------------------------------------
 check_for_collision_with_enemy_ships
-    ldy #2                                                            ;
-    lda (temp0_low),y                                                 ;
+    sty current_object_index                                          ;
+    lda object_table_xpixels,y                                        ;
     sta temp3                                                         ; torpedo_x_pixels
-    ldy #4                                                            ;
-    lda (temp0_low),y                                                 ; torpedo_y_pixels
+    lda object_table_ypixels,y                                        ; torpedo_y_pixels
     sta temp4                                                         ;
+
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
@@ -2084,9 +2031,9 @@ damaged_by_other
 collision_occurred
     jsr damage_enemy_ship                                             ;
 skip_damage
-    ldy #0                                                            ;
     lda #1                                                            ;
-    sta (temp0_low),y                                                 ; remove torpedo next turn
+    ldy current_object_index                                          ;
+    sta object_table_time_to_live,y                                   ; remove torpedo next turn
     jsr plot_expiring_torpedo                                         ;
     sec                                                               ; the torpedo hit something
     rts                                                               ;
@@ -2100,11 +2047,8 @@ move_to_next_enemy
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_torpedo
-    ldy #2                                                            ;
-    lda (temp0_low),y                                                 ;
-    tax                                                               ; x coordinate
-    ldy #4                                                            ;
-    lda (temp0_low),y                                                 ;
+    ldx object_table_xpixels,y                                        ; x coordinate
+    lda object_table_ypixels,y                                        ;
     sta y_pixels                                                      ;
 enemy_torpedo_type_instruction
     jsr eor_play_area_pixel                                           ; self modifying code
@@ -3892,27 +3836,16 @@ starship_explosion_piece_ageing_table
 
 ; ----------------------------------------------------------------------------------
 initialise_stars_at_random_positions
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
     lda maximum_number_of_stars                                       ;
     sta stars_still_to_consider                                       ;
+    ldy #index_of_stars                                               ;
 initialise_stars_at_random_positions_loop
     jsr random_number_generator                                       ;
-    ldy #1                                                            ;
     lda rnd_1                                                         ;
-    sta (temp0_low),y                                                 ;
-    ldy #3                                                            ;
+    sta object_table_xpixels,y                                        ;
     lda rnd_2                                                         ;
-    sta (temp0_low),y                                                 ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip18                                                        ;
-    inc temp0_high                                                    ;
-skip18
+    sta object_table_ypixels,y                                        ;
+    iny                                                               ;
     dec stars_still_to_consider                                       ;
     bne initialise_stars_at_random_positions_loop                     ;
     rts                                                               ;
@@ -4608,6 +4541,7 @@ plot_enemy_explosion_segments
 ; ----------------------------------------------------------------------------------
 ; random number generator
 ; From https://codebase64.org/doku.php?id=base:16bit_xorshift_random_generator
+; Preserves X and Y
 ; ----------------------------------------------------------------------------------
 random_number_generator
     lda rnd_2                                                         ;
@@ -5090,30 +5024,33 @@ return21
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   X = enemy ship index
+; Preserves X
 fire_enemy_torpedo
+    ; are we done?
     lda torpedoes_still_to_consider                                   ;
     beq leave_after_clearing_carry                                    ;
+
+    ; are we still cooling down after a previous shot?
     lda enemy_ships_firing_cooldown,x                                 ; lower four bits are torpedo cooldown
     and #$0f                                                          ;
-    bne leave_after_clearing_carry                                    ; can't fire unless this is zero
-    ldy #0                                                            ;
+    bne leave_after_clearing_carry                                    ; can't fire until this is zero
+
+    ; find free slot
+    ldy #index_of_enemy_torpedoes                                     ;
 find_enemy_torpedo_slot_loop
-    lda (temp0_low),y                                                 ;
-    beq free_slot                                                     ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #6                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip26                                                        ;
-    inc temp0_high                                                    ;
-skip26
+    lda object_table_time_to_live,y                                   ;
+    beq found_free_slot                                               ;
+    iny                                                               ;
     dec torpedoes_still_to_consider                                   ;
     bne find_enemy_torpedo_slot_loop                                  ;
 leave_after_clearing_carry
     clc                                                               ; no torpedo fired
     rts                                                               ;
 
-free_slot
+found_free_slot
+    sty current_object_index                                          ;
     lda enemy_ships_angle,x                                           ;
     lsr                                                               ;
     lsr                                                               ;
@@ -5161,11 +5098,10 @@ free_slot
 
 single_torpedo
     lda value_used_for_enemy_torpedo_time_to_live                     ;
-    ldy #0                                                            ;
-    sta (temp0_low),y                                                 ;
+    ldy current_object_index                                          ;
+    sta object_table_time_to_live,y                                   ;
     lda enemy_ships_angle,x                                           ;
-    ldy #5                                                            ;
-    sta (temp0_low),y                                                 ;
+    sta object_table_angle,y                                          ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -5177,23 +5113,16 @@ single_torpedo
     lda cosine_table,y                                                ;
     clc                                                               ;
     adc enemy_ships_y_pixels,x                                        ;
-    ldy #4                                                            ;
-    sta (temp0_low),y                                                 ; torpedo_y = enemy_ship_y + cos(angle)
-    ldy #2                                                            ;
+    ldy current_object_index                                          ;
+    sta object_table_ypixels,y                                        ; torpedo_y = enemy_ship_y + cos(angle)
     lda x_pixels                                                      ;
-    sta (temp0_low),y                                                 ;
+    sta object_table_xpixels,y                                        ;
     inc enemy_ship_fired_torpedo                                      ;
     stx temp8                                                         ;
-    jsr plot_enemy_torpedo                                            ;
+    jsr plot_enemy_torpedo                                            ; plot torpedo
     ldx temp8                                                         ;
     dec torpedoes_still_to_consider                                   ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #6                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip27                                                        ;
-    inc temp0_high                                                    ;
-skip27
+;    inc current_object_index                                          ;
     sec                                                               ; torpedo fired
     rts                                                               ;
 
@@ -5483,16 +5412,6 @@ escape_capsule_destroyed
     !byte 0                                                           ;
 self_destruct_countdown
     !byte 0                                                           ;
-escape_capsule_on_screen
-    !byte 0                                                           ;
-escape_capsule_x_fraction
-    !byte 0                                                           ;
-escape_capsule_x_pixels
-    !byte 0                                                           ;
-escape_capsule_y_fraction
-    !byte 0                                                           ;
-escape_capsule_y_pixels
-    !byte 0                                                           ;
 escape_capsule_launch_direction
     !byte 0                                                           ;
 
@@ -5507,7 +5426,7 @@ initialise_game_screen
     jsr plot_scanner_grid                                             ;
     jsr plot_command_number                                           ;
 !if do_debug = 0 {
-    jsr plot_stars                                                    ;
+    jsr plot_and_rotate_in_game_stars                                 ;
 }
     jsr plot_top_and_right_edge_of_long_range_scanner_without_text    ;
     ldx #$c7                                                          ; draw full
@@ -5536,7 +5455,8 @@ launch_escape_capsule
     sta escape_capsule_x_pixels                                       ;
     sta escape_capsule_y_pixels                                       ;
     sta escape_capsule_on_screen                                      ;
-    bne update_escape_capsule                                         ;
+    bne update_escape_capsule                                         ; ALWAYS branch
+
 handle_starship_self_destruct
     lda escape_capsule_launched                                       ;
     beq return22                                                      ; self-destruct only after escape capsule launched
@@ -5551,11 +5471,7 @@ skip_immense_damage
     beq return22                                                      ;
     jsr plot_escape_capsule                                           ;
 update_escape_capsule
-    lda #<escape_capsule_on_screen                                    ;
-    sta temp0_low                                                     ;
-    lda #>escape_capsule_on_screen                                    ;
-    sta temp0_high                                                    ;
-    ldy #1                                                            ;
+    ldy #index_of_escape_capsule                                      ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
     lda escape_capsule_launch_direction                               ;
     clc                                                               ;
@@ -5604,6 +5520,7 @@ skip_inversion6
     sta enemy_ships_energy,x                                          ;
     jsr explode_enemy_ship                                            ;
 enemy_ship_is_already_exploding
+    ldy #index_of_escape_capsule                                      ;
     jsr plot_expiring_torpedo                                         ;
     lda #1                                                            ;
     sta escape_capsule_destroyed                                      ;
@@ -5639,34 +5556,25 @@ plot_escape_capsule
 
 ; ----------------------------------------------------------------------------------
 add_single_torpedo_to_enemy_torpedo_cluster
-    ldy #0                                                            ;
     lda value_used_for_enemy_torpedo_time_to_live                     ;
-    sta (temp0_low),y                                                 ;
-    ldy #2                                                            ;
+    ldy current_object_index                                          ;
+    sta object_table_time_to_live,y                                   ;
     lda output_fraction                                               ;
-    sta (temp0_low),y                                                 ;
-    ldy #4                                                            ;
+    sta object_table_xpixels,y                                        ;
     lda output_pixels                                                 ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
+    sta object_table_ypixels,y                                        ;
     lda enemy_ships_angle,x                                           ;
-    sta (temp0_low),y                                                 ;
+    sta object_table_angle,y                                          ;
     inc enemy_ship_fired_torpedo                                      ;
     stx temp8                                                         ;
-    jsr plot_enemy_torpedo                                            ;
+    jsr plot_enemy_torpedo                                            ; plot torpedo
     ldx temp8                                                         ;
-    ldy #0                                                            ;
 find_free_torpedo_slot
     dec torpedoes_still_to_consider                                   ;
     beq dont_add_any_more_torpedoes_to_cluster                        ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #6                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip28                                                        ;
-    inc temp0_high                                                    ;
-skip28
-    lda (temp0_low),y                                                 ;
+    inc current_object_index                                          ;
+    ldy current_object_index                                          ;
+    lda object_table_time_to_live,y                                   ;
     bne find_free_torpedo_slot                                        ;
     rts                                                               ;
 
@@ -6847,6 +6755,8 @@ clear_long_range_scanner_column_loop
 
 ; ----------------------------------------------------------------------------------
 ; timid ship, retreats upwards as soon as on screen
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine0
     lda enemy_ships_temporary_behaviour_flags,x                       ;
@@ -6901,6 +6811,8 @@ to_return_from_enemy_ship_behaviour_routine
 
 ; ----------------------------------------------------------------------------------
 ; Comes to a stop near edge of screen when starship is stationary, follows closer when starship is moving
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine1
     lda enemy_ships_on_screen,x                                       ;
@@ -6937,6 +6849,8 @@ return_after_changing_velocity
 
 ; ----------------------------------------------------------------------------------
 ; Approaches starship, stops or retreats
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine2
     lda enemy_ships_on_screen,x                                       ;
@@ -6968,6 +6882,8 @@ to_return_from_enemy_ship_behaviour_routine1
 
 ; ----------------------------------------------------------------------------------
 ; Approaches close, then stops
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine3
     lda enemy_ships_on_screen,x                                       ;
@@ -6990,6 +6906,8 @@ to_return_from_enemy_ship_behaviour_routine2
 
 ; ----------------------------------------------------------------------------------
 ; Approaches very close, then stops
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine4
     lda enemy_ships_on_screen,x                                       ;
@@ -7016,6 +6934,8 @@ return_after_changing_velocity2
 
 ; ----------------------------------------------------------------------------------
 ; Approaches very close, then retreats
+; On Entry:
+;   X is the index of the enemy ship in question
 ; ----------------------------------------------------------------------------------
 enemy_ship_behaviour_routine5
     lda enemy_ships_on_screen,x                                       ;
@@ -7354,10 +7274,7 @@ update_enemy_ships
 skip_timer_reset
     lda #maximum_number_of_enemy_torpedoes                            ;
     sta torpedoes_still_to_consider                                   ;
-    lda #<enemy_torpedoes_table                                       ;
-    sta temp0_low                                                     ;
-    lda #>enemy_torpedoes_table                                       ;
-    sta temp0_high                                                    ;
+
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
@@ -7404,6 +7321,8 @@ skip_ceiling3
 skip_enemy_regeneration
     jsr enemy_ship_defensive_behaviour_handling                       ;
     bcs skip_behaviour_routine                                        ;
+
+    ; call the current behaviour routine
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     and #$0f                                                          ;
     tay                                                               ;
@@ -7810,7 +7729,7 @@ post_wait_for_timer
     jsr update_stars                                                  ;
     jsr handle_enemy_ships_cloaking                                   ;
     inc how_enemy_ship_was_damaged                                    ; # 0 = collision with starship torpedoes
-    jsr plot_starship_torpedoes                                       ;
+    jsr update_starship_torpedoes                                     ;
     jsr update_enemy_torpedoes                                        ;
     inc how_enemy_ship_was_damaged                                    ; # 2 = collision with escape pod
     jsr handle_starship_self_destruct                                 ;
@@ -9135,6 +9054,7 @@ screen_off
     jsr writeR8                                                       ;
     lda #12                                                           ;
     jmp oswrch                                                        ;
+
 screen_on_with_cursor
     lda #0                                                            ;
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
@@ -9159,6 +9079,7 @@ screen_off
     ldx #$10                                                          ;
     jsr writepal                                                      ;
     jmp $cb9d                                                         ; clear screen
+
 screen_on_with_cursor
     ldx #0                                                            ;
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
@@ -9191,7 +9112,8 @@ ytmp2
 ; ----------------------------------------------------------------------------------
 init_frontier_screen
     ; initialise stars for frontiers rotating globe
-init_frontier_x_coords
+
+    ; initialise the constant x coordinates
     lda #$5e                                                          ;
     ldx #0                                                            ;
     stx starship_rotation_eor                                         ;
@@ -9205,12 +9127,14 @@ init_frontier_x_coords
     iny                                                               ;
     jsr init_frontier_x_coord                                         ;
     bpl -                                                             ;
+
+    ; initialise the star positions themselves
     jsr initialise_frontier_stars                                     ;
 
     jsr screen_off                                                    ;
 
-    ; rotate stars
-    lda #$80                                                          ;
+    ; start rotating stars
+    lda #maximum_number_of_frontier_stars                             ;
     sta maximum_number_of_stars                                       ;
     lda #1                                                            ;
     sta starship_velocity_high                                        ;
@@ -9227,52 +9151,47 @@ init_frontier_x_coords
 }
     ; fall through
 
-; ----------------------------------------------------------------------------------
-plot_frontier_stars
+    ; initialise stars update code to use frontier stars
     dec num_frontier_star_updates                                     ; plot performs a rotation
     lda #<eor_frontier_pixel                                          ;
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
-plot_stars
+plot_and_rotate_in_game_stars
     lda #<eor_play_area_pixel                                         ;
-plot_stars_with_function_address
     sta maybe_unplot_star+1                                           ;
     sta plot_star+1                                                   ;
+
+    ; plot but don't unplot (for this first update)
     lda #$2c                                                          ; 'BIT abs' opcode
     sta maybe_unplot_star                                             ; skip unplotting
+
+    ; update and plot the stars
     jsr update_stars                                                  ;
+
+    ; from now on, unplot and plot
     lda #$20                                                          ; 'JSR abs' opcode
     sta maybe_unplot_star                                             ;
+
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 update_stars
-    lda #<star_table                                                  ;
-    sta temp0_low                                                     ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
     lda maximum_number_of_stars                                       ;
     sta stars_still_to_consider                                       ;
+    ldy #index_of_stars                                               ;
+    sty current_object_index                                          ;
 update_stars_loop
-    ldy #0                                                            ;
+    ldy current_object_index                                          ;
     jsr update_object_position_for_starship_rotation_and_speed        ;
     ldx x_pixels                                                      ;
 maybe_unplot_star
-    jsr eor_play_area_pixel                                           ; unplot
-    ldy #1                                                            ;
-    lda (temp0_low),y                                                 ;
-    tax                                                               ;
-    ldy #3                                                            ;
-    lda (temp0_low),y                                                 ;
+    jsr eor_play_area_pixel                                           ; unplot. Target of self modifying code.
+    ldy current_object_index                                          ;
+    ldx object_table_xpixels,y                                        ;
+    lda object_table_ypixels,y                                        ;
     sta y_pixels                                                      ;
 plot_star
     jsr eor_play_area_pixel                                           ; plot
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #4                                                            ;
-    sta temp0_low                                                     ;
-    bcc skip5                                                         ;
-    inc temp0_high                                                    ;
-skip5
+    inc current_object_index                                          ;
     dec stars_still_to_consider                                       ;
     bne update_stars_loop                                             ;
     rts                                                               ;
@@ -9286,36 +9205,24 @@ update_frontier_stars
 
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
-    lda #<star_table                                                  ;
-!if <star_table != 0 {
-    !error "alignment error"
-}
-    sta temp0_low                                                     ;
-    tax                                                               ;
-    tay                                                               ;
-    lda #>star_table                                                  ;
-    sta temp0_high                                                    ;
-    jsr skip                                                          ;
+    ldy #index_of_stars                                               ;
+    sty current_object_index                                          ;
+    ldx #0                                                            ;
 initialise_stars_loop
     lda frontier_star_positions_x,x                                   ;
-    jsr init_star_both
+    sta object_table_xpixels,y                                        ;
+    lda frontier_star_positions_y,x                                   ;
+    sta object_table_ypixels,y                                        ;
+    lda #$80                                                          ;
+    sta object_table_xfraction,y                                      ;
+    sta object_table_yfraction,y                                      ;
+    iny                                                               ;
     inx                                                               ;
     bpl initialise_stars_loop                                         ;
+
+    ; number of updates before re-initialising the stars again
     lda #162                                                          ;
     sta num_frontier_star_updates                                     ;
-    rts                                                               ;
-init_star_both
-    jsr init_star                                                     ;
-    lda frontier_star_positions_y,x                                   ;
-init_star
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
-    bne skip                                                          ;
-    inc temp0_high                                                    ;
-skip
-    lda #$80                                                          ;
-    sta (temp0_low),y                                                 ;
-    iny                                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9445,33 +9352,27 @@ shortcut
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Preserves Y
 update_object_position_for_starship_rotation_and_speed
-    ; get coordinates of object
-    ; store them in (object_x_fraction / pixel, object_y_fraction / pixel)
-    lda (temp0_low),y                                                 ;
-    eor starship_rotation_eor
+    ; Rotate object by starship rotation
+    lda object_table_xfraction,y                                      ;
+    eor starship_rotation_eor                                         ;
     sta object_x_fraction                                             ;
-    iny                                                               ;
-
-    lda (temp0_low),y                                                 ;
-    sta x_pixels                                                      ;
-    eor starship_rotation_eor
+    lda object_table_xpixels,y                                        ;
+    sta x_pixels                                                      ; remember old x pixel position
+    eor starship_rotation_eor                                         ;
     sta object_x_pixels                                               ;
 
-    iny                                                               ;
-    lda (temp0_low),y                                                 ;
+    lda object_table_yfraction,y                                      ;
     sta object_y_fraction                                             ;
-
-    iny                                                               ;
-    lda (temp0_low),y                                                 ;
-    sta y_pixels                                                      ;
+    lda object_table_ypixels,y                                        ;
+    sta y_pixels                                                      ; remember old y pixel position
     sta object_y_pixels                                               ;
 
 skip_inversion
     ldx starship_rotation_sine_magnitude                              ;
-;    bne update_position_for_rotation                                  ;
-;    jmp add_starship_velocity_to_position                             ;
     beq add_starship_velocity_to_position                             ;
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 update_position_for_rotation
@@ -9536,26 +9437,21 @@ update_position_for_rotation
 
 ; ----------------------------------------------------------------------------------
 add_starship_velocity_to_position
-    dey                                                               ;
+    ; add velocity and write back to object
     lda object_y_fraction                                             ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
-    sta (temp0_low),y                                                 ; object_y_fraction
-    iny                                                               ;
+    sta object_table_yfraction,y                                      ;
 
     lda object_y_pixels                                               ;
     adc starship_velocity_high                                        ;
-    sta (temp0_low),y                                                 ; object_y_pixels
-    dey                                                               ;
-    dey                                                               ;
+    sta object_table_ypixels,y                                        ;
 
     lda object_x_pixels                                               ;
-    sta (temp0_low),y                                                 ; object_x_pixels
-    dey                                                               ;
-
+    sta object_table_xpixels,y                                        ;
     lda object_x_fraction                                             ;
-    sta (temp0_low),y                                                 ; object_x_fraction
-    rts                                                               ;
+    sta object_table_xfraction,y                                      ;
+    rts
 
 ; ----------------------------------------------------------------------------------
 rotated_x_correction_lsb
@@ -9578,53 +9474,6 @@ rotated_y_correction_fraction
     !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
 rotated_y_correction_pixels
     !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc                                                               ;
-    adc frontier_x_deltas,y                                           ;
-    sta frontier_star_positions_x,x                                   ;
-    inx                                                               ;
-init_first_frontier_coord
-    sta frontier_star_positions_x,x                                   ;
-    inx                                                               ;
-    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
-tab_to_x_y
-    lda #$1f                                                          ;
-oswrch_axy
-    jsr oswrch                                                        ;
-    txa                                                               ;
-oswrch_ay
-    jsr oswrch                                                        ;
-    tya                                                               ;
-    jmp oswrch                                                        ;
-
-; ----------------------------------------------------------------------------------
-frontier_star_positions_y
-    ; this defines a 'globe' of 128 stars. X positions are calculated
-    !byte $80, $78, $7D, $83, $88, $70, $90, $73
-    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
-    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
-    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
-    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
-    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
-    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
-    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
-    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
-    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
-    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
-    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
-    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
-    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
-    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
-    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
-
-; DEBUG
-!skip 26
 
 ; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
@@ -9709,11 +9558,12 @@ eor_pixel_xcoord_in_x
     lda play_area_row_table_high,y                                    ;
     sta screen_address_high                                           ;
     inc screen_address_high                                           ;
-    bne eor_pixel_entry
+    bne eor_pixel_entry                                               ;
 
 !if >eor_frontier_pixel != >eor_play_area_pixel {
     !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
 }
+
 !if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
@@ -9821,6 +9671,30 @@ regular_strings_start
 regular_strings_end
 
 ; ----------------------------------------------------------------------------------
+frontier_x_deltas
+    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
+init_frontier_x_coord
+    clc                                                               ;
+    adc frontier_x_deltas,y                                           ;
+    sta frontier_star_positions_x,x                                   ;
+    inx                                                               ;
+init_first_frontier_coord
+    sta frontier_star_positions_x,x                                   ;
+    inx                                                               ;
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+tab_to_x_y
+    lda #$1f                                                          ;
+oswrch_axy
+    jsr oswrch                                                        ;
+    txa                                                               ;
+oswrch_ay
+    jsr oswrch                                                        ;
+    tya                                                               ;
+    jmp oswrch                                                        ;
+
+; ----------------------------------------------------------------------------------
 ; Everything from here is *only* used while loading
 ; ----------------------------------------------------------------------------------
 
@@ -9850,16 +9724,20 @@ init_late
 
     ; zero highscore table
     lda #0                                                            ;
-    ldx #127                                                          ;
+    ldx #high_score_table_end - high_score_table                      ;
 -
-    sta high_score_table,x                                            ;
+    sta high_score_table - 1,x                                        ;
     dex                                                               ;
-    bpl -                                                             ;
+    bne -                                                             ;
 
-    ; zero starship torpedo table
-    ldx #starship_torpedoes_table_end - starship_torpedoes_table      ;
+    ; zero object tables
+    lda #0                                                            ;
+    tax                                                               ;
 -
-    sta starship_torpedoes_table - 1,x                                ;
+    sta object_tables_start,x                                         ;
+    sta object_tables_start + 256,x                                   ;
+    sta object_tables_start + 512,x                                   ;
+    sta object_tables_end - 256,x                                     ;
     dex                                                               ;
     bne -                                                             ;
 
@@ -9974,8 +9852,50 @@ init_late
     jmp post_reloc                                                    ;
 }
 
-starship_torpedoes_table
-starship_torpedoes_table_end = starship_torpedoes_table + (maximum_number_of_starship_torpedoes * bytes_per_starship_torpedo)
+; ----------------------------------------------------------------------------------
+; Objects are:
+;
+; 1 escape capsule              (25 bytes)
+; 24 enemy torpedos             (24  * 6 = 144 bytes)
+; 24 starship torpedo heads     (24  * 5 = 120 bytes)
+; 24 starship torpedo tails     (24  * 4 =  96 bytes)
+; 128 stars                     (128 * 4 = 512 bytes)
+
+index_of_escape_capsule         = 0
+index_of_enemy_torpedoes        = 1
+index_of_starship_torpedo_heads = index_of_enemy_torpedoes + maximum_number_of_enemy_torpedoes
+index_of_starship_torpedo_tails = index_of_starship_torpedo_heads + maximum_number_of_starship_torpedoes
+index_of_stars                  = index_of_starship_torpedo_tails + maximum_number_of_starship_torpedoes
+
+max_objects = index_of_stars + maximum_number_of_frontier_stars
+
+object_tables_start
+
+object_table_angle          = object_tables_start
+object_table_time_to_live   = object_table_angle + 1 + maximum_number_of_enemy_torpedoes                 ; only escape capsule and enemy torpedoes have an angle
+object_table_xfraction      = object_table_time_to_live + max_objects - maximum_number_of_frontier_stars ; everything except the stars has a 'time to live'. Wow, that's deep.
+object_table_xpixels        = object_table_xfraction + max_objects                                       ; every object has a position
+object_table_yfraction      = object_table_xpixels + max_objects
+object_table_ypixels        = object_table_yfraction + max_objects
+object_tables_end           = object_table_ypixels + max_objects
+
+!if ((object_tables_end - object_tables_start) < $300) {
+    !error "object table too small for initialisation code in init_late"
+}
+!if ((object_tables_end - object_tables_start) > $400) {
+    !error "object table too big for initialisation code in init_late"
+}
+
+escape_capsule_on_screen  = object_table_time_to_live
+escape_capsule_x_fraction = object_table_xfraction
+escape_capsule_x_pixels   = object_table_xpixels
+escape_capsule_y_fraction = object_table_yfraction
+escape_capsule_y_pixels   = object_table_ypixels
+
+free_space1 = $5800 - object_tables_end
+!if (object_tables_end > $5800) {
+    !error "code overflowed by ", object_tables_end-$5800, " bytes"
+}
 
 ; ----------------------------------------------------------------------------------
 !if tape {
@@ -9984,14 +9904,17 @@ loader_copy_start
 loader_copy_end
 }
 
-; ----------------------------------------------------------------------------------
-free_space = $5800-20 - *
+free_space2 = $5800 - *
 
-!if (* > $5800-20) {
-    !error "code overflowed by ", *-$5800-20, " bytes"
+!if (* > $5800) {
+    !error "code overflowed by ", *-$5800, " bytes"
 }
 
-;* = $5800
+!if (free_space1 < free_space2) {
+    free_space = free_space1
+} else {
+    free_space = free_space2
+}
 
 entry_point
 ; ----------------------------------------------------------------------------------
@@ -10013,6 +9936,8 @@ init_early
     ldx #12                                                           ; so we can safely use
     ldy #255                                                          ; page D
     jsr osbyte                                                        ; (and also A0-A7)
+    lda #$40                                                          ; 'RTI' opcode
+    sta nmi_routine                                                   ; store at $0d00
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy                                                  ;
@@ -10163,6 +10088,14 @@ row_table_loop
 }
     jsr initialise_envelopes                                          ;
 
+    ; copy frontier stars to low in memory
+    ldx #maximum_number_of_frontier_stars                             ;
+-
+    lda copy_frontier_star_positions_y - 1,x                          ;
+    sta frontier_star_positions_y - 1,x                               ;
+    dex                                                               ;
+    bne -                                                             ;
+
 !if tape {
     ; wait for first part to load from tape before starting the globe spinning
 -
@@ -10212,6 +10145,26 @@ initialise_envelopes
     ldy #>(envelope4)                                                 ;
     lda #osword_envelope                                              ;
     jmp osword                                                        ;
+
+; ----------------------------------------------------------------------------------
+copy_frontier_star_positions_y
+    ; this defines a 'globe' of 128 stars. X positions are calculated
+    !byte $80, $78, $7D, $83, $88, $70, $90, $73
+    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
+    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
+    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
+    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
+    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
+    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
+    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
+    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
+    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
+    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
+    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
+    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
+    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
+    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
+    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
 
 ; ----------------------------------------------------------------------------------
 ; Envelope 1, used by sound_3 (Starship fired torpedo)
