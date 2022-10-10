@@ -8648,13 +8648,13 @@ check_rtc
     bcc call_old_irq                                                  ;
     rol irq_counter                                                   ; 1 indicates electron beam is in lower half of screen
     ; fall through to call_old_irq
+}
 
 call_old_irq
     lda irq_accumulator                                               ;
 old_irq1
     jmp $0000                                                         ;
 
-}
 
 !if elk=0 {
 ; ----------------------------------------------------------------------------------
@@ -8740,10 +8740,6 @@ check_vsync
     sta irq_counter                                                   ; every vsync
     jmp every_vsync
 }
-call_old_irq
-    lda irq_accumulator                                               ;
-old_irq1
-    jmp $0000                                                         ;
 
 ; ----------------------------------------------------------------------------------
 ; Do some things every frame rather than every game tick to improve perceived responsiveness:
