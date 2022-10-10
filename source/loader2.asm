@@ -238,7 +238,7 @@ time_left
     !byte '1' - '0'                 ; Digits of the time remaining
     !byte ':' - '0'                 ;
     !byte '3' - '0'                 ;
-    !byte '2' - '0'                 ;
+    !byte '0' - '0'                 ;
 
 timer
     !byte 120                       ; ticks down each interrupt

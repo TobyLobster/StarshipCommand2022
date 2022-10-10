@@ -262,7 +262,7 @@ size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
 maximum_starship_explosion_countdown                                = 80
 enemy_full_speed                                                    = 24
 
-number_of_bytes_per_enemy_explosion                                 = $3f
+number_of_bytes_per_enemy_explosion                                 = 63
 
 starship_maximum_x_for_collisions_with_enemy_torpedoes              = $7f + 7
 starship_minimum_x_for_collisions_with_enemy_torpedoes              = $7f - 7
@@ -647,7 +647,7 @@ squares1_low                            = $0900  ; } 512 entries of 16 bit value
 squares1_high                           = $0b00  ; } (1k total)
 
 nmi_routine                             = $0d00
-starship_explosion_table                = $0d01  ; randomised when needed. 63 bytes unused
+starship_explosion_table                = $0d01  ; (192 bytes) randomised when needed.
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
 squares2_high                           = $1000  ; } (1k total)
@@ -4475,6 +4475,8 @@ plot_2x2_a
     jsr eor_two_play_area_pixels                                      ;
     inc y_pixels                                                      ;
     beq leave_after_restoring_y                                       ; wrapped?
+    ; fall through...
+
 plot_2x1_a
     jsr eor_two_play_area_pixels                                      ;
 leave_after_restoring_y
@@ -8737,11 +8739,11 @@ check_vsync
     lda #34                                                           ; reset count of character rows
     sta irq_counter                                                   ; every vsync
     jmp every_vsync
+}
 call_old_irq
     lda irq_accumulator                                               ;
 old_irq1
     jmp $0000                                                         ;
-}
 
 ; ----------------------------------------------------------------------------------
 ; Do some things every frame rather than every game tick to improve perceived responsiveness:
@@ -9824,36 +9826,6 @@ init_late
     lda #>our_rdch                                                    ;
     sta rdchv+1                                                       ;
 
-    ; set beep sound to sound_6 why not
-    ; hopefully players will have learned to avoid doing
-    ; things that make this sound :)
-    lda #$12                                                          ;
-    sta soundBELLChannel                                              ;
-    lda #$18                                                          ;
-    sta soundBELLAmplitudeEnvelope                                    ;
-    lda #$bc                                                          ;
-    sta soundBELLPitch                                                ;
-    ; because bit 4 of channel is not respected we need to set duration as short as possible,
-    ; except on the Electron, where this cuts off the sound prematurely.
-!if elk {
-    lda #$3                                                           ;
-} else {
-    lda #$1                                                           ;
-}
-    sta soundBELLDuration                                             ;
-
-    lda #11                                                           ; disable key repeat
-    ldx #0                                                            ;
-    ldy #0                                                            ;
-    jsr osbyte                                                        ;
-    lda #'0'                                                          ; function keys
-    sta functionAndCursorKeyCodes + 4                                 ; generate ASCII 0-9
-    sta functionAndCursorKeyCodes + 5                                 ;
-    sta functionAndCursorKeyCodes + 6                                 ;
-    sta functionAndCursorKeyCodes + 7                                 ;
-    lda #osbyte_set_cursor_editing                                    ; cursor keys
-    ldx #1                                                            ; generate ASCII
-    jsr osbyte                                                        ; 136-139
 !if tape {
     rts                                                               ;
 } else {
@@ -9954,7 +9926,37 @@ init_early
     ldx #1                                                            ; (we can't do this unconditionally
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
-done
+
+    ; set beep sound to sound_6 why not
+    ; hopefully players will have learned to avoid doing
+    ; things that make this sound :)
+    lda #$12                                                          ;
+    sta soundBELLChannel                                              ;
+    lda #$18                                                          ;
+    sta soundBELLAmplitudeEnvelope                                    ;
+    lda #$bc                                                          ;
+    sta soundBELLPitch                                                ;
+    ; because bit 4 of channel is not respected we need to set duration as short as possible,
+    ; except on the Electron, where this cuts off the sound prematurely.
+!if elk {
+    lda #$3                                                           ;
+} else {
+    lda #$1                                                           ;
+}
+    sta soundBELLDuration                                             ;
+
+    lda #11                                                           ; disable key repeat
+    ldx #0                                                            ;
+    ldy #0                                                            ;
+    jsr osbyte                                                        ;
+    lda #'0'                                                          ; function keys
+    sta functionAndCursorKeyCodes + 4                                 ; generate ASCII 0-9
+    sta functionAndCursorKeyCodes + 5                                 ;
+    sta functionAndCursorKeyCodes + 6                                 ;
+    sta functionAndCursorKeyCodes + 7                                 ;
+    lda #osbyte_set_cursor_editing                                    ; cursor keys
+    ldx #1                                                            ; generate ASCII
+    jsr osbyte                                                        ; 136-139
 
 !if tape {
     ; copy tape loader code into page 5
@@ -9969,6 +9971,7 @@ done
     ; start the animated loading
     jsr irqdecr_init                                                  ;
 }
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 ; routine to create tables of squares
