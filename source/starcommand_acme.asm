@@ -387,10 +387,10 @@ systemVIATimer2CounterLow               = $fe48         ; Timer 2 counter (low)
 systemVIATimer2CounterHigh              = $fe49         ; Timer 2 counter (high)
 systemVIAAuxiliaryControlRegister       = $fe4b         ; auxiliary control register
 systemVIAInterruptFlagRegister          = $fe4d         ; Interrupt flag register
-systemVIAInterruptEnableRegister        = $fe6e         ; Interrupt enable register
+systemVIAInterruptEnableRegister        = $fe4e         ; Interrupt enable register
 systemVIAOutA_NH                        = $fe4f         ; Output A (no handshake)
 
-!if elk=1 {
+!if elk {
 oswrch                                  = fastwrch
 } else {
 oswrch                                  = $ffcb         ; nvwrch avoids an indirection
@@ -404,192 +404,205 @@ osbyte                                  = $fff4
 ; ----------------------------------------------------------------------------------
 
 ; for multiply routines
-b                                       = $00
-c                                       = $01
-prod_low                                = $02
-t                                       = $03   ; } same location
-num_frontier_star_updates               = $03   ; }
-torpedo_dir                             = $03   ; }
+b                                           = $00
+c                                           = $01
+prod_low                                    = $02
+t                                           = $03   ; } same location
+num_frontier_star_updates                   = $03   ; }
+torpedo_dir                                 = $03   ; }
 
 
-starship_rotation_eor                   = $04
-starship_velocity_high                  = $05
-starship_velocity_low                   = $06
-starship_rotation                       = $07
-starship_rotation_magnitude             = $08
-starship_rotation_cosine                = $09
-starship_rotation_sine_magnitude        = $0a
+starship_rotation_eor                       = $04
+starship_velocity_high                      = $05
+starship_velocity_low                       = $06
+starship_rotation                           = $07
+starship_rotation_magnitude                 = $08
+starship_rotation_cosine                    = $09
+starship_rotation_sine_magnitude            = $0a
 
-stars_still_to_consider                 = $0b   ; }
-explosion_bits_still_to_consider        = $0b   ; } same location
-enemy_ships_still_to_consider           = $0b   ; }
+stars_still_to_consider                     = $0b   ; }
+explosion_bits_still_to_consider            = $0b   ; } same location
+enemy_ships_still_to_consider               = $0b   ; }
 
-lookup_low                              = $0c   ; used in decompressing text, and initialising the enemy cache
-lookup_high                             = $0d   ;
-lookup_byte                             = $0e   ;
-bytes_left                              = $0f   ;
+lookup_low                                  = $0c   ; used in decompressing text, and initialising the enemy cache
+lookup_high                                 = $0d   ;
+lookup_byte                                 = $0e   ;
+bytes_left                                  = $0f   ;
 
-temp_x                                  = $10
-temp_y                                  = $11
+temp_x                                      = $10
+temp_y                                      = $11
 
-object_x_fraction                       = $12
-object_x_pixels                         = $13
-object_y_fraction                       = $14
-object_y_pixels                         = $15
+object_x_fraction                           = $12
+object_x_pixels                             = $13
+object_y_fraction                           = $14
+object_y_pixels                             = $15
 
-maximum_number_of_stars                 = $16
+maximum_number_of_stars                     = $16
 
-x_pixels                                = $17
-y_pixels                                = $18
+x_pixels                                    = $17
+y_pixels                                    = $18
 
-temp0_low                               = $19
-temp0_high                              = $1a
+temp0_low                                   = $19
+temp0_high                                  = $1a
 
-screen_address_low                      = $1b
-screen_address_high                     = $1c
-output_pixels                           = $1d   ; } same location
-segment_angle_change_per_pixel          = $1d   ; }
-output_fraction                         = $1e
+screen_address_low                          = $1b
+screen_address_high                         = $1c
+output_pixels                               = $1d   ; } same location
+segment_angle_change_per_pixel              = $1d   ; }
+output_fraction                             = $1e
 
-temp8                                   = $1f
-temp9                                   = $20   ; } same location
-input_fraction                          = $20   ; }
+temp8                                       = $1f
+temp9                                       = $20   ; } same location
+input_fraction                              = $20   ; }
 
-temp10                                  = $21   ; } same location
-input_pixels                            = $21   ; }
+temp10                                      = $21   ; } same location
+input_pixels                                = $21   ; }
 
-segment_angle                           = $22   ; } same location
-input_screens                           = $22   ; }
+segment_angle                               = $22   ; } same location
+input_screens                               = $22   ; }
 
-zp_start                                = $23
+zp_start                                    = $23   ;
 
-rnd_1                                   = $23   ;
-rnd_2                                   = $24   ;
+rnd_1                                       = $23   ;
+rnd_2                                       = $24   ;
 
-torpedoes_still_to_consider             = $25
-enemy_ship_was_previously_on_screen     = $26   ; 0=previously on screen, $ff=otherwise
-enemy_ship_was_on_screen                = $27
-how_enemy_ship_was_damaged              = $28
-old_timing_counter                      = $29
-timing_counter                          = $2a
+torpedoes_still_to_consider                 = $25
+enemy_ship_was_previously_on_screen         = $26   ; 0=previously on screen, $ff=otherwise
+enemy_ship_was_on_screen                    = $27
+how_enemy_ship_was_damaged                  = $28
+old_timing_counter                          = $29
+timing_counter                              = $2a
 
-engine_sound_shifter                    = $2b
-irqtmp                                  = $2c   ; IRQ-safe temporary
-enemy_low                               = $2d
-enemy_high                              = $2e
-plot_enemy_progress                     = $2f
+engine_sound_shifter                        = $2b
+irqtmp                                      = $2c   ; IRQ-safe temporary
+enemy_low                                   = $2d
+enemy_high                                  = $2e
+plot_enemy_progress                         = $2f
 
-result                                  = $30   ; used in decompressing text
-end_low                                 = $31
-end_high                                = $32
-starship_low                            = $33   ; }
-cache_start_low                         = $33   ; } same location
-current_enemy_torpedo_object_index      = $33   ; }
+result                                      = $30   ; used in decompressing text
+end_low                                     = $31
+end_high                                    = $32
+starship_low                                = $33   ; }
+cache_start_low                             = $33   ; } same location
+current_enemy_torpedo_object_index          = $33   ; }
 
-starship_high                           = $34   ; }
-cache_start_high                        = $34   ; } same location
+starship_high                               = $34   ; }
+cache_start_high                            = $34   ; } same location
 
-enemy_number                            = $35   ; Enemy definition 0-5
-enemy_stride                            = $36   ; offset in bytes to get from one enemy angle definition to the next
+enemy_number                                = $35   ; Enemy definition 0-5
+enemy_stride                                = $36   ; offset in bytes to get from one enemy angle definition to the next
 
-irq_counter                             = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
+irq_counter                                 = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 
-enemy_ships_flags_or_explosion_timer    = $38 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $38
-enemy_ships_on_screen                   = $38 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $40
-enemy_ships_x_fraction                  = $38 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $48
-enemy_ships_x_pixels                    = $38 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $50
-enemy_ships_x_screens                   = $38 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $58
-enemy_ships_y_fraction                  = $38 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $60
-enemy_ships_y_pixels                    = $38 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $68
-enemy_ships_y_screens                   = $38 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $70
-enemy_ships_velocity                    = $38 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $78
-enemy_ships_angle                       = $38 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $80
-enemy_ships_temporary_behaviour_flags   = $38 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $88
-enemy_ships_energy                      = $38 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $90
+enemy_ships_flags_or_explosion_timer        = $38 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $38
+enemy_ships_on_screen                       = $38 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $40
+enemy_ships_x_fraction                      = $38 +  2 * maximum_number_of_enemy_ships    ; i.e. starts at $48
+enemy_ships_x_pixels                        = $38 +  3 * maximum_number_of_enemy_ships    ; i.e. starts at $50
+enemy_ships_x_screens                       = $38 +  4 * maximum_number_of_enemy_ships    ; i.e. starts at $58
+enemy_ships_y_fraction                      = $38 +  5 * maximum_number_of_enemy_ships    ; i.e. starts at $60
+enemy_ships_y_pixels                        = $38 +  6 * maximum_number_of_enemy_ships    ; i.e. starts at $68
+enemy_ships_y_screens                       = $38 +  7 * maximum_number_of_enemy_ships    ; i.e. starts at $70
+enemy_ships_velocity                        = $38 +  8 * maximum_number_of_enemy_ships    ; i.e. starts at $78
+enemy_ships_angle                           = $38 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $80
+enemy_ships_temporary_behaviour_flags       = $38 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $88
+enemy_ships_energy                          = $38 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $90
 
-segment_length                          = $98   ; } same location
-multiplier                              = $98   ; }
-temp11                                  = $99
-temp1_low                               = $9a
-temp1_high                              = $9b
-temp3                                   = $9c
-temp4                                   = $9d
-temp5                                   = $9e
-temp6                                   = $9f
-temp7                                   = $a0
+segment_length                              = $98   ; } same location
+multiplier                                  = $98   ; }
+temp11                                      = $99
+temp1_low                                   = $9a
+temp1_high                                  = $9b
+temp3                                       = $9c
+temp4                                       = $9d
+temp5                                       = $9e
+temp6                                       = $9f
+temp7                                       = $a0
 
-score_delta_low                         = $a1
-score_delta_high                        = $a2
-score_as_bcd                            = $a3
-score_as_bcd_mid                        = $a4
-score_as_bcd_high                       = $a5
-codeptr_low                             = $a6   ; } same location
-set_pixel_flag                          = $a6   ; }
-codeptr_high                            = $a7
-rotation_damper                         = $a8
+score_delta_low                             = $a1
+score_delta_high                            = $a2
+score_as_bcd                                = $a3
+score_as_bcd_mid                            = $a4
+score_as_bcd_high                           = $a5
+codeptr_low                                 = $a6   ; } same location
+set_pixel_flag                              = $a6   ; }
+codeptr_high                                = $a7
+rotation_damper                             = $a8
 
-enemy_ship_update_done                  = $a9
-starship_energy_low                     = $aa
-starship_energy_high                    = $ab
-desired_velocity_for_intact_enemy_ships = $ac
+enemy_ship_update_done                      = $a9
+starship_energy_low                         = $aa
+starship_energy_high                        = $ab
+desired_velocity_for_intact_enemy_ships     = $ac
 
-starship_angle_fraction                 = $ad
-starship_angle_delta                    = $ae
-value_used_for_enemy_torpedo_time_to_live = $af
-starship_shields_active                 = $b0
-starship_torpedo_cooldown               = $b1
-fire_pressed                            = $b2
-damage_high                             = $b3
-damage_low                              = $b4
-starship_destroyed                      = $b5
-starship_energy_divided_by_sixteen      = $b6
-starship_energy_regeneration            = $b7
-starship_automatic_shields              = $b8
-value_of_x_when_incur_damage_called     = $b9
-shields_state_delta                     = $ba
-rotation_delta                          = $bb
-starship_rotation_fraction              = $bc
-velocity_delta                          = $bd
-velocity_damper                         = $be
-enemy_ship_type                         = $bf
-starship_torpedo_counter                = $c0
-previous_starship_automatic_shields     = $c1
-starship_has_exploded                   = $c2
-starship_explosion_countdown            = $c3
+starship_angle_fraction                     = $ad
+starship_angle_delta                        = $ae
+value_used_for_enemy_torpedo_time_to_live   = $af
+starship_shields_active                     = $b0
+starship_torpedo_cooldown                   = $b1
+fire_pressed                                = $b2
+damage_high                                 = $b3
+damage_low                                  = $b4
+starship_destroyed                          = $b5
+starship_energy_divided_by_sixteen          = $b6
+starship_energy_regeneration                = $b7
+starship_automatic_shields                  = $b8
+value_of_x_when_incur_damage_called         = $b9
+shields_state_delta                         = $ba
+rotation_delta                              = $bb
+starship_rotation_fraction                  = $bc
+velocity_delta                              = $bd
+velocity_damper                             = $be
+enemy_ship_type                             = $bf
+starship_torpedo_counter                    = $c0
+previous_starship_automatic_shields         = $c1
+starship_has_exploded                       = $c2
+starship_explosion_countdown                = $c3
 create_new_enemy_explosion_piece_after_one_dies = $c4
-keyboard_or_joystick                    = $c5
-escape_capsule_launched                 = $c6
-escape_capsule_sound_channel            = $c7
-enemy_ship_fired_torpedo                = $c8
-enemy_ships_collided_with_each_other    = $c9
-enemy_torpedo_hits_against_starship     = $ca
-enemy_ship_was_hit                      = $cb
-damage_to_enemy_ship_from_other_collision = $cc
-enemy_ships_collision_x_difference      = $cd
-enemy_ships_collision_y_difference      = $ce
-timer_for_low_energy_warning_sound      = $cf
+keyboard_or_joystick                        = $c5
+escape_capsule_launched                     = $c6
+escape_capsule_sound_channel                = $c7
+enemy_ship_fired_torpedo                    = $c8
+enemy_ships_collided_with_each_other        = $c9
+enemy_torpedo_hits_against_starship         = $ca
+enemy_ship_was_hit                          = $cb
+damage_to_enemy_ship_from_other_collision   = $cc
+enemy_ships_collision_x_difference          = $cd
+enemy_ships_collision_y_difference          = $ce
+timer_for_low_energy_warning_sound          = $cf
 
-zp_end                                  = $d0
+zp_end                                      = $d0
 
-sound_needed_for_low_energy             = $e2
-energy_flash_timer                      = $e3
-starship_collided_with_enemy_ship       = $e4
-velocity_gauge_position                 = $e5
+; $d0 - $e1 used by OS (VDU drivers)
 
-current_object_index                    = $e8
-torpedo_head_index                      = $f2
-torpedo_tail_index                      = $f3
+sound_needed_for_low_energy                 = $e2
+energy_flash_timer                          = $e3
+starship_collided_with_enemy_ship           = $e4
+velocity_gauge_position                     = $e5
 
-rotation_gauge_position                 = $f5
-enemy_ship_desired_angle_divided_by_eight = $f6
-number_of_live_starship_torpedoes       = $f7
-starship_fired_torpedo                  = $f8
-scanner_failure_duration                = $f9
-starship_shields_active_before_failure  = $fd
-starship_torpedo_type                   = $fe
+; $e6 - $e7 used by OS (read key/input etc)
 
+current_object_index                        = $e8
+unusedE9                                    = $e9
 
+; $ea-$f1 used by OS (misc)
 
+torpedo_head_index                          = $f2
+torpedo_tail_index                          = $f3
+
+; $f4 used by OS (rom selected)
+
+rotation_gauge_position                     = $f5
+enemy_ship_desired_angle_divided_by_eight   = $f6
+number_of_live_starship_torpedoes           = $f7
+starship_fired_torpedo                      = $f8
+scanner_failure_duration                    = $f9
+
+; $fa-$fb is used by OS (misc)
+; $fc is used by the OS, the interrupt accumulator
+
+starship_shields_active_before_failure      = $fd
+starship_torpedo_type                       = $fe
+
+; $ff is used by the OS, the ESCAPE flag
 
 ; reuse zero page variables when filling in enemy cache
 enemy_x                                 = enemy_ships_flags_or_explosion_timer
@@ -2510,18 +2523,35 @@ consider_next_enemy_ship
 plot_segment
     ; check if we are close to the side of the screen.
     ; If not we can forego the boundary checks and run faster.
-    lda temp10                                                        ;
-    cmp #16                                                           ;
+
+    ; check x-coordinate of the segment
+    lda x_pixels                                                      ;
+    cmp #12                                                           ; one segment can only span 13 pixels horizontally
     bcc plot_segment_with_boundary_checks                             ;
-    cmp #256 - 16                                                     ;
+    cmp #256 - 12                                                     ;
     bcs plot_segment_with_boundary_checks                             ;
+
 !if rom_writes {
     ; fast path now includes going off the top/bottom of the screen
+    ; but we need to check if the start of the segment is already
+    ; offscreen.
+    ; To do this we check if the start of the segment is far from
+    ; the centre of the object. That indicates it's wrapped, so
+    ; offscreen.
+    lda y_pixels                                                      ; segment start position
+    sec                                                               ;
+    sbc temp9                                                         ; centre of object
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs plot_segment_with_boundary_checks                             ;
+
 } else {
-    lda temp9                                                         ;
-    cmp #16                                                           ;
+    lda y_pixels                                                      ;
+    cmp #12                                                           ; one segment can only span 13 pixels vertically
     bcc plot_segment_with_boundary_checks                             ;
-    cmp #256 - 16                                                     ;
+    cmp #256 - 12                                                     ;
     bcs plot_segment_with_boundary_checks                             ;
 }
     lda segment_angle_change_per_pixel                                ;
@@ -3007,6 +3037,7 @@ apply_damage_to_starship_energy
     lda starship_energy_high                                          ;
     sbc damage_high                                                   ;
     sta starship_energy_high                                          ;
+
     lda starship_energy_low                                           ;
     clc                                                               ;
     adc starship_energy_regeneration                                  ;
@@ -3014,6 +3045,7 @@ apply_damage_to_starship_energy
     bcc skip14                                                        ;
     inc starship_energy_high                                          ;
 skip14
+
     lda starship_energy_high                                          ;
     bpl starship_still_has_energy                                     ;
     jsr explode_starship                                              ;
@@ -3033,6 +3065,7 @@ skip15
     sta starship_energy_high                                          ;
     lda #$80                                                          ;
     sta starship_energy_low                                           ;
+
 reset_damage_counter
     lda #0                                                            ;
     sta damage_low                                                    ;
@@ -4549,28 +4582,31 @@ check_for_keypresses
 
 ; ----------------------------------------------------------------------------------
 !macro do_key .inkey_value, .row, .col, .skip, .invert {
-!if elk {
-    ; Electron
-.rom_address   = $bfff - (1<<.row)
-.bitmask       = 1<<.col
-    lda .rom_address                                                  ;
-    and #.bitmask                                                     ;
-!if .invert {
-    bne .skip                                                         ;
-} else {
-    beq .skip                                                         ;
-}
-} else {
-    ; BBC/Master
-    lda #255-.inkey_value                                             ;
-    sta $fe4f                                                         ;
-    lda $fe4f                                                         ;
-!if .invert {
-    bmi .skip                                                         ;
-} else {
-    bpl .skip                                                         ;
-}
-}
+    !if elk {
+        ; Electron
+        .rom_address   = $bfff - (1<<.row)
+        .bitmask       = 1<<.col
+
+        lda .rom_address                                              ;
+        and #.bitmask                                                 ;
+
+        !if .invert {
+            bne .skip                                                 ;
+        } else {
+            beq .skip                                                 ;
+        }
+    } else {
+        ; BBC/Master
+        lda #255-.inkey_value                                         ;
+        sta $fe4f                                                     ;
+        lda $fe4f                                                     ;
+
+        !if .invert {
+            bmi .skip                                                 ;
+        } else {
+            bpl .skip                                                 ;
+        }
+    }
 }
 
 ; ----------------------------------------------------------------------------------
@@ -7481,20 +7517,6 @@ debug_show_rotation_value_text
     ldy #' '                                                          ;
     jmp oswrch_ay                                                     ;
 
-key
-    !byte 0                                                           ;
-
-; ----------------------------------------------------------------------------------
-debug_get_key_press
-    lda #15                                                           ;
-    ldx #1                                                            ;
-    jsr osbyte                                                        ;
-
-    lda #osbyte_inkey                                                 ;
-    ldx #$ff                                                          ;
-    ldy #$7f                                                          ;
-    jmp osbyte                                                        ;
-
 ; ----------------------------------------------------------------------------------
 debug
     lda #0                                                            ;
@@ -7553,16 +7575,12 @@ debug
     cmp #100                                                          ;
     bcc --                                                            ;
 
+    jsr debug_plot_enemy_and_update_text                              ;
+
     ; interactive bit
 --
-    jsr debug_plot                                                    ; plot
-    jsr debug_show_rotation_value_text                                ;
-
--
-    jsr debug_get_key_press                                           ;
-    cpx #'X'                                                          ;
-    bne +                                                             ;
-
+    +start_keyboard_read
+    +do_key inkey_x, 11, 3, +, 0                                      ;
     jsr debug_plot                                                    ; unplot
     ; increment angle
     lda temp11                                                        ;
@@ -7570,12 +7588,16 @@ debug
     adc #1                                                            ;
     and #$1f                                                          ;
     sta temp11                                                        ;
+
+    jsr debug_plot_enemy_and_update_text                              ; plot
+
+    ; wait for release
+-
+    +do_key inkey_x, 11, 3, -, 1                                      ;
     jmp --                                                            ;
 
 +
-    cpx #'Z'                                                          ;
-    bne -                                                             ;
-
+    +do_key inkey_z, 12, 3, +, 0                                      ;
     jsr debug_plot                                                    ; unplot
     ; decrement angle
     lda temp11                                                        ;
@@ -7583,7 +7605,21 @@ debug
     sbc #1                                                            ;
     and #$1f                                                          ;
     sta temp11                                                        ;
+
+    jsr debug_plot_enemy_and_update_text                              ; plot
+
+    ; wait for key release
+-
+    +do_key inkey_z, 12, 3, -, 1                                      ;
     jmp --                                                            ;
+
++
+    +finish_keyboard_read
+    jmp --                                                            ;
+
+debug_plot_enemy_and_update_text                                      ;
+    jsr debug_plot                                                    ; plot
+    jmp debug_show_rotation_value_text                                ;
 }
 
 !if elk+antiflicker=2 { ; crude anti flicker on Elk
@@ -9006,7 +9042,7 @@ screen_off
     lda #$f0                                                          ;
     jsr writeR8                                                       ;
     lda #12                                                           ;
-    jmp oswrch                                                        ;
+    jmp oswrch                                                        ; clear screen
 
 screen_on_with_cursor
     lda #0                                                            ;
@@ -9016,7 +9052,7 @@ screen_on
 writeR8
     pha                                                               ;
     lda #19                                                           ;
-    jsr osbyte                                                        ;
+    jsr osbyte                                                        ; wait for VSYNC
     ldx #8                                                            ;
     pla                                                               ;
     ora vduInterlaceValue                                             ; OR in TV interlace
@@ -9707,21 +9743,6 @@ init_late
     sei                                                               ;
 }
 
-!if elk {
-    ; Electron
-    ; page in keyboard ROM
-    lda #8                                                            ;
-    jsr $e3a0                                                         ;
-} else {
-    ; BBC/Master
-!if rom_writes {
-    ; page in BASIC to minimize the chance of scribbling over whatever may be in SWRAM
-    lda basicROMNumber                                                ;
-    sta $f4                                                           ;
-    sta $fe30                                                         ;
-}
-}
-
 !if elk=0 {
     ; enable timer 1 in free run mode (on the User VIA)
     lda #0                                                            ; Disable all interrupts on the User VIA
@@ -9731,8 +9752,9 @@ init_late
     lda #$40                                                          ; Enable free run mode for timer 1
     sta userVIAAuxiliaryControlRegister                               ; Auxiliary control register
     sta userVIATimer2CounterHigh                                      ; poke timer 2
-    lda #$99
-    sta engine_sound_shifter
+
+    lda #$99                                                          ;
+    sta engine_sound_shifter                                          ;
 }
 
 !if (elk=0) or (elk+antiflicker=2) {
@@ -9883,6 +9905,17 @@ init_early
     ldy #255                                                          ; page D
     jsr osbyte                                                        ; (and also A0-A7)
 
+    lda #$40                                                          ; 'RTI' opcode
+    sta $0d00                                                         ;
+
+    ; TODO: On Electron disable Plus 1 using below code and read joystick directly in get_joystick_input
+    ;       See https://archive.org/details/ElectronUserVolume3/Electron-User-03-11/page/n39/mode/2up
+    ;
+    ; lda #163                                                          ; disable printer and ADCs
+    ; ldx #128                                                          ; (improves performance
+    ; ldy #1                                                            ; with the Electron with
+    ; jsr osbyte                                                        ; Plus 1)
+
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy                                                  ;
@@ -9925,6 +9958,20 @@ noshadow                                                              ; on earli
     lda #osbyte_set_cursor_editing                                    ; cursor keys
     ldx #1                                                            ; generate ASCII
     jsr osbyte                                                        ; 136-139
+
+    !if elk {
+        ; Electron: page in keyboard ROM
+        lda #8                                                        ;
+        jsr $e3a0                                                     ;
+    } else {
+        ; BBC/Master
+        !if rom_writes {
+            ; page in BASIC to minimize the chance of scribbling over whatever may be in SWRAM
+            lda basicROMNumber                                        ;
+            sta $f4                                                   ;
+            sta $fe30                                                 ;
+        }
+    }
 
 !if tape {
     ; copy tape loader code into page 5
