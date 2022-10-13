@@ -303,6 +303,8 @@ base_damage_to_enemy_ship_from_other_collision                      = 20
 change_in_number_of_stars_per_command                               = -2
 
 danger_height                                                       = 8
+subtraction_from_starship_regeneration_when_shields_active          = 4
+maximum_timer_for_starship_energy_regeneration                      = 3
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
@@ -344,23 +346,23 @@ inkey_7                                 = $db
 ; OS memory locations
 irq_accumulator                         = $fc           ;
 
-irq1_vector_low                         = $204          ;
-irq1_vector_high                        = $205          ;
-bytev                                   = $20a          ;
-wordv                                   = $20c          ;
-rdchv                                   = $210          ;
-verticalSyncCounter                     = $240          ;
-enableKeyboardInterruptProcessingFlag   = $242          ;
-basicROMNumber                          = $24b          ; page BASIC in for ROM writes
+irq1_vector_low                         = $0204         ;
+irq1_vector_high                        = $0205         ;
+bytev                                   = $020a         ;
+wordv                                   = $020c         ;
+rdchv                                   = $0210         ;
+verticalSyncCounter                     = $0240         ;
+enableKeyboardInterruptProcessingFlag   = $0242         ;
+basicROMNumber                          = $024b         ; page BASIC in for ROM writes
 
 ; reusing this flag makes the OS not beep during high score entry when we have sound disabled
-sound_enabled                           = $262          ; OS sound suppression flag
-soundBELLChannel                        = $263          ; sound channel for CTRL-G
-soundBELLAmplitudeEnvelope              = $264          ; sound amp or envelope for CTRL-G
-soundBELLPitch                          = $265          ; sound pitch for CTRL-G
-soundBELLDuration                       = $266          ; sound duration for CTRL-G
-functionAndCursorKeyCodes               = $26d          ; function key translations
-vduInterlaceValue                       = $291          ;
+sound_enabled                           = $0262         ; OS sound suppression flag
+soundBELLChannel                        = $0263         ; sound channel for CTRL-G
+soundBELLAmplitudeEnvelope              = $0264         ; sound amp or envelope for CTRL-G
+soundBELLPitch                          = $0265         ; sound pitch for CTRL-G
+soundBELLDuration                       = $0266         ; sound duration for CTRL-G
+functionAndCursorKeyCodes               = $026d         ; function key translations
+vduInterlaceValue                       = $0291         ;
 
 videoULAPaletteRegister                 = $fe21         ; Video ULA palette register
 
@@ -1389,9 +1391,9 @@ sm_cosine_c4 = * + 1
     tya                                                               ;
     sbc enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
-    lda segment_angle                                                 ;
-    sbc #0                                                            ;
-    sta segment_angle                                                 ;
+    bcs +
+    dec segment_angle                                                 ;
++
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1497,16 +1499,16 @@ skip_inversion1
     sec                                                               ;
     sbc #$80                                                          ;
     sta enemy_ships_y_pixels,x                                        ;
-    lda enemy_ships_y_screens,x                                       ;
-    sbc #0                                                            ;
-    sta enemy_ships_y_screens,x                                       ;
-    lda enemy_ships_x_pixels,x                                        ;
+    bcs +
+    dec enemy_ships_y_screens,x                                       ;
     sec                                                               ;
++
+    lda enemy_ships_x_pixels,x                                        ;
     sbc #$80                                                          ;
     sta enemy_ships_x_pixels,x                                        ;
-    lda enemy_ships_x_screens,x                                       ;
-    sbc #0                                                            ;
-    sta enemy_ships_x_screens,x                                       ;
+    bcs +
+    dec enemy_ships_x_screens,x                                       ;
++
 apply_starship_velocity_to_enemy_ship
     lda enemy_ships_y_fraction,x                                      ;
     clc                                                               ;
@@ -1515,9 +1517,9 @@ apply_starship_velocity_to_enemy_ship
     lda enemy_ships_y_pixels,x                                        ;
     adc starship_velocity_high                                        ;
     sta enemy_ships_y_pixels,x                                        ;
-    lda enemy_ships_y_screens,x                                       ;
-    adc #0                                                            ;
-    sta enemy_ships_y_screens,x                                       ;
+    bcc +
+    inc enemy_ships_y_screens,x                                       ;
++
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -3313,7 +3315,7 @@ enemy_arc_counts
     !byte 5     ; enemy 2
     !byte 5     ; enemy 3
     !byte 5     ; enemy 4
-    !byte 6     ; enemy 5
+    !byte 5     ; enemy 5
 
 ; the stride of an enemy is the number of bytes to get from the definition of one angle
 ; of the enemy to the next. Four times the number of arcs of the enemy.
@@ -3323,7 +3325,7 @@ enemy_strides
     !byte 4*5   ; enemy 2
     !byte 4*5   ; enemy 3
     !byte 4*5   ; enemy 4
-    !byte 4*6   ; enemy 5
+    !byte 4*5   ; enemy 5
 
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
@@ -3527,7 +3529,7 @@ enemy5
     !byte  4, -4, 4, 9
     !byte -5,  3,21, 7
     !byte -4, -4, 4, 9
-    !byte  0, -3, 7, 3
+    ;!byte  0, -3, 7, 3
 
     ; angle 1
     !byte  3,  4,22, 7
@@ -3535,7 +3537,7 @@ enemy5
     !byte  5, -3, 5, 8
     !byte -5,  3,22, 7
     !byte -3, -4, 5, 8
-    !byte  1, -3, 9, 3
+    ;!byte  1, -3, 9, 3
 
     ; angle 2
     !byte  1,  4,23, 7
@@ -3543,7 +3545,7 @@ enemy5
     !byte  5, -2, 6, 9
     !byte -6,  1,23, 7
     !byte -2, -5, 6, 9
-    !byte  1, -3, 8, 3
+    ;!byte  1, -3, 8, 3
 
     ; angle 3
     !byte  1,  4,23, 8
@@ -3551,7 +3553,7 @@ enemy5
     !byte  6, -2, 7, 8
     !byte -5,  1,23, 8
     !byte  0, -5, 7, 8
-    !byte  2, -3,11, 3
+    ;!byte  2, -3,11, 3
 
     ; angle 4
     !byte -1,  5,25, 8
@@ -3559,7 +3561,7 @@ enemy5
     !byte  6,  0, 8, 9
     !byte -6,  0,25, 8
     !byte  1, -5, 8, 9
-    !byte  3, -3,11, 3
+    ;!byte  3, -3,11, 3
 
 ; Enemy definitions for the current command
 
@@ -3887,9 +3889,9 @@ plot_starship_heading
     clc                                                               ;
     adc #16                                                           ;
     sta starship_low                                                  ;
-    lda starship_high                                                 ;
-    adc #0                                                            ;
-    sta starship_high                                                 ;
+    bcc +
+    inc starship_high                                                 ;
++
     ; fall through...
 
 copy_half
@@ -4107,10 +4109,12 @@ plot_starship_explosion_piece
     lda x_pixels                                                      ;
     eor #$80                                                          ;
     sta x_pixels                                                      ; x_pixels = radius * sin(piece)
+    sta temp10                                                        ; also centre of segment to plot
 
     lda y_pixels                                                      ;
     eor #$80                                                          ;
     sta y_pixels                                                      ; y_pixels = radius * cos(piece)
+    sta temp9                                                         ; also centre of segment to plot
 
     dey                                                               ; Y=1
     lda (temp0_low),y                                                 ; segment angle or ageing rate
@@ -4132,11 +4136,7 @@ plot_starship_explosion_piece
     iny                                                               ; Y=2
     lda (temp0_low),y                                                 ; radius
     and #$1f                                                          ;
-    sta segment_angle                                                 ;
-    lda x_pixels                                                      ;
-    sta temp10                                                        ;
-    lda y_pixels                                                      ;
-    sta temp9                                                         ;
+    sta segment_angle                                                 ; angle is based on radius
     jmp plot_segment                                                  ;
 
 ; ----------------------------------------------------------------------------------
@@ -4197,27 +4197,29 @@ return15
 ; ----------------------------------------------------------------------------------
 initialise_starship_explosion_piece
     jsr random_number_generator                                       ;
-    ldy #2                                                            ;
+    ldy #2                                                            ; Y=2
     lda rnd_1                                                         ;
     and #7                                                            ;
     sta (temp0_low),y                                                 ; random 0-7
-    dey                                                               ;
+    dey                                                               ; Y=1
     lda rnd_2                                                         ;
     lsr                                                               ;
     sta (temp0_low),y                                                 ; random 0-127
     lda rnd_1                                                         ;
-    and #$3c                                                          ;
+    and #%01111000                                                    ; get four random bits that are not the first three bits
+                                                                      ; (since we've used the first three bits already, and we
+                                                                      ; want our bits to be independent from this)
     bne not_a_segment                                                 ;
     lda (temp0_low),y                                                 ;
     ora #$80                                                          ; top bit set indicates a segment
     sta (temp0_low),y                                                 ;
 not_a_segment
-    dey                                                               ;
+    dey                                                               ; Y=0
     lda rnd_1                                                         ;
-    and #$1f                                                          ;
+    and #$1f                                                          ; bottom 5 bits (there goes our independence, oh well, never mind)
     clc                                                               ;
-    adc #1                                                            ;
-    sta (temp0_low),y                                                 ;
+    adc #1                                                            ; add one
+    sta (temp0_low),y                                                 ; random 1-32
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -4254,7 +4256,7 @@ skip_add_explosion_index
 loop_initialise_explosion
     jsr random_number_generator                                       ;
 
-    ;enemy_explosion_initialisation
+    ; enemy explosion initialisation
     and #$3f                                                          ;
     sta (temp5),y                                                     ; random between 0 and 63
     dey                                                               ;
@@ -4266,8 +4268,7 @@ loop_initialise_explosion
     dey                                                               ;
     bpl loop_initialise_explosion                                     ;
 
-; ----------------------------------------------------------------------------------
-score_points_for_destroying_enemy_ship
+    ; score points for destroying enemy ship
     lda #1                                                            ;
     sta enemy_ships_previous_on_screen,x                              ;
     lda how_enemy_ship_was_damaged                                    ;
@@ -5803,15 +5804,14 @@ turn_enemy_ship_towards_desired_angle
 skip_velocity_decrease
     lsr y_pixels                                                      ;
     bcs increase_angle                                                ;
-    dec enemy_ships_angle,x                                           ;
-    dec enemy_ships_angle,x                                           ;
-    jmp continue1                                                     ;
-
+    lda #254                                                          ;
+    !byte $2c
 increase_angle
-    inc enemy_ships_angle,x                                           ;
-    inc enemy_ships_angle,x                                           ;
+    lda #2                                                            ;
 continue1
-    lda enemy_ships_angle,x                                           ;
+    clc                                                               ;
+    adc enemy_ships_angle,x                                           ;
+    sta enemy_ships_angle,x                                           ;
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
@@ -5840,7 +5840,7 @@ increase_or_decrease_enemy_ship_velocity_towards_desired_velocity
 increase
     inc enemy_ships_velocity,x                                        ;
 compare_velocity
-    cmp enemy_ships_velocity,x                                        ; comparison is never actually used
+    cmp enemy_ships_velocity,x                                        ; TODO: comparison is never actually used?
 return24
     rts                                                               ;
 
@@ -7073,12 +7073,8 @@ command_number
     !byte 0                                                           ;
 timer_for_enemy_ships_regeneration
     !byte 0                                                           ;
-maximum_timer_for_starship_energy_regeneration
-    !byte 3                                                           ;
 timer_for_starship_energy_regeneration
     !byte 3                                                           ;
-subtraction_from_starship_regeneration_when_shields_active
-    !byte 4                                                           ;
 
 ; ----------------------------------------------------------------------------------
 initial_enemy_speed_per_command
@@ -7697,7 +7693,7 @@ post_wait_for_timer
     lda #0                                                            ;
     dec timer_for_starship_energy_regeneration                        ;
     bne set_regeneration                                              ;
-    lda maximum_timer_for_starship_energy_regeneration                ;
+    lda #maximum_timer_for_starship_energy_regeneration               ;
     sta timer_for_starship_energy_regeneration                        ;
     lda #base_regeneration_rate_for_starship                          ;
     sec                                                               ;
@@ -7705,7 +7701,7 @@ post_wait_for_timer
     ldy starship_shields_active                                       ;
     bne set_regeneration                                              ;
     sec                                                               ;
-    sbc subtraction_from_starship_regeneration_when_shields_active    ;
+    sbc #subtraction_from_starship_regeneration_when_shields_active   ;
 set_regeneration
     sta starship_energy_regeneration                                  ;
     lda starship_has_exploded                                         ;
@@ -8410,22 +8406,23 @@ plot_shields_string
 start_game
     jsr screen_off
     lda #0                                                            ;
+    sta command_number                                                ;
+    sta number_of_live_starship_torpedoes                             ;
     sta previous_score_as_bcd                                         ;
     sta previous_score_as_bcd + 1                                     ;
     sta previous_score_as_bcd + 2                                     ;
-    sta number_of_live_starship_torpedoes                             ;
+    sta score_as_bcd + 2                                              ;
+    sta score_as_bcd + 1                                              ;
+    sta score_as_bcd                                                  ;
 
     lda #$ff                                                          ;
     sta command_number_used_for_maximum_enemy_torpedo_cooldown_lookup ;
     sta starship_type                                                 ;
     sta enemy_number                                                  ;
-    lda #0                                                            ;
-    sta command_number                                                ;
-    sta score_as_bcd + 2                                              ;
-    sta score_as_bcd + 1                                              ;
-    sta score_as_bcd                                                  ;
+
     lda #maximum_number_of_stars_in_game                              ;
     sta maximum_number_of_stars                                       ;
+
     ldy #3                                                            ;
 reset_enemy_ship_spawning_probabilities_loop
     lda initial_enemy_ship_spawning_probabilities,y                   ;
@@ -9326,19 +9323,15 @@ update_object_position_for_starship_rotation_and_speed
     sta y_pixels                                                      ; remember old y pixel position
     sta object_y_pixels                                               ;
 
-skip_inversion
     ldx starship_rotation_sine_magnitude                              ;
-    beq add_starship_velocity_to_position                             ;
-    ; fall through...
+    beq add_starship_velocity_to_object_position                      ;
 
-; ----------------------------------------------------------------------------------
-update_position_for_rotation
+    ; update position for rotation
     sty temp_y                                                        ; remember Y
 
     ; X' = Y*sine + X*cosine
     ldx object_y_fraction                                             ;
-    tay
-;    ldy object_y_pixels                                               ;
+    tay                                                               ; Y = object_y_pixels
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
     ldx object_x_fraction                                             ;
     ldy object_x_pixels                                               ;
@@ -9393,7 +9386,7 @@ update_position_for_rotation
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
-add_starship_velocity_to_position
+add_starship_velocity_to_object_position
     ; add velocity and write back to object
     lda object_y_fraction                                             ;
     clc                                                               ;
@@ -9696,11 +9689,11 @@ init_late
 
     ; zero highscore table
     lda #0                                                            ;
-    ldx #high_score_table_end - high_score_table                      ;
+    ldx #high_score_table_end - high_score_table - 1                  ;
 -
-    sta high_score_table - 1,x                                        ;
+    sta high_score_table,x                                            ;
     dex                                                               ;
-    bne -                                                             ;
+    bpl -                                                             ;
 
     ; zero object tables
     jsr zero_objects                                                  ;
@@ -9804,17 +9797,21 @@ loader_copy_end
 ; When in game:
 ;
 ; 1 escape capsule              (5 bytes)               angle, time to live, position
-; 24 enemy torpedos             (24  * 6 = 144 bytes)   angle, time to live, position
-; 24 starship torpedo heads     (24  * 5 = 120 bytes)          time to live, position
-; 24 starship torpedo tails     (24  * 4 =  96 bytes)                        position
-;                        TOTAL: 365 bytes
+; 24 enemy torpedos             (24 * 6 = 144 bytes)    angle, time to live, position
+; 24 starship torpedo heads     (24 * 5 = 120 bytes)           time to live, position
+; 24 starship torpedo tails     (24 * 4 =  96 bytes)                         position
+; 17 in game stars              (17 * 4 =  68 bytes)                         position
+;                        TOTAL: 433 bytes
 ;
-; Or, when in front end:
+; there are separate arrays for angle, time to live, and each of the the four components
+; of position. See 'object_table_*' below.
 ;
+; OR when in front end:
+;
+; tables of angles and time to live are still there (but unused in front end) = 74 bytes
 ; 128 frontier stars            (128 * 4 = 512 bytes)                        position
 
 index_of_frontier_stars         = 0
-
 index_of_escape_capsule         = 0
 index_of_enemy_torpedoes        = index_of_escape_capsule + 1
 index_of_starship_torpedo_heads = index_of_enemy_torpedoes + maximum_number_of_enemy_torpedoes
@@ -9868,22 +9865,28 @@ entry_point
 init_early
     ldx #$ff                                                          ; we want all the stack
     txs                                                               ;
+
     lda #234                                                          ; disable tube
-    jsr osbyte_zeroxy                                                 ;
+    jsr osbyte_zeroxy                                                 ; *FX 234
+
     lda #200                                                          ; clear memory
     ldx #3                                                            ; on break
-    jsr osbyte_zeroy                                                  ;
+    jsr osbyte_zeroy                                                  ; *FX 200,3
+
 !if tape=0 {
     lda #140                                                          ; *TAPE
     jsr osbyte_zeroxy                                                 ;
 }
+
     lda #143                                                          ; claim NMI vector
     ldx #12                                                           ; so we can safely use
     ldy #255                                                          ; page D
     jsr osbyte                                                        ; (and also A0-A7)
+
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4
     jsr osbyte_zeroy                                                  ;
+
     tya                                                               ;
     bpl noshadow                                                      ; if it's >$7FFF we need to
     lda #114                                                          ; disable shadow screen
@@ -9891,7 +9894,7 @@ init_early
     jsr osbyte_zeroy                                                  ; because it's not implemented
 noshadow                                                              ; on earlier machines)
 
-    ; set beep sound to sound_6 why not
+    ; set beep sound to sound_6 (why not)
     ; hopefully players will have learned to avoid doing
     ; things that make this sound :)
     lda #$12                                                          ;
@@ -9900,6 +9903,7 @@ noshadow                                                              ; on earli
     sta soundBELLAmplitudeEnvelope                                    ;
     lda #$bc                                                          ;
     sta soundBELLPitch                                                ;
+
     ; because bit 4 of channel is not respected we need to set duration as short as possible,
     ; except on the Electron, where this cuts off the sound prematurely.
 !if elk {
