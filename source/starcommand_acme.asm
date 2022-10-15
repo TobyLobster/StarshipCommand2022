@@ -210,10 +210,8 @@
 ;
 ; Enemy explosion pieces are stored array 'enemy_explosion_tables', 2 bytes per piece:
 ;
-;        +0 age
-;           (top two bits are used to determine size of piece)
-;        +1 radius
-;            ......21 speed of ageing (via lookup table), if not a segment
+;        +0 age (bottom six bits), size of piece (top two bits)
+;        +1 radius (top six bits), speed of ageing (bottom two bits)
 ;
 ; Starship explosion pieces are stored in array 'starship_explosion_table', 3 bytes per piece:
 ;
@@ -262,7 +260,7 @@ size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
 maximum_starship_explosion_countdown                                = 80
 enemy_full_speed                                                    = 24
 
-number_of_bytes_per_enemy_explosion                                 = 63
+number_of_bytes_per_enemy_explosion                                 = 64
 
 starship_maximum_x_for_collisions_with_enemy_torpedoes              = $7f + 7
 starship_minimum_x_for_collisions_with_enemy_torpedoes              = $7f - 7
@@ -305,6 +303,10 @@ change_in_number_of_stars_per_command                               = -2
 danger_height                                                       = 8
 subtraction_from_starship_regeneration_when_shields_active          = 4
 maximum_timer_for_starship_energy_regeneration                      = 3
+
+enemy_stride                                                        = 4*5   ; offset in bytes to get from one enemy
+                                                                            ; angle definition to the next.
+                                                                            ; five segments, 4 bytes for each segment.
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
@@ -490,7 +492,7 @@ starship_high                               = $34   ; }
 cache_start_high                            = $34   ; } same location
 
 enemy_number                                = $35   ; Enemy definition 0-5
-enemy_stride                                = $36   ; offset in bytes to get from one enemy angle definition to the next
+unused36                                    = $36   ;
 
 irq_counter                                 = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 
@@ -680,7 +682,7 @@ loader_string                           = $1700
 
 ; in game:
 enemy_explosion_tables                  = $1600
-enemy_cache_b                           = enemy_explosion_tables + maximum_number_of_enemy_ships * 64
+enemy_cache_b                           = enemy_explosion_tables + maximum_number_of_enemy_ships * number_of_bytes_per_enemy_explosion
     ; (x, y, start_angle, length) = 4 bytes
     ; 4 bytes * 5 arcs * 32 angles = 640 bytes
 
@@ -691,9 +693,9 @@ unused3 = end_of_tables                 ; 128 bytes free
 unused3_end = unused3 + 128             ;
 
 ; addresses on-screen
-starship_top_screen_address             = $6b38
-starship_bottom_screen_address          = $6c78
-energy_screen_address                   = $6e48
+starship_top_screen_address             = $6b38 ; starship in centre of screen
+starship_bottom_screen_address          = $6c78 ; starship in centre of screen
+energy_screen_address                   = $6e48 ; 'ENERGY'
 
 ; This is the delay between interrupts. Set to (number_of_pixel_rows * 64) - 2.
 ; Each frame is 312 pixel rows. Interrupt every sixteen pixel rows.
@@ -1193,7 +1195,7 @@ sound_11
     !byte $10, 0                                                      ; channel 0 (white noise)
     !byte 3, 0                                                        ; envelope 3
     !byte 7, 0                                                        ; pitch 7
-    !byte $1e, 0                                                      ; duration 30
+    !byte 20, 0                                                       ; duration 20
 
 !if >sound_1 != >sound_11 {
     !error "alignment error", sound_1, sound_11;
@@ -3232,9 +3234,6 @@ debug_plot_enemy
     beq first_ship_type                                               ;
 
     ; second enemy ship type
-    ldx enemy_number                                                  ;
-    lda enemy_strides,x                                               ;
-    sta enemy_stride                                                  ;
     lda temp11                                                        ; angle
     clc                                                               ;
     adc #32                                                           ; move to second ship definition
@@ -3242,10 +3241,6 @@ debug_plot_enemy
     bne got_ship                                                      ; ALWAYS branch
 
 first_ship_type
-    ldx enemy_number                                                  ;
-    dex                                                               ;
-    lda enemy_strides,x                                               ;
-    sta enemy_stride                                                  ;
     ldx temp11                                                        ; angle
 got_ship
     lda enemy_address_low,x                                           ;
@@ -3280,7 +3275,7 @@ plot_enemy_loop
     jsr plot_segment                                                  ;
 
     ldy plot_enemy_progress                                           ;
-    cpy enemy_stride                                                  ; stride between angles (in bytes)
+    cpy #enemy_stride                                                 ; stride between angles (in bytes)
     bcc plot_enemy_loop                                               ;
 
 plot_enemy_done
@@ -3340,25 +3335,6 @@ enemy_table_high
     !byte >enemy3
     !byte >enemy4
     !byte >enemy5
-
-; The number of arcs that define the enemy
-enemy_arc_counts
-    !byte 5     ; enemy 0
-    !byte 5     ; enemy 1
-    !byte 5     ; enemy 2
-    !byte 5     ; enemy 3
-    !byte 5     ; enemy 4
-    !byte 5     ; enemy 5
-
-; the stride of an enemy is the number of bytes to get from the definition of one angle
-; of the enemy to the next. Four times the number of arcs of the enemy.
-enemy_strides
-    !byte 4*5   ; enemy 0
-    !byte 4*5   ; enemy 1
-    !byte 4*5   ; enemy 2
-    !byte 4*5   ; enemy 3
-    !byte 4*5   ; enemy 4
-    !byte 4*5   ; enemy 5
 
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
@@ -3639,14 +3615,14 @@ add_strides
     jsr store_enemy_address                                           ;
     lda lookup_low                                                    ;
     clc                                                               ;
-    adc enemy_stride                                                  ;
+    adc #enemy_stride                                                 ;
     sta lookup_low                                                    ;
     bcc +                                                             ;
     inc lookup_high                                                   ;
 +
     lda end_low                                                       ;
     clc                                                               ;
-    adc enemy_stride                                                  ;
+    adc #enemy_stride                                                 ;
     sta end_low                                                       ;
     bcc +                                                             ;
     inc end_high                                                      ;
@@ -3657,7 +3633,7 @@ add_strides
 backup_lookup_pointer
     lda lookup_low                                                    ;
     sec                                                               ;
-    sbc enemy_stride                                                  ;
+    sbc #enemy_stride                                                 ;
     sta lookup_low                                                    ;
     bcs +                                                             ;
     dec lookup_high                                                   ;
@@ -3687,12 +3663,6 @@ fill_enemy_cache
 
 ; ----------------------------------------------------------------------------------
 fill_one_enemy_cache
-    ldx enemy_number                                                  ;
-    lda enemy_arc_counts,x                                            ;
-    asl                                                               ;
-    asl                                                               ;
-    sta enemy_stride                                                  ; four bytes * number of arcs
-
     ; set lookup pointer
     ldx enemy_number                                                  ;
     lda enemy_table_low,x                                             ;
@@ -3708,7 +3678,7 @@ fill_one_enemy_cache
     lda (lookup_low),y                                                ;
     sta (end_low),y                                                   ;
     iny                                                               ;
-    cpy enemy_stride                                                  ;
+    cpy #enemy_stride                                                 ;
     bne -                                                             ;
 
     jsr add_strides                                                   ;
@@ -3726,7 +3696,7 @@ fill_one_enemy_cache
 -
     jsr read_enemy_arc                                                ;
     jsr convert_enemy_5to7                                            ;
-    cpy enemy_stride                                                  ;
+    cpy #enemy_stride                                                 ;
     bne -                                                             ;
 
     jsr store_enemy_address                                           ;
@@ -3735,7 +3705,7 @@ fill_one_enemy_cache
     ; move destination pointer onwards
     lda end_low                                                       ;
     clc                                                               ;
-    adc enemy_stride                                                  ;
+    adc #enemy_stride                                                 ;
     sta end_low                                                       ;
     bcc +                                                             ;
     inc end_high                                                      ;
@@ -3755,7 +3725,7 @@ fill_one_enemy_cache
 -
     jsr read_enemy_arc                                                ;
     jsr convert_enemy_8to31                                           ;
-    cpy enemy_stride                                                  ;
+    cpy #enemy_stride                                                 ;
     bne -                                                             ;
 
     jsr add_strides                                                   ;
@@ -3854,23 +3824,23 @@ convert_enemy_8to31
 
 ; ----------------------------------------------------------------------------------
 enemy_explosion_address_low_table
-    !byte <(enemy_explosion_tables + $0000)                           ;
-    !byte <(enemy_explosion_tables + $0040)                           ;
-    !byte <(enemy_explosion_tables + $0080)                           ;
-    !byte <(enemy_explosion_tables + $00c0)                           ;
-    !byte <(enemy_explosion_tables + $0100)                           ;
-    !byte <(enemy_explosion_tables + $0140)                           ;
-    !byte <(enemy_explosion_tables + $0180)                           ;
-    !byte <(enemy_explosion_tables + $01c0)                           ;
+    !byte <(enemy_explosion_tables + 0 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 1 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 2 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 3 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 4 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 5 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 6 * number_of_bytes_per_enemy_explosion)   ;
+    !byte <(enemy_explosion_tables + 7 * number_of_bytes_per_enemy_explosion)   ;
 enemy_explosion_address_high_table
-    !byte >(enemy_explosion_tables + $0000)                           ;
-    !byte >(enemy_explosion_tables + $0040)                           ;
-    !byte >(enemy_explosion_tables + $0080)                           ;
-    !byte >(enemy_explosion_tables + $00c0)                           ;
-    !byte >(enemy_explosion_tables + $0100)                           ;
-    !byte >(enemy_explosion_tables + $0140)                           ;
-    !byte >(enemy_explosion_tables + $0180)                           ;
-    !byte >(enemy_explosion_tables + $01c0)                           ;
+    !byte >(enemy_explosion_tables + 0 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 1 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 2 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 3 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 4 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 5 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 6 * number_of_bytes_per_enemy_explosion)   ;
+    !byte >(enemy_explosion_tables + 7 * number_of_bytes_per_enemy_explosion)   ;
 enemy_explosion_piece_ageing_table
     !byte 15, 17, 19, 21                                              ;
 starship_explosion_piece_ageing_table
@@ -3905,39 +3875,36 @@ get_starship_address
 plot_starship_heading
     jsr get_starship_address                                          ;
 
-    ; plot top half (14 times across the screen)
+    ; plot top half of starship sprite 13 times across the screen
     lda #<$5a88                                                       ;
     sta end_low                                                       ;
     lda #>$5a88                                                       ;
-    sta end_high                                                      ;
+    sta end_high                                                      ; screen address (destination)
 
-    jsr copy_half                                                     ;
+    jsr plot_half_starship_13_times                                   ;
 
-    ; plot bottom half (14 times across the screen)
+    ; plot bottom half of starship sprite 13 times across the screen
     lda #<$5bc8                                                       ;
     sta end_low                                                       ;
     lda #>$5bc8                                                       ;
-    sta end_high                                                      ;
-    lda starship_low                                                  ;
-    clc                                                               ;
-    adc #16                                                           ;
-    sta starship_low                                                  ;
-    bcc +
-    inc starship_high                                                 ;
-+
+    sta end_high                                                      ; screen address (destination)
     ; fall through...
 
-copy_half
-    ldx #13                                                           ;
+plot_half_starship_13_times
+    ldx #13                                                           ; loop 13 times
+    !byte $2c                                                         ; opcode for 'bit abs' to skip the next instruction
+plot_half_starship_once
+    ldx #1
 --
-    ldy #15                                                           ;
+    ldy #15                                                           ; 16 bytes = half a starship
 -
-    lda (starship_low),y                                              ;
-    sta (end_low),y                                                   ;
+    lda (starship_low),y                                              ; copy starship definition
+    eor (end_low),y                                                   ; (eor)
+    sta (end_low),y                                                   ; to screen
     dey                                                               ;
-    bpl -                                                             ;
+    bpl -                                                             ; for 16 bytes
 
-    lda end_low                                                       ;
+    lda end_low                                                       ; move screen address forwards
     clc                                                               ;
     adc #$18                                                          ;
     sta end_low                                                       ;
@@ -3946,30 +3913,33 @@ copy_half
 +
     dex                                                               ;
     bne --                                                            ;
-    rts                                                               ;
 
+    lda starship_low                                                  ;
+    clc                                                               ;
+    adc #16                                                           ;
+    sta starship_low                                                  ;
+    bcc +
+    inc starship_high                                                 ;
++
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-plot_starship
+plot_starship_at_centre_of_screen
     jsr get_starship_address                                          ;
 
-    ldy #0                                                            ; Y = 0
-plot_starship_top_loop
-    lda (starship_low),y                                              ; copy starship sprite
-    eor starship_top_screen_address,y                                 ; } draw top half
-    sta starship_top_screen_address,y                                 ; }
-    iny                                                               ;
-    cpy #16                                                           ;
-    bne plot_starship_top_loop                                        ;
+    ; plot top half of starship sprite
+    lda #<starship_top_screen_address                                 ;
+    sta end_low                                                       ;
+    lda #>starship_top_screen_address                                 ;
+    sta end_high                                                      ; screen address (destination)
+    jsr plot_half_starship_once                                       ;
 
-plot_starship_bottom_loop
-    lda (starship_low),y                                              ; copy starship sprite
-    eor starship_bottom_screen_address - 16,y                         ; } draw bottom half
-    sta starship_bottom_screen_address - 16,y                         ; }
-    iny                                                               ;
-    cpy #32                                                           ;
-    bne plot_starship_bottom_loop                                     ;
-    rts                                                               ;
+    ; plot bottom half of starship sprite
+    lda #<starship_bottom_screen_address                              ;
+    sta end_low                                                       ;
+    lda #>starship_bottom_screen_address                              ;
+    sta end_high                                                      ; screen address (destination)
+    jmp plot_half_starship_once                                       ;
 
 ; ----------------------------------------------------------------------------------
 explode_starship
@@ -3995,7 +3965,7 @@ skip19
     ora #$10                                                          ;
     sta rnd_1                                                         ;
     jsr turn_scanner_to_static                                        ;
-    jmp plot_starship                                                 ;
+    jmp plot_starship_at_centre_of_screen                             ;
 
 ; ----------------------------------------------------------------------------------
 plot_starship_explosion
@@ -4047,6 +4017,13 @@ skip21
     bne loop6                                                         ;
     rts                                                               ;
 
+; ----------------------------------------------------------------------------------
+; On Entry:
+;   A       = angle
+;   temp11  = radius
+; On Exit:
+;   x_pixels = radius * sin(angle)
+;   y_pixels = radius * cos(angle)
 ; ----------------------------------------------------------------------------------
 sine_and_cosine_times_radius
     ; calculate sine
@@ -4285,7 +4262,7 @@ skip_add_explosion_index
     sta temp5                                                         ;
     lda enemy_explosion_address_high_table - 1,y                      ;
     sta temp6                                                         ;
-    ldy #number_of_bytes_per_enemy_explosion                          ;
+    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
 loop_initialise_explosion
     jsr random_number_generator                                       ;
 
@@ -4349,17 +4326,18 @@ update_enemy_explosion_pieces
 skip25
     sta create_new_enemy_explosion_piece_after_one_dies               ;
     jsr plot_enemy_ship_or_explosion_segments                         ;
-    ldy #number_of_bytes_per_enemy_explosion                          ;
+
+    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
 update_enemy_explosion_pieces_loop
     dey                                                               ;
     lda (temp5),y                                                     ; age rate index, angle etc
-    beq move_to_next_piece                                            ;
-    jsr plot_enemy_explosion_fragment                                 ; unplot?
+    beq move_to_next_piece                                            ; if zero, then done
+    jsr plot_enemy_explosion_fragment                                 ; unplot, increment Y
     lda (temp5),y                                                     ;
-    and #3                                                            ; extract age rate index
+    and #3                                                            ; extract 'age rate index'
     tax                                                               ;
     lda enemy_explosion_piece_ageing_table,x                          ; get actual ageing rate from table
-    dey                                                               ;
+    dey                                                               ; first byte
     clc                                                               ;
     adc (temp5),y                                                     ; add to age
     bcc piece_still_active                                            ;
@@ -4388,6 +4366,7 @@ move_to_next_piece_after_dey
 move_to_next_piece
     dey                                                               ;
     bpl update_enemy_explosion_pieces_loop                            ;
+
     ldx temp7                                                         ;
     rts                                                               ;
 
@@ -4395,7 +4374,7 @@ move_to_next_piece
 plot_enemy_ship_explosion
     jsr plot_enemy_ship_or_explosion_segments                         ;
 
-    ldy #number_of_bytes_per_enemy_explosion                          ;
+    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
 plot_enemy_ship_explosion_loop
     dey                                                               ;
     lda (temp5),y                                                     ;
@@ -4409,56 +4388,71 @@ move_to_next_explosion_piece
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Format of enemy explosion bytes:
+;
+; first byte: the current age is in the bottom six bits.
+;   the top two bits define the piece size:
+;       00xxxxxx = 2x2 pixels
+;       01xxxxxx = 2x1 pixels
+;       10xxxxxx = 1x1 pixel
+;       11xxxxxx = 1x1 pixel
+;
+;   a zero byte indicates 'done'.
+;
+; second byte:
+;   top six bits are the radius
+;   bottom two bits are the 'age rate index' from which the ageing rate is derived via an array lookup
+; ----------------------------------------------------------------------------------
 plot_enemy_explosion_fragment
-    lda (temp5),y                                                     ;
-    and #$c0                                                          ;
+    lda (temp5),y                                                     ; read first byte
+    and #$c0                                                          ; get piece size
     sta segment_angle                                                 ;
-    iny                                                               ;
-    lda (temp5),y                                                     ;
+    iny                                                               ; move to second byte
+
+    lda (temp5),y                                                     ; read second byte: top 6 bits are the radius
+    lsr                                                               ; so divide by four
     lsr                                                               ;
-    lsr                                                               ;
-    sta temp11                                                        ;
+    sta temp11                                                        ; temp11 = radius
     tya                                                               ;
-    lsr                                                               ;
+    lsr                                                               ; angle = piece offset/2 = piece index (0-31)
 
     jsr sine_and_cosine_times_radius                                  ;
 
     lda x_pixels                                                      ; x = origin_x + radius * sin(piece)
+    tax                                                               ; remember offset from centre
     clc                                                               ;
-    adc temp10                                                        ;
+    adc temp10                                                        ; centre of object X coordinate
     sta x_pixels                                                      ;
 
+    ; check for wrapping boundary X
+    txa                                                               ; recall offset from centre (=diffX)
+    bcc +                                                             ;
+    eor #$ff                                                          ; invert coordinate to get abs(diffX), approximately
++
+    cmp #$20                                                          ; close?
+    bcs return16                                                      ; if not close then we wrapped around the edge of the play area, so branch (return)
+
     lda y_pixels                                                      ; y = origin_y + radius * cos(piece)
+    tax                                                               ; remember old y
     clc                                                               ;
-    adc temp9                                                         ;
+    adc temp9                                                         ; centre of object Y coordinate
     sta y_pixels                                                      ;
+
+    ; check for wrapping boundary Y
+    txa                                                               ; recall offset from centre (=diffY)
+    bcc +                                                             ;
+    eor #$ff                                                          ; invert coordinate to get abs(diffY), approximately
++
+    cmp #$20                                                          ; close?
+    bcs return16                                                      ; if not close then we wrapped around the edge of the play area, so branch (return)
 
     sty temp11                                                        ; remember Y
 
-    ; draw a dot or two, or four
+    ; draw a dot (or two, or four)
     ldx x_pixels                                                      ;
-    ; boundary check X
-    txa                                                               ;
-    sec                                                               ;
-    sbc temp10                                                        ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs leave_after_restoring_y                                       ;
 
-    ; boundary check Y
-    lda y_pixels                                                      ;
-    sec                                                               ;
-    sbc temp9                                                         ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs leave_after_restoring_y                                       ;
-    ; fall through...
     ; TODO: merge with plot_variable_size_fragment
-    lda segment_angle                                                 ;
+    lda segment_angle                                                 ; first byte
     bmi plot_1x1_a                                                    ;
     bne plot_2x1_a                                                    ;
 plot_2x2_a
@@ -5412,7 +5406,7 @@ escape_capsule_launch_direction
 ; ----------------------------------------------------------------------------------
 initialise_game_screen
     jsr initialise_starship_explosion_pieces                          ;
-    jsr plot_starship                                                 ;
+    jsr plot_starship_at_centre_of_screen                             ;
     ldx #regular_string_index_energy_string                           ;
     jsr print_regular_string                                          ;
     jsr plot_energy_bar_edges                                         ;
@@ -10203,7 +10197,7 @@ envelope2
 
 ; Envelope 3, used by sound_11 (Exploding enemy ship)
 envelope3
-    !byte 3, $86, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78
+    !byte 3, $84, $ff, 0  , 1  , 3  , 1  , 2  , $7f, $ff, $fd, $fd, $7e, $78
 
 ; Envelope 4, used by sound_5 (Enemy ship hit by torpedo)
 ;                 and sound_6 (Starship hit by torpedo)
