@@ -8,7 +8,8 @@
 ; http://www.level7.org.uk/miscellany/starship-command-disassembly.txt
 ;
 ; The Level 7 disassembly contains the following notes which I reproduce here
-; with minor corrections, which are very useful in understanding the code:
+; with minor corrections and updates, which are very useful in understanding the
+; code:
 ;
 ; "
 ; Technical notes
@@ -208,7 +209,7 @@
 ;        +2 y_fraction
 ;        +3 y_pixels
 ;
-; Enemy explosion pieces are stored array 'enemy_explosion_tables', 2 bytes per piece:
+; Enemy explosion pieces are stored arrays 'enemy_explosion_ages' and 'enemy_explosion_radii', so 2 bytes per piece:
 ;
 ;        +0 age (bottom six bits), size of piece (top two bits)
 ;        +1 radius (top six bits), speed of ageing (bottom two bits)
@@ -260,7 +261,8 @@ size_of_enemy_ship_for_collisions_with_torpedoes                    = 5
 maximum_starship_explosion_countdown                                = 80
 enemy_full_speed                                                    = 24
 
-number_of_bytes_per_enemy_explosion                                 = 64
+number_of_enemy_explosion_pieces                                    = 32
+number_of_bytes_per_enemy_explosion                                 = 2 * number_of_enemy_explosion_pieces
 
 starship_maximum_x_for_collisions_with_enemy_torpedoes              = $7f + 7
 starship_minimum_x_for_collisions_with_enemy_torpedoes              = $7f - 7
@@ -492,7 +494,7 @@ starship_high                               = $34   ; }
 cache_start_high                            = $34   ; } same location
 
 enemy_number                                = $35   ; Enemy definition 0-5
-unused36                                    = $36   ;
+explosion_loop_counter                      = $36   ;
 
 irq_counter                                 = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 
@@ -516,8 +518,8 @@ temp1_low                                   = $9a
 temp1_high                                  = $9b
 temp3                                       = $9c
 temp4                                       = $9d
-temp5                                       = $9e
-temp6                                       = $9f
+unused9e                                    = $9e
+unused9f                                    = $9f
 temp7                                       = $a0
 
 score_delta_low                             = $a1
@@ -641,15 +643,16 @@ enemy_ships_type                        = $0400 +  8 * maximum_number_of_enemy_s
 enemy_ships_firing_cooldown             = $0400 +  9 * maximum_number_of_enemy_ships    ; i.e. starts at $0448
 enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_ships    ; i.e. starts at $0450
 
+enemy_ships_end                         = $0400 + 11 * maximum_number_of_enemy_ships    ; i.e. ends at $0458
+
 ; stride
 stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
 
 ; 64 table entries. Each entry has a high byte and a low byte.
 ; The first  32 entries are the address of each angle of the first enemy type.
 ; The second 32 entries are the address of each angle of the second enemy type.
-; These addresses depend upon the number of arcs in each enemy,
-; so are filled in via code (in fill_enemy_cache).
-enemy_address_low                       = $0400 + 11 * maximum_number_of_enemy_ships    ; i.e. starts at $0458
+; These addresses are filled in via code (in fill_enemy_cache). TODO: Make static?
+enemy_address_low                       = enemy_ships_end                               ; i.e. starts at $0458
 enemy_address_high                      = enemy_address_low + 64                        ; i.e. starts at $0498
 enemy_address_high_end                  = enemy_address_high + 64                       ; i.e. end    at $04d7
 
@@ -660,12 +663,14 @@ enemy_cache_a                           = enemy_address_high_end
 
 frontier_star_positions_y               = enemy_cache_a + 640                           ; to $7d8
 
-unused1 = frontier_star_positions_y + 128                                               ; UNUSED: 40 bytes free to $800
+unused1 = frontier_star_positions_y + 128        ; UNUSED: 40 bytes free to $800
 
 ; $0800-$08ff   reserved for sound system
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
 squares1_high                           = $0b00  ; } (1024 bytes total)
+
+; TODO: Unused: $d01-dff
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
 squares2_high                           = $1000  ; } (1024 bytes total)
@@ -677,20 +682,22 @@ xbit_table                              = $1500  ; }
 
 ; in front end:
 frontier_star_positions_x               = $1600  ; 192 bytes.
-unused2 = frontier_star_positions_x + 192        ; space in front end only
-loader_string                           = $1700
+loader_string                           = $1680
 
 ; in game:
-enemy_explosion_tables                  = $1600
-enemy_cache_b                           = enemy_explosion_tables + maximum_number_of_enemy_ships * number_of_bytes_per_enemy_explosion
-    ; (x, y, start_angle, length) = 4 bytes
-    ; 4 bytes * 5 arcs * 32 angles = 640 bytes
+; each byte in 'enemy_explosion_ages' array stores information about an enemy explosion piece:
+;        age (bottom six bits), size of piece (top two bits)
+; each byte in 'enemy_explosion_radii' array stores information about an enemy explosion piece:
+;        radius (top six bits), speed of ageing (bottom two bits)
 
+enemy_explosion_ages                    = $1600
+enemy_explosion_radii                   = enemy_explosion_ages + maximum_number_of_enemy_ships * number_of_enemy_explosion_pieces
+
+; (x, y, start_angle, length) = 4 bytes
+; 4 bytes * 5 arcs * 32 angles = 640 bytes
+enemy_cache_b                           = enemy_explosion_radii + maximum_number_of_enemy_ships * number_of_enemy_explosion_pieces
 end_of_tables = enemy_cache_b + 640
 ;!warn "end of tables: ", end_of_tables
-
-unused3 = end_of_tables                 ; 128 bytes free
-unused3_end = unused3 + 128             ;
 
 ; addresses on-screen
 starship_top_screen_address             = $6b38 ; starship in centre of screen
@@ -706,9 +713,144 @@ ShortTimerValue  = 16*64 - 2
 ; code and data
 ; ----------------------------------------------------------------------------------
 
-* = unused3_end
+* = end_of_tables
 
 load_addr
+
+; ----------------------------------------------------------------------------------
+; Exploding starship 1
+; ----------------------------------------------------------------------------------
+sound_1
+    !byte $11, 0                                                      ; channel 1
+    !byte 0, 0                                                        ; volume 0 (silent)
+sound_1_pitch
+    !byte 0, 0                                                        ; pitch for the white noise of sound_2
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Exploding starship 2
+; ----------------------------------------------------------------------------------
+sound_2
+    !byte $10, 0                                                      ; channel 0 (white noise)
+sound_2_volume_low
+    !byte 0                                                           ; volume
+sound_2_volume_high
+    !byte 0
+    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_3
+    !byte $13, 0                                                      ; channel 3
+    !byte 1, 0                                                        ; envelope 1
+    !byte $80, 0                                                      ; pitch 128
+    !byte 4, 0                                                        ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Enemy ship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_4
+    !byte $12, 0                                                      ; channel 2
+    !byte 2, 0                                                        ; envelope 2
+    !byte $c0, 0                                                      ; pitch 192
+!if elk {
+    ; echo effect is totally wasted on Electron
+    !byte $4, 0                                                      ; duration 4
+} else {
+    !byte $1f, 0                                                      ; duration 31
+}
+; ----------------------------------------------------------------------------------
+; Enemy ship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_5
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $40, 0                                                      ; pitch 64
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_6
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $be, 0                                                      ; pitch 190
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Enemy ships collided with each other
+; ----------------------------------------------------------------------------------
+sound_7
+    !byte $13, 0                                                      ; channel 3
+    !byte 2, 0                                                        ; envelope 2
+    !byte $6c, 0                                                      ; pitch 108
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Escape capsule launched
+; ----------------------------------------------------------------------------------
+sound_8
+    !byte $13, 0                                                      ; channel 3
+sound_8_volume_low
+    !byte 0                                                           ; volume
+sound_8_volume_high
+    !byte 0                                                           ;
+    !byte $64, 0                                                      ; pitch 100
+    !byte 4  , 0                                                      ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Low energy warning
+; ----------------------------------------------------------------------------------
+sound_9
+    !byte $11, 0                                                      ; channel 1
+    !byte $f1, $ff                                                    ; volume 15
+    !byte $c8, 0                                                      ; duration 200
+    !byte 2, 0                                                        ; duration 2
+
+!if elk=0 {
+; ----------------------------------------------------------------------------------
+; Starship engine
+; ----------------------------------------------------------------------------------
+sound_10
+    !byte $11, 0                                                      ; channel 1
+sound_10_volume_low
+    !byte 0                                                           ; volume
+sound_10_volume_high
+    !byte 0                                                           ;
+sound_10_pitch
+    !byte 0, 0                                                        ; pitch
+    !byte 4, 0                                                        ; duration 4
+}
+
+; ----------------------------------------------------------------------------------
+; Exploding enemy ship
+; ----------------------------------------------------------------------------------
+sound_11
+    !byte $10, 0                                                      ; channel 0 (white noise)
+    !byte 3, 0                                                        ; envelope 3
+    !byte 7, 0                                                        ; pitch 7
+    !byte 20, 0                                                       ; duration 20
+
+!if >sound_1 != >sound_11 {
+    !error "alignment error", sound_1, sound_11;
+}
+sounds = sound_1 & 0xff00
+
+; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
+angle_result_table_8
+    !byte $00,$18,$00,$08,$10,$18,$10,$08
+angle_result_table_9
+    !byte $1f,$19,$01,$07,$11,$17,$0f,$09
+angle_result_table_10
+    !byte $1e,$1a,$02,$06,$12,$16,$0e,$0a
+angle_result_table_11
+    !byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
+angle_result_table_12
+    !byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
+
+!align 255, 0
 
 !macro start_keyboard_read {
 !if elk=0 {
@@ -1080,127 +1222,6 @@ segment_angle_to_y_deltas_table
     !byte $0     ; 29  y0
     !byte $ff    ; 30  y-
     !byte $0     ; 31  y0
-
-; ----------------------------------------------------------------------------------
-; Exploding starship 1
-; ----------------------------------------------------------------------------------
-sound_1
-    !byte $11, 0                                                      ; channel 1
-    !byte 0, 0                                                        ; volume 0 (silent)
-sound_1_pitch
-    !byte 0, 0                                                        ; pitch for the white noise of sound_2
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Exploding starship 2
-; ----------------------------------------------------------------------------------
-sound_2
-    !byte $10, 0                                                      ; channel 0 (white noise)
-sound_2_volume_low
-    !byte 0                                                           ; volume
-sound_2_volume_high
-    !byte 0
-    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_3
-    !byte $13, 0                                                      ; channel 3
-    !byte 1, 0                                                        ; envelope 1
-    !byte $80, 0                                                      ; pitch 128
-    !byte 4, 0                                                        ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Enemy ship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_4
-    !byte $12, 0                                                      ; channel 2
-    !byte 2, 0                                                        ; envelope 2
-    !byte $c0, 0                                                      ; pitch 192
-!if elk {
-    ; echo effect is totally wasted on Electron
-    !byte $4, 0                                                      ; duration 4
-} else {
-    !byte $1f, 0                                                      ; duration 31
-}
-; ----------------------------------------------------------------------------------
-; Enemy ship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_5
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $40, 0                                                      ; pitch 64
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_6
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $be, 0                                                      ; pitch 190
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Enemy ships collided with each other
-; ----------------------------------------------------------------------------------
-sound_7
-    !byte $13, 0                                                      ; channel 3
-    !byte 2, 0                                                        ; envelope 2
-    !byte $6c, 0                                                      ; pitch 108
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Escape capsule launched
-; ----------------------------------------------------------------------------------
-sound_8
-    !byte $13, 0                                                      ; channel 3
-sound_8_volume_low
-    !byte 0                                                           ; volume
-sound_8_volume_high
-    !byte 0                                                           ;
-    !byte $64, 0                                                      ; pitch 100
-    !byte 4  , 0                                                      ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Low energy warning
-; ----------------------------------------------------------------------------------
-sound_9
-    !byte $11, 0                                                      ; channel 1
-    !byte $f1, $ff                                                    ; volume 15
-    !byte $c8, 0                                                      ; duration 200
-    !byte 2, 0                                                        ; duration 2
-
-!if elk=0 {
-; ----------------------------------------------------------------------------------
-; Starship engine
-; ----------------------------------------------------------------------------------
-sound_10
-    !byte $11, 0                                                      ; channel 1
-sound_10_volume_low
-    !byte 0                                                           ; volume
-sound_10_volume_high
-    !byte 0                                                           ;
-sound_10_pitch
-    !byte 0, 0                                                        ; pitch
-    !byte 4, 0                                                        ; duration 4
-}
-
-; ----------------------------------------------------------------------------------
-; Exploding enemy ship
-; ----------------------------------------------------------------------------------
-sound_11
-    !byte $10, 0                                                      ; channel 0 (white noise)
-    !byte 3, 0                                                        ; envelope 3
-    !byte 7, 0                                                        ; pitch 7
-    !byte 20, 0                                                       ; duration 20
-
-!if >sound_1 != >sound_11 {
-    !error "alignment error", sound_1, sound_11;
-}
-sounds = sound_1 & 0xff00
 
 !src "build/sc_text.a"
 
@@ -2197,15 +2218,15 @@ return7
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   enemy_ships_still_to_consider - index of current enemy
 plot_enemy_update_explosion
     ; update explosion
     ldy enemy_ships_still_to_consider                                 ;
-    lda enemy_ships_explosion_number - 1,y                            ;
+    lda enemy_ships_explosion_number - 1,y                            ; find explosion number
     tay                                                               ;
-    lda enemy_explosion_address_low_table - 1,y                       ;
-    sta temp5                                                         ;
-    lda enemy_explosion_address_high_table - 1,y                      ;
-    sta temp6                                                         ;
+    lda enemy_explosion_offset - 1,y                                  ; get array offset
+    tay                                                               ; Y=initial offset into explosions
     lda enemy_ship_was_previously_on_screen                           ; 0=previously on screen, $ff=otherwise
     bne not_previously_on_screen                                      ;
     dec enemy_ship_was_previously_on_screen                           ; set not previously on screen (=$ff)
@@ -2218,9 +2239,9 @@ not_previously_on_screen
 
     ; increment enemy velocity
     lda desired_velocity_for_intact_enemy_ships                       ;
-    cmp #enemy_full_speed                                             ; full speed
+    cmp #enemy_full_speed                                             ;
     bcs +                                                             ;
-    inc desired_velocity_for_intact_enemy_ships                       ;
+    inc desired_velocity_for_intact_enemy_ships                       ; new enemy ships are one faster than previous enemy ships
 +
     ; create new ship
     jmp initialise_enemy_ship                                         ;
@@ -2238,6 +2259,8 @@ retry_loop
 
 plot_enemy_ships_loop
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   X is index of enemy ship
 ; On Exit:
 ;   Preserves X
 ; ----------------------------------------------------------------------------------
@@ -2248,16 +2271,19 @@ try_plot_enemy_ship
     beq skip_enemy_altogether                                         ; if (already updated) then branch
 
     lda enemy_ships_on_screen,x                                       ;
-    bne not_on_screen_a                                               ;
+    bne skip_on_screen_a                                              ;
 
+    ; enemy is on screen
+    ; check if we are in danger zone
 !if (elk=0) or (elk+antiflicker=2) {
     ; check if we are in the danger zone, if so then skip this one
     lda enemy_ships_y_pixels,x                                        ;
     jsr is_in_danger_area                                             ;
     bcc skip_enemy_altogether                                         ; if in danger zone, skip this enemy
+                                                                      ; (for now) and try the next.
 }
 
-not_on_screen_a
+skip_on_screen_a
     ; DEBUG
     ; jsr debug_make_background_green
 
@@ -2266,6 +2292,7 @@ not_on_screen_a
     lda enemy_ships_energy,x                                          ;
     bne skip_explosion                                                ; if (non zero energy) then branch
 
+    ; explosion is happening, update it
     jsr plot_enemy_update_explosion                                   ;
 
 skip_explosion
@@ -3823,24 +3850,6 @@ convert_enemy_8to31
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-enemy_explosion_address_low_table
-    !byte <(enemy_explosion_tables + 0 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 1 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 2 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 3 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 4 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 5 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 6 * number_of_bytes_per_enemy_explosion)   ;
-    !byte <(enemy_explosion_tables + 7 * number_of_bytes_per_enemy_explosion)   ;
-enemy_explosion_address_high_table
-    !byte >(enemy_explosion_tables + 0 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 1 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 2 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 3 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 4 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 5 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 6 * number_of_bytes_per_enemy_explosion)   ;
-    !byte >(enemy_explosion_tables + 7 * number_of_bytes_per_enemy_explosion)   ;
 enemy_explosion_piece_ageing_table
     !byte 15, 17, 19, 21                                              ;
 starship_explosion_piece_ageing_table
@@ -4233,6 +4242,17 @@ not_a_segment
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+enemy_explosion_offset
+    !byte 0 * number_of_enemy_explosion_pieces                        ;
+    !byte 1 * number_of_enemy_explosion_pieces                        ;
+    !byte 2 * number_of_enemy_explosion_pieces                        ;
+    !byte 3 * number_of_enemy_explosion_pieces                        ;
+    !byte 4 * number_of_enemy_explosion_pieces                        ;
+    !byte 5 * number_of_enemy_explosion_pieces                        ;
+    !byte 6 * number_of_enemy_explosion_pieces                        ;
+    !byte 7 * number_of_enemy_explosion_pieces                        ;
+
+; ----------------------------------------------------------------------------------
 explode_enemy_ship
     lda enemy_ships_previous_on_screen,x                              ;
     bne skip_plotting                                                 ;
@@ -4252,31 +4272,31 @@ skip24
     cmp #maximum_number_of_explosions                                 ;
     beq skip_add_explosion_index                                      ; this branch can never happen?
     clc                                                               ;
-    adc #1                                                            ;
+    adc #1                                                            ; A is in range 1 to maximum_number_of_enemy_ships
 skip_add_explosion_index
     ; initialise explosion
-    ldy explosion_bits_still_to_consider                              ;
-    sta enemy_ships_explosion_number - 1,y                            ;
+    ldy explosion_bits_still_to_consider                              ; no. of explosions left to consider
+    sta enemy_ships_explosion_number - 1,y                            ; store explosion number
     tay                                                               ;
-    lda enemy_explosion_address_low_table - 1,y                       ;
-    sta temp5                                                         ;
-    lda enemy_explosion_address_high_table - 1,y                      ;
-    sta temp6                                                         ;
-    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
+    lda enemy_explosion_offset - 1,y                                  ; get array offset
+    tay                                                               ; initial offset into explosions
+
+    lda #number_of_enemy_explosion_pieces                             ;
+    sta explosion_loop_counter                                        ;
 loop_initialise_explosion
     jsr random_number_generator                                       ;
 
     ; enemy explosion initialisation
     and #$3f                                                          ;
-    sta (temp5),y                                                     ; random between 0 and 63
-    dey                                                               ;
+    sta enemy_explosion_radii,y                                       ; random radius between 0 and 15, and random ageing rate
     lda rnd_1                                                         ;
     and #$3f                                                          ;
     clc                                                               ;
     adc #$68                                                          ;
-    sta (temp5),y                                                     ; random between 104 to 167
-    dey                                                               ;
-    bpl loop_initialise_explosion                                     ;
+    sta enemy_explosion_ages,y                                        ; random between 104 to 167, ie. random initial age 26-41 and random size of piece
+    iny                                                               ;
+    dec explosion_loop_counter                                        ;
+    bne loop_initialise_explosion                                     ;
 
     ; score points for destroying enemy ship
     lda #1                                                            ;
@@ -4317,7 +4337,29 @@ debug_score_points
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+;
+; On Entry:
+;   Y is the initial index into the enemy_explosion_ages & _radii arrays
+;
+; Format of enemy explosion bytes:
+;
+; 'enemy_explosion_ages' byte:
+;       the current age in frames.
+;       the top two bits also determine the piece size:
+;           00xxxxxx = 2x2 pixels
+;           01xxxxxx = 2x1 pixels
+;           10xxxxxx = 1x1 pixel
+;           11xxxxxx = 1x1 pixel
+;
+;       a zero byte indicates 'done', at which point the second byte holds a flag
+;           indicating whether we want to create a new explosion piece
+;
+; 'enemy_explosion_ages' byte:
+;       top six bits are the radius
+;       bottom two bits are the 'age rate index' from which the ageing rate is derived via an array lookup
+; ----------------------------------------------------------------------------------
 update_enemy_explosion_pieces
+    sty explosion_piece_index                                         ;
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     cmp #frame_of_enemy_ship_explosion_after_which_no_collisions      ;
     lda #1                                                            ; create new explosion pieces when old ones die
@@ -4327,101 +4369,96 @@ skip25
     sta create_new_enemy_explosion_piece_after_one_dies               ;
     jsr plot_enemy_ship_or_explosion_segments                         ;
 
-    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
+explosion_piece_index = * + 1
+    ldy #0                                                            ; Self modifying code
+
+    lda #number_of_enemy_explosion_pieces - 1                         ;
+    sta explosion_loop_counter                                        ;
 update_enemy_explosion_pieces_loop
-    dey                                                               ;
-    lda (temp5),y                                                     ; age rate index, angle etc
+    lda enemy_explosion_ages,y                                        ; current age and size
     beq move_to_next_piece                                            ; if zero, then done
     jsr plot_enemy_explosion_fragment                                 ; unplot, increment Y
-    lda (temp5),y                                                     ;
+    lda enemy_explosion_radii,y                                       ; current radius and age rate index
     and #3                                                            ; extract 'age rate index'
     tax                                                               ;
     lda enemy_explosion_piece_ageing_table,x                          ; get actual ageing rate from table
-    dey                                                               ; first byte
     clc                                                               ;
-    adc (temp5),y                                                     ; add to age
+    adc enemy_explosion_ages,y                                        ; add to age
     bcc piece_still_active                                            ;
     lda create_new_enemy_explosion_piece_after_one_dies               ;
-    sta (temp5),y                                                     ; store flag to say if we will create a new piece
+    sta enemy_explosion_ages,y                                        ; stores 1 (new fragments are 2x2, age=1) or 0 if we don't want another piece
     beq move_to_next_piece                                            ;
+
+    ; create new explosion piece
     jsr random_number_generator                                       ;
-    lsr                                                               ;
-    and #$3f                                                          ;
-    iny                                                               ;
-    sta (temp5),y                                                     ;
-    bne move_to_next_piece_after_dey                                  ; ALWAYS branch
+    lsr                                                               ; TODO: redundant? or not enough randomness in the low bit??
+    and #$3f                                                          ; top six bits are new initial radius (0-15)
+    sta enemy_explosion_radii,y                                       ;
+    bne move_to_next_piece                                            ; ALWAYS branch
 
 piece_still_active
-    sta (temp5),y                                                     ; store updated age
-    iny                                                               ;
+    sta enemy_explosion_ages,y                                        ; store updated age
     inx                                                               ;
     txa                                                               ;
     asl                                                               ;
-    asl                                                               ;
+    asl                                                               ; A = X*4 = age rate index * 4
     clc                                                               ;
-    adc (temp5),y                                                     ; add to random angle etc
-    sta (temp5),y                                                     ;
-move_to_next_piece_after_dey
-    dey                                                               ;
+    adc enemy_explosion_radii,y                                       ; add to radius etc
+    sta enemy_explosion_radii,y                                       ;
 move_to_next_piece
-    dey                                                               ;
+    iny                                                               ;
+    dec explosion_loop_counter                                        ;
     bpl update_enemy_explosion_pieces_loop                            ;
 
     ldx temp7                                                         ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   enemy_ships_still_to_consider - the enemy ship this explosion belongs to
+; ----------------------------------------------------------------------------------
 plot_enemy_ship_explosion
     jsr plot_enemy_ship_or_explosion_segments                         ;
 
-    ldy #number_of_bytes_per_enemy_explosion - 1                      ;
+    lda #number_of_enemy_explosion_pieces - 1                         ;
+    sta explosion_loop_counter                                        ;
+
+    ldy enemy_ships_still_to_consider                                 ;
+    lda enemy_ships_explosion_number - 1,y                            ; find explosion number
+    tay                                                               ;
+    lda enemy_explosion_offset - 1,y                                  ; get array offset
+    tay                                                               ; initial offset into explosions
+
 plot_enemy_ship_explosion_loop
-    dey                                                               ;
-    lda (temp5),y                                                     ;
+    lda enemy_explosion_ages,y                                        ; age
     beq move_to_next_explosion_piece                                  ;
-    jsr plot_enemy_explosion_fragment                                 ;
-    dey                                                               ;
+    jsr plot_enemy_explosion_fragment                                 ; plot fragment
 move_to_next_explosion_piece
-    dey                                                               ;
+    iny                                                               ;
+    dec explosion_loop_counter                                        ;
     bpl plot_enemy_ship_explosion_loop                                ;
-    ldx temp7                                                         ;
+
+    ldx temp7                                                         ; restore X
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; Format of enemy explosion bytes:
-;
-; first byte: the current age is in the bottom six bits.
-;   the top two bits define the piece size:
-;       00xxxxxx = 2x2 pixels
-;       01xxxxxx = 2x1 pixels
-;       10xxxxxx = 1x1 pixel
-;       11xxxxxx = 1x1 pixel
-;
-;   a zero byte indicates 'done'.
-;
-; second byte:
-;   top six bits are the radius
-;   bottom two bits are the 'age rate index' from which the ageing rate is derived via an array lookup
-; ----------------------------------------------------------------------------------
 plot_enemy_explosion_fragment
-    lda (temp5),y                                                     ; read first byte
-    and #$c0                                                          ; get piece size
+    lda enemy_explosion_ages,y                                        ; read ages byte
+    and #$c0                                                          ; extract piece size
     sta segment_angle                                                 ;
-    iny                                                               ; move to second byte
 
-    lda (temp5),y                                                     ; read second byte: top 6 bits are the radius
+    lda enemy_explosion_radii,y                                       ; read radius byte: top 6 bits are the radius
     lsr                                                               ; so divide by four
     lsr                                                               ;
     sta temp11                                                        ; temp11 = radius
-    tya                                                               ;
-    lsr                                                               ; angle = piece offset/2 = piece index (0-31)
 
+    lda explosion_loop_counter                                        ; angle = piece piece index (0-31)
     jsr sine_and_cosine_times_radius                                  ;
 
     lda x_pixels                                                      ; x = origin_x + radius * sin(piece)
     tax                                                               ; remember offset from centre
     clc                                                               ;
-    adc temp10                                                        ; centre of object X coordinate
+    adc temp10                                                        ; add centre of object X coordinate
     sta x_pixels                                                      ;
 
     ; check for wrapping boundary X
@@ -4435,7 +4472,7 @@ plot_enemy_explosion_fragment
     lda y_pixels                                                      ; y = origin_y + radius * cos(piece)
     tax                                                               ; remember old y
     clc                                                               ;
-    adc temp9                                                         ; centre of object Y coordinate
+    adc temp9                                                         ; add centre of object Y coordinate
     sta y_pixels                                                      ;
 
     ; check for wrapping boundary Y
@@ -5113,18 +5150,6 @@ single_torpedo
 ;    inc current_object_index                                          ;
     sec                                                               ; torpedo fired
     rts                                                               ;
-
-; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
-angle_result_table_8
-    !byte $00,$18,$00,$08,$10,$18,$10,$08
-angle_result_table_9
-    !byte $1f,$19,$01,$07,$11,$17,$0f,$09
-angle_result_table_10
-    !byte $1e,$1a,$02,$06,$12,$16,$0e,$0a
-angle_result_table_11
-    !byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
-angle_result_table_12
-    !byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
@@ -8945,6 +8970,17 @@ post_reloc
     ldy #4                                                            ;
     jsr oswrch_ay                                                     ;
 
+; TOBY: DEBUG!
+;!if tape {
+;    ; loop until everything has loaded
+;-
+;    lda part_number                                                   ;
+;    bne -                                                             ;
+;
+;    jmp debug_me
+;}
+
+
 !if tape {
     ; frontiers loading screen
     jsr init_frontier_screen                                          ;
@@ -8990,7 +9026,7 @@ loader_string_count
     ; loop until everything has loaded
     lda part_number                                                   ;
     bne loader_stars_loop                                             ;
-
+debug_me
     ; do any remaining initialisation
     jsr init_late                                                     ;
 

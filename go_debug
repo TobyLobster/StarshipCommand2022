@@ -1,0 +1,6 @@
+filename=$1
+
+case "$filename" in
+    *.ssd) b-em -debug -exec debugger_disk.txt -autoboot -disk $filename ;;
+    *.uef) b-em -debug -exec debugger_tape.txt -tape $filename ;;
+esac

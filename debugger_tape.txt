@@ -1,0 +1,4 @@
+simplesym build/STAR.tape.symbols.txt
+trace toby.txt
+paste *TAPE|MCH.""|M
+c

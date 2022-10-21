@@ -1,0 +1,3 @@
+simplesym build/STAR.symbols.txt
+break 54a0
+c
