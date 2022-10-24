@@ -9217,11 +9217,31 @@ frontier_stars_centre_x = 154
 frontier_stars_centre_y = 128
 
 ; ----------------------------------------------------------------------------------
+; 'The globe' is a circle of radius 60 pixels comprising 128 stars. Its four way
+; symmetry allows us to only store one quadrant of the globe and to reflect these
+; coordinates to calculate the other three.
+;
+;                               XXXXXX
+;             quadrant 2     XXX X  X XXX       quadrant 4
+;                          XX   X  X X   XX
+;                         X    X X    X    X
+;                        X    X     X  X    X
+;                        X    X  X     X    X
+;                       X    X       X  X    X
+;                       X    X   X      X    X
+;                        X    X     X  X    X
+;                        X    X  X     X    X
+;                         X    X  X    X    X
+;             quadrant 3   XX   X  X X   XX     quadrant 1
+;                            XXX X  X XXX
+;                               XXXXXX
+;
+; ----------------------------------------------------------------------------------
 initialise_frontier_stars
     ldy #index_of_frontier_stars                                      ; start of stars in object table
     sty current_object_index                                          ; TODO: is this needed?
 
-    ; fill in two opposite quadrants
+    ; fill in the first two opposite quadrants
     ldx #32                                                           ; loop counter
 initialise_stars_loop1
     lda #frontier_stars_centre_x                                      ;
@@ -9249,18 +9269,19 @@ initialise_stars_loop1
     bpl initialise_stars_loop1                                        ;
 
     ; fill in the remaining two quadrants using the coordinates already calculated
-    ; here Y = index_of_frontier_stars + 33
+    ; here Y = index_of_frontier_stars + 33. So we subtract 33 from the table to counteract
+    ; this offset, but then add 30 because we are going from the end backwards in this loop.
     ldx #30                                                           ; loop counter
 initialise_stars_loop2
-    lda object_table_xpixels - 33 + 30 + 34,y                         ; read from quadrant 2
-    sta object_table_xpixels - 33 + 30 + 66,y                         ; write to quadrant 3
-    lda object_table_ypixels - 33 + 30 + 1,y                          ; read from quadrant 1
-    sta object_table_ypixels - 33 + 30 + 66,y                         ; write to quadrant 3
+    lda object_table_xpixels - 33 + 30 + 34,y                         ; read from quadrant 2 (X coordinate)
+    sta object_table_xpixels - 33 + 30 + 66,y                         ; write to quadrant 3 (X coordinate)
+    lda object_table_ypixels - 33 + 30 + 1,y                          ; read from quadrant 1 (Y coordinate)
+    sta object_table_ypixels - 33 + 30 + 66,y                         ; write to quadrant 3 (Y coordinate)
 
-    lda object_table_xpixels - 33 + 30 + 1,y                          ; read from quadrant 1
-    sta object_table_xpixels - 33 + 30 + 97,y                         ; write to quadrant 4
-    lda object_table_ypixels - 33 + 30 + 34,y                         ; read from quadrant 2
-    sta object_table_ypixels - 33 + 30 + 97,y                         ; write to quadrant 4
+    lda object_table_xpixels - 33 + 30 + 1,y                          ; read from quadrant 1 (X coordinate)
+    sta object_table_xpixels - 33 + 30 + 97,y                         ; write to quadrant 4 (X coordinate)
+    lda object_table_ypixels - 33 + 30 + 34,y                         ; read from quadrant 2 (Y coordinate)
+    sta object_table_ypixels - 33 + 30 + 97,y                         ; write to quadrant 4 (Y coordinate)
     dey                                                               ;
     dex                                                               ;
     bpl initialise_stars_loop2                                        ;
@@ -10226,8 +10247,8 @@ initialise_envelopes
 
 ; ----------------------------------------------------------------------------------
 ; This defines one quadrant of a 'globe' of 128 stars. There are 33 stars defined
-; here. Most will be reflected four ways, horizontally and vertically to each of 
-; the four quadrants, but the first and last stars are exactly on the x axis and 
+; here. Most will be reflected four ways, horizontally and vertically to each of
+; the four quadrants, but the first and last stars are exactly on the x axis and
 ; y axis so they only reflect two ways. This gives a total of 128 stars.
 ; ----------------------------------------------------------------------------------
 copy_frontier_stars_start
