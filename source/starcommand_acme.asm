@@ -661,9 +661,9 @@ enemy_cache_a                           = enemy_address_high_end
     ; 4 bytes * 5 arcs * 32 angles  = 640 bytes
     ; to $758
 
-frontier_star_positions_y               = enemy_cache_a + 640                           ; to $7d8
+frontier_star_positions                 = enemy_cache_a + 640                           ; to $79a
 
-unused1 = frontier_star_positions_y + 128        ; UNUSED: 40 bytes free to $800
+unused1 = frontier_star_positions + 66           ; UNUSED: 102 bytes free to $800
 
 ; $0800-$08ff   reserved for sound system
 
@@ -681,7 +681,7 @@ xandf8                                  = $1400  ; }
 xbit_table                              = $1500  ; }
 
 ; in front end:
-frontier_star_positions_x               = $1600  ; 192 bytes.
+unused3                                 = $1600  ; UNUSED: 128 bytes.
 loader_string                           = $1680
 
 ; in game:
@@ -9136,16 +9136,6 @@ init_frontier_screen
     lda #$5e                                                          ;
     ldx #0                                                            ;
     stx starship_rotation_eor                                         ;
-    jsr init_first_frontier_coord                                     ;
-    ldy #31                                                           ;
--
-    jsr init_frontier_x_coord                                         ;
-    dey                                                               ;
-    bpl -                                                             ;
--
-    iny                                                               ;
-    jsr init_frontier_x_coord                                         ;
-    bpl -                                                             ;
 
     ; initialise the star positions themselves
     jsr initialise_frontier_stars                                     ;
@@ -9223,22 +9213,68 @@ update_frontier_stars
     bne update_stars                                                  ;
     ; fall through...
 
+frontier_stars_centre_x = 154
+frontier_stars_centre_y = 128
+
 ; ----------------------------------------------------------------------------------
 initialise_frontier_stars
-    ldy #index_of_frontier_stars                                      ;
-    sty current_object_index                                          ;
-    ldx #0                                                            ;
-initialise_stars_loop
-    lda frontier_star_positions_x,x                                   ;
-    sta object_table_xpixels,y                                        ;
-    lda frontier_star_positions_y,x                                   ;
-    sta object_table_ypixels,y                                        ;
-    lda #$80                                                          ;
+    ldy #index_of_frontier_stars                                      ; start of stars in object table
+    sty current_object_index                                          ; TODO: is this needed?
+
+    ; fill in two opposite quadrants
+    ldx #32                                                           ; loop counter
+initialise_stars_loop1
+    lda #frontier_stars_centre_x                                      ;
+    clc                                                               ;
+    adc frontier_stars_x,x                                            ;
+    sta object_table_xpixels,y                                        ; first quadrant (X coordinate)
+
+    lda #frontier_stars_centre_x                                      ;
+    sec                                                               ;
+    sbc frontier_stars_x,x                                            ;
+    sta object_table_xpixels + 33,y                                   ; second quadrant (X coordinate)
+
+    lda #frontier_stars_centre_y                                      ;
+    clc
+    adc frontier_stars_y,x                                            ;
+    sta object_table_ypixels,y                                        ; first quadrant (Y coordinate)
+
+    lda #frontier_stars_centre_y                                      ;
+    sec
+    sbc frontier_stars_y,x                                            ;
+    sta object_table_ypixels + 33,y                                   ; second quadrant (Y coordinate)
+
+    iny                                                               ;
+    dex                                                               ;
+    bpl initialise_stars_loop1                                        ;
+
+    ; fill in the remaining two quadrants using the coordinates already calculated
+    ; here Y = index_of_frontier_stars + 33
+    ldx #30                                                           ; loop counter
+initialise_stars_loop2
+    lda object_table_xpixels - 33 + 30 + 34,y                         ; read from quadrant 2
+    sta object_table_xpixels - 33 + 30 + 66,y                         ; write to quadrant 3
+    lda object_table_ypixels - 33 + 30 + 1,y                          ; read from quadrant 1
+    sta object_table_ypixels - 33 + 30 + 66,y                         ; write to quadrant 3
+
+    lda object_table_xpixels - 33 + 30 + 1,y                          ; read from quadrant 1
+    sta object_table_xpixels - 33 + 30 + 97,y                         ; write to quadrant 4
+    lda object_table_ypixels - 33 + 30 + 34,y                         ; read from quadrant 2
+    sta object_table_ypixels - 33 + 30 + 97,y                         ; write to quadrant 4
+    dey                                                               ;
+    dex                                                               ;
+    bpl initialise_stars_loop2                                        ;
+
+    ; initialise all fractional positions
+    ldy #index_of_frontier_stars                                      ; start of stars in object table
+    ldx #maximum_number_of_frontier_stars                             ; loop counter
+    lda #$80                                                          ; value to store
+init_fractions_loop
     sta object_table_xfraction,y                                      ;
     sta object_table_yfraction,y                                      ;
     iny                                                               ;
-    inx                                                               ;
-    bpl initialise_stars_loop                                         ;
+    dex                                                               ;
+    bne init_fractions_loop                                           ;
 
     ; number of updates before re-initialising the stars again
     lda #162                                                          ;
@@ -9470,28 +9506,6 @@ add_starship_velocity_to_object_position
     rts
 
 ; ----------------------------------------------------------------------------------
-rotated_x_correction_lsb
-    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
-
-rotated_x_correction_screens
-    !byte 0
-rotated_y_correction_screens
-    !byte 0, 1, 2, 3, 4, 5                                            ;
-
-rotated_y_correction_lsb
-    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
-
-rotated_x_correction_fraction
-    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
-rotated_x_correction_pixels
-    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
-
-rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
-rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
-
-; ----------------------------------------------------------------------------------
 ; Plot a point, with boundary check
 ;
 ; Checks that the point we are about to plot is close to the centre of the object.
@@ -9562,7 +9576,7 @@ eor_frontier_pixel
     ;clc ; C is already clear
     adc #48                                                           ;
     tay                                                               ;
-    bne eor_play_area_pixel_ycoord_in_y                               ;
+    bne eor_play_area_pixel_ycoord_in_y                               ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
 ; version that plots to scanner area
@@ -9574,7 +9588,7 @@ eor_pixel_xcoord_in_x
     lda play_area_row_table_high,y                                    ;
     sta screen_address_high                                           ;
     inc screen_address_high                                           ;
-    bne eor_pixel_entry                                               ;
+    bne eor_pixel_entry                                               ; ALWAYS branch
 
 !if >eor_frontier_pixel != >eor_play_area_pixel {
     !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
@@ -9583,6 +9597,28 @@ eor_pixel_xcoord_in_x
 !if <eor_frontier_pixel = 0 {
     !error "alignment error";
 }
+
+; ----------------------------------------------------------------------------------
+rotated_x_correction_lsb
+    !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
+
+rotated_x_correction_screens
+    !byte 0
+rotated_y_correction_screens
+    !byte 0, 1, 2, 3, 4, 5                                            ;
+
+rotated_y_correction_lsb
+    !byte 0  , 1  , 4  , 9  , $10, $19                                ;
+
+rotated_x_correction_fraction
+    !byte 0  , $fe, $ff, $fc, $fa, $f6                                ;
+rotated_x_correction_pixels
+    !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
+
+rotated_y_correction_fraction
+    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+rotated_y_correction_pixels
+    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
 
 !macro m_regular_strings {
 
@@ -9685,19 +9721,6 @@ regular_strings_start
     +m_regular_strings
 
 regular_strings_end
-
-; ----------------------------------------------------------------------------------
-frontier_x_deltas
-    !byte 4,0,4,4,1,3,3,2,2,4,2,1,3,3,1,3,2,0,3,3,0,2,2,1,1,1,1,1,1,1,0,1
-init_frontier_x_coord
-    clc                                                               ;
-    adc frontier_x_deltas,y                                           ;
-    sta frontier_star_positions_x,x                                   ;
-    inx                                                               ;
-init_first_frontier_coord
-    sta frontier_star_positions_x,x                                   ;
-    inx                                                               ;
-    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 tab_to_x_y
@@ -10144,10 +10167,10 @@ row_table_loop
     jsr initialise_envelopes                                          ;
 
     ; copy frontier stars to low in memory
-    ldx #maximum_number_of_frontier_stars                             ;
+    ldx #copy_frontier_stars_end - copy_frontier_stars_start          ;
 -
-    lda copy_frontier_star_positions_y - 1,x                          ;
-    sta frontier_star_positions_y - 1,x                               ;
+    lda copy_frontier_stars_start - 1,x                               ;
+    sta frontier_star_positions - 1,x                                 ;
     dex                                                               ;
     bne -                                                             ;
 
@@ -10202,24 +10225,29 @@ initialise_envelopes
     jmp osword                                                        ;
 
 ; ----------------------------------------------------------------------------------
-copy_frontier_star_positions_y
-    ; this defines a 'globe' of 128 stars. X positions are calculated
-    !byte $80, $78, $7D, $83, $88, $70, $90, $73
-    !byte $8D, $7B, $85, $69, $97, $6E, $92, $79
-    !byte $87, $62, $9E, $6A, $96, $5B, $77, $89
-    !byte $A5, $66, $9A, $56, $75, $8B, $AA, $62
-    !byte $9E, $50, $B0, $74, $8C, $5F, $A1, $4C
-    !byte $B4, $73, $8D, $5C, $A4, $49, $B7, $72
-    !byte $8E, $5A, $A6, $46, $BA, $71, $8F, $59
-    !byte $A7, $45, $BB, $58, $71, $8F, $A8, $44
-    !byte $BC, $58, $71, $8F, $A8, $45, $BB, $59
-    !byte $A7, $71, $8F, $46, $BA, $5A, $A6, $72
-    !byte $8E, $49, $B7, $5C, $A4, $73, $8D, $4C
-    !byte $B4, $5F, $A1, $74, $8C, $50, $B0, $62
-    !byte $9E, $56, $75, $8B, $AA, $66, $9A, $5B
-    !byte $77, $89, $A5, $6A, $96, $62, $9E, $79
-    !byte $87, $6E, $92, $69, $97, $7B, $85, $73
-    !byte $8D, $70, $90, $78, $7D, $83, $88, $80
+; This defines one quadrant of a 'globe' of 128 stars. There are 33 stars defined
+; here. Most will be reflected four ways, horizontally and vertically to each of 
+; the four quadrants, but the first and last stars are exactly on the x axis and 
+; y axis so they only reflect two ways. This gives a total of 128 stars.
+; ----------------------------------------------------------------------------------
+copy_frontier_stars_start
+!pseudopc frontier_star_positions {
+frontier_stars_x
+    !byte 60, 15, 40, 59, 39, 15,58, 38
+    !byte 14, 55, 36, 13, 52, 33,12, 48
+    !byte 30, 11, 42, 26,  9, 37,22, 30
+    !byte  7, 18, 23,  5, 13, 16, 3,  8
+    !byte  0
+
+frontier_stars_y
+    !byte  0,  4,  4,  8, 12, 13, 16, 19
+    !byte 21, 23, 27, 29, 30, 33, 36, 37
+    !byte 40, 42, 42, 45, 48, 48, 50, 52
+    !byte 53, 54, 55, 56, 57, 58, 59, 59
+    !byte 60
+}
+copy_frontier_stars_end
+
 
 ; ----------------------------------------------------------------------------------
 ; Envelope 1, used by sound_3 (Starship fired torpedo)
