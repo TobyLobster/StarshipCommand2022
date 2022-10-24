@@ -1238,7 +1238,7 @@ print_string_after_loading
     ; display string
     ldx #begin_first_command_string                                   ;
     jsr print_compressed_string                                       ;
-    jsr finish_screen
+    jsr finish_screen                                                 ;
 wait_for_return_in_frontiers_loop
     inc rnd_1                                                         ;
     jsr update_frontier_stars                                         ;
@@ -1427,7 +1427,7 @@ sm_cosine_c4 = * + 1
     tya                                                               ;
     sbc enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
-    bcs +
+    bcs +                                                             ;
     dec segment_angle                                                 ;
 +
     rts                                                               ;
@@ -1467,7 +1467,7 @@ skip2
     eor #$ff                                                          ;
     sta enemy_ships_x_screens,x                                       ;
 skip_inversion1
-    stx temp_y
+    stx temp_y                                                        ;
     txa                                                               ;
     clc                                                               ;
     adc #stride_between_enemy_coordinates                             ; X += stride
@@ -1475,7 +1475,7 @@ skip_inversion1
 
     jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
 
-    ldx temp_y
+    ldx temp_y                                                        ;
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
     lda temp9                                                         ;
     clc                                                               ;
@@ -1496,7 +1496,7 @@ skip_inversion1
 
     jsr multiply_enemy_position_by_starship_rotation_cosine           ;
 
-    ldx temp_y
+    ldx temp_y                                                        ;
     lda temp9                                                         ;
     sec                                                               ;
     sbc output_pixels                                                 ;
@@ -1535,14 +1535,14 @@ skip_inversion1
     sec                                                               ;
     sbc #$80                                                          ;
     sta enemy_ships_y_pixels,x                                        ;
-    bcs +
+    bcs +                                                             ;
     dec enemy_ships_y_screens,x                                       ;
     sec                                                               ;
 +
     lda enemy_ships_x_pixels,x                                        ;
     sbc #$80                                                          ;
     sta enemy_ships_x_pixels,x                                        ;
-    bcs +
+    bcs +                                                             ;
     dec enemy_ships_x_screens,x                                       ;
 +
 apply_starship_velocity_to_enemy_ship
@@ -1553,7 +1553,7 @@ apply_starship_velocity_to_enemy_ship
     lda enemy_ships_y_pixels,x                                        ;
     adc starship_velocity_high                                        ;
     sta enemy_ships_y_pixels,x                                        ;
-    bcc +
+    bcc +                                                             ;
     inc enemy_ships_y_screens,x                                       ;
 +
     rts                                                               ;
@@ -1829,14 +1829,9 @@ plot_top_and_right_edge_of_long_range_scanner_without_text
     lda #$40                                                          ;
     jmp plot_vertical_line_xy                                         ;
 
-    ;-101
-    ; .O.  2
-    ; OOO  1
-    ; OOO  0
-    ; .O. -1
 ; ----------------------------------------------------------------------------------
 plot_big_torpedo
-    jmp plot_3x4
+    jmp plot_3x4                                                      ;
 
 ; ----------------------------------------------------------------------------------
 plot_starship_torpedo
@@ -2253,7 +2248,7 @@ plot_enemy_ships
     sta enemy_ship_update_done                                        ;
 
 retry_loop
-    ldx #0
+    ldx #0                                                            ;
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
 
@@ -2359,7 +2354,7 @@ skip_enemy_altogether
     ; move X onto next enemy
     inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
-    beq retry_loop
+    beq retry_loop                                                    ;
     bne plot_enemy_ships_loop                                         ;
 
 return8
@@ -2958,7 +2953,7 @@ rotate_starship_anticlockwise
     dec starship_rotation                                             ;
 continue
     clc                                                               ;
-    ldx #0
+    ldx #0                                                            ;
     lda starship_rotation                                             ;
     bmi skip_inversion3                                               ;
     dex                                                               ;
@@ -3714,8 +3709,8 @@ fill_one_enemy_cache
 
     ; append angles 5 to 7
     ; go to the previous angle, angle 3
-    jsr backup_lookup_pointer
-    jsr backup_lookup_pointer
+    jsr backup_lookup_pointer                                         ;
+    jsr backup_lookup_pointer                                         ;
 
     ldx #3                                                            ; three angles
 --
@@ -3903,7 +3898,7 @@ plot_half_starship_13_times
     ldx #13                                                           ; loop 13 times
     !byte $2c                                                         ; opcode for 'bit abs' to skip the next instruction
 plot_half_starship_once
-    ldx #1
+    ldx #1                                                            ;
 --
     ldy #15                                                           ; 16 bytes = half a starship
 -
@@ -3927,7 +3922,7 @@ plot_half_starship_once
     clc                                                               ;
     adc #16                                                           ;
     sta starship_low                                                  ;
-    bcc +
+    bcc +                                                             ;
     inc starship_high                                                 ;
 +
     rts                                                               ;
@@ -4166,8 +4161,14 @@ plot_variable_size_fragment
     beq plot_1x1                                                      ;
     lda temp8                                                         ;
     bmi plot_2x1                                                      ;
-    bne plot_2x2
+    bne plot_2x2                                                      ;
+    ; fall through...
+
 plot_3x4
+    ;       h
+    ;      gab
+    ;      fdc
+    ;       e
     dec y_pixels                                                      ;
     jsr eor_play_area_pixel                                           ; h
     inc y_pixels                                                      ;
@@ -4345,16 +4346,16 @@ debug_score_points
 ;
 ; 'enemy_explosion_ages' byte:
 ;       the current age in frames.
-;       the top two bits also determine the piece size:
+;       the top two bits also determine the piece size (as well as being part of the age):
 ;           00xxxxxx = 2x2 pixels
 ;           01xxxxxx = 2x1 pixels
 ;           10xxxxxx = 1x1 pixel
 ;           11xxxxxx = 1x1 pixel
 ;
-;       a zero byte indicates 'done', at which point the second byte holds a flag
+;       a zero byte indicates 'done', at which point the radius byte holds a flag
 ;           indicating whether we want to create a new explosion piece
 ;
-; 'enemy_explosion_ages' byte:
+; 'enemy_explosion_radii' byte:
 ;       top six bits are the radius
 ;       bottom two bits are the 'age rate index' from which the ageing rate is derived via an array lookup
 ; ----------------------------------------------------------------------------------
@@ -5648,7 +5649,7 @@ enemy_ship_defensive_behaviour_handling
     sta temp10                                                        ;
     lda enemy_ships_y_pixels,x                                        ;
     jsr calculate_enemy_ship_angle_to_starship_ycoord_in_a            ;
-    sta enemy_ship_desired_angle_divided_by_eight
+    sta enemy_ship_desired_angle_divided_by_eight                     ;
     ldy enemy_ships_temporary_behaviour_flags,x                       ;
     bmi skip_retreating_because_of_damage                             ; if not already retreating,
     lda enemy_ships_flags_or_explosion_timer,x                        ;
@@ -5762,7 +5763,7 @@ turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity
 turn_enemy_ship_towards_starship
     jsr calculate_enemy_ship_angle_to_starship                        ;
 turn_enemy_ship_towards_angle_accounting_for_starship_velocity
-    eor #$10
+    eor #$10                                                          ;
     sta enemy_ship_desired_angle_divided_by_eight                     ;
     cmp #$11                                                          ;
     bcc skip_inversion9                                               ;
@@ -6366,7 +6367,7 @@ plot_scanner_grid
     lda #0                                                            ;
     sta y_pixels                                                      ;
     sta temp_x                                                        ;
-    lda #64
+    lda #64                                                           ;
     sta temp_y                                                        ;
 
 --
@@ -6394,12 +6395,12 @@ plot_scanner_grid
     jsr set_pixel                                                     ;
 
 next_y = * + 1
-    lda #0
+    lda #0                                                            ; self modifying code
     sta temp_y                                                        ;
-    cmp #64 + 50
-    bcc --
+    cmp #64 + 50                                                      ;
+    bcc --                                                            ;
 
-    lda #0
+    lda #0                                                            ;
     sta output_pixels                                                 ;
     sta output_fraction                                               ;
 
@@ -6734,7 +6735,7 @@ starship_didnt_incur_major_damage
     beq return25                                                      ;
 handle_failed_scanner
     dec scanner_failure_duration                                      ;
-    bne return25
+    bne return25                                                      ;
 
 ; ----------------------------------------------------------------------------------
 clear_long_range_scanner
@@ -7217,7 +7218,7 @@ prepare_starship_for_next_command
     sta starship_energy_high                                          ;
     lda #$7f                                                          ;
     sta starship_energy_low                                           ;
-    lda #$c7
+    lda #$c7                                                          ;
     sta starship_energy_divided_by_sixteen                            ;
 
     jsr init_self_modifying_bytes_for_starship_rotation               ;
@@ -7242,8 +7243,8 @@ plot_command_number
 
     ldy #$73                                                          ; normal position for command number (single digit)
     lda command_number                                                ; print digits
-    pha
-    and #$f0
+    pha                                                               ;
+    and #$f0                                                          ;
     beq single_digit_command_number_for_move                          ;
     ldy #$63                                                          ; adjusted position for command number (two digits)
 single_digit_command_number_for_move
@@ -7252,7 +7253,7 @@ single_digit_command_number_for_move
     ldx #regular_string_index_command_move                            ;
     jsr print_regular_string                                          ;
     pla                                                               ;
-    jsr plot_two_bcd_digits_with_no_spaces
+    jsr plot_two_bcd_digits_with_no_spaces                            ;
     lda #4                                                            ;
     jmp oswrch                                                        ;
 
@@ -7697,7 +7698,7 @@ done1
 ; ----------------------------------------------------------------------------------
 main_game_loop
 !if do_debug {
-    jsr debug
+    jsr debug                                                         ;
 }
 
     lda #0                                                            ;
@@ -8023,7 +8024,7 @@ calculate_and_print_award
     bcc -                                                             ;
 done_award
     sty award                                                         ;
-    ldx #award_review_string
+    ldx #award_review_string                                          ;
     jsr print_compressed_string                                       ;
     lda #award_adjective_6                                            ; distinguished
     ldx command_number                                                ;
@@ -8186,7 +8187,7 @@ return28
 combat_preparation_screen
     jsr screen_off                                                    ;
     ldx #combat_preparation_string                                    ;
-    jsr print_string_and_finish_screen
+    jsr print_string_and_finish_screen                                ;
 
 plot_selected_options
     ldx #3                                                            ;
@@ -8324,7 +8325,7 @@ plot_final_two_digits
     jsr plot_two_bcd_digits                                           ;
     pla                                                               ;
     bne +                                                             ;
-    cpy #'0'
+    cpy #'0'                                                          ;
     bne print_final_zero                                              ; padding still in place?
 +
     rts                                                               ;
@@ -8459,7 +8460,7 @@ plot_shields_string
 
 ; ----------------------------------------------------------------------------------
 start_game
-    jsr screen_off
+    jsr screen_off                                                    ;
     lda #0                                                            ;
     sta command_number                                                ;
     sta number_of_live_starship_torpedoes                             ;
@@ -8504,7 +8505,7 @@ end_of_command
     lda #0                                                            ; turn static off
     sta scanner_failure_duration                                      ;
     sta energy_flash_timer                                            ;
-    lda #$ff
+    lda #$ff                                                          ;
     sta starship_energy_divided_by_sixteen                            ; disable energy low
     sta enableKeyboardInterruptProcessingFlag                         ; enable keyboard interrupt
     jsr screen_off                                                    ;
@@ -8670,7 +8671,7 @@ irq_routine
     bit userVIAInterruptFlagRegister                                  ; get interrupt flag register
     bpl check_vsync                                                   ; if (not a user via interrupt) then branch
 
-    bvc not_timer1
+    bvc not_timer1                                                    ;
     ; At the entry point for the program we disabled every interrupt on the user via
     ; except for timer 1, so we know this must be a timer 1 interrupt. We clear it here.
     lda #$40                                                          ;
@@ -8745,7 +8746,7 @@ check_vsync
 
     lda #34                                                           ; reset count of character rows
     sta irq_counter                                                   ; every vsync
-    jmp every_vsync
+    jmp every_vsync                                                   ;
 }
 
 ; ----------------------------------------------------------------------------------
@@ -8859,7 +8860,7 @@ resume_getting_bits
     rol result                                                        ;
     dex                                                               ;
     bne -                                                             ;
-    sta lookup_byte
+    sta lookup_byte                                                   ;
     lda result                                                        ;
     rts                                                               ;
 
@@ -8901,7 +8902,7 @@ output_character
     jmp print_compressed_loop                                         ;
 
 extended1
-    ldx #7
+    ldx #7                                                            ;
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 extended2
     ldx #5                                                            ;
@@ -9487,12 +9488,12 @@ update_object_position_for_starship_rotation_and_speed
     lda temp9                                                         ; cosine_x_plus_sine_y_fraction
     sec                                                               ;
     sbc rotated_x_correction_lsb,x                                    ;
-    eor starship_rotation_eor
+    eor starship_rotation_eor                                         ;
     sta object_x_fraction                                             ;
 
     lda temp10                                                        ; cosine_x_plus_sine_y_pixels
     sbc rotated_x_correction_screens,x                                ;
-    eor starship_rotation_eor
+    eor starship_rotation_eor                                         ;
     sta object_x_pixels                                               ;
 
     ; do correction for Y
