@@ -2676,7 +2676,7 @@ plot_segment_unrolled
     lda xbit_table,x                                                  ;
 
 jump_address = * + 1
-    jsr $0000                                                         ;
+    jsr $0000                                                         ; self modifying code
 finish_object
     eor (screen_address_low),y                                        ; write final byte
     sta (screen_address_low),y                                        ;
@@ -8618,7 +8618,7 @@ return31
 ; avoid returning control characters other than 13 (newline) and 21 (erase)
 ; without this it is trivial to crash the game by entering, e.g., ctrl+V A
 our_rdch
-    jsr $0000                                                         ;
+    jsr $0000                                                         ; self modifying code
     cmp #0                                                            ;
     bmi our_rdch                                                      ; skip top bit set chars
 
@@ -8661,7 +8661,7 @@ check_rtc
 call_old_irq
     lda irq_accumulator                                               ;
 old_irq1
-    jmp $0000                                                         ;
+    jmp $0000                                                         ; self modifying code
 
 
 !if elk=0 {

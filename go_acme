@@ -22,7 +22,7 @@ function sym {
 }
 
 function exo_region {
-    # Compress part of a binary file using Exomizer into a .exo file, extracting the start, end, load, and exec values from the symbol file
+    # Compress part of a binary file using Exomizer into a '.exo' file, extracting the start, end, load, and exec values from the symbol file
     local filename=$1
     local startsym=$2
     local endsym=$3
@@ -64,17 +64,22 @@ function build_tape {
     local elk=$1
     local filename=$2
 
-    # The main binary is split into three sequential regions:
-    #   load_addr -> post_reloc                 filename.3      ; the bulk of the exe (loaded last)
-    #   post_reloc -> loader_copy_start         filename.2      ; enough code to spin a globe
-    #   loader_copy_start -> eof                filename.1      ; initial load just to get started (includes init_early, relocates loader code, and sets an IRQ 1 handler while loading from tape)
+    # The main game binary is split into three sequential regions:
+    #
+    #   load_addr         -> post_reloc           filename.3.exo    ; the bulk of the exe (loaded last)
+    #   post_reloc        -> loader_copy_start    filename.2.exo    ; enough code to spin the globe
+    #   loader_copy_start -> eof                  filename.1.exo    ; first load for initial setup. (This includes init_early,
+    #                                                               ; which relocates the loader2 code, and sets an IRQ 1 handler
+    #                                                               ; for loading from tape. This happens right after the
+    #                                                               ; tape.asm code finishes.)
+    # Each region is compressed individually.
+    #
+    #          input-bin  start-symbol       end-symbol          output-filename
+    exo_region $filename  loader_copy_start  eof                 build/tape/$filename.1
+    exo_region $filename  post_reloc         loader_copy_start   build/tape/$filename.2
+    exo_region $filename  load_addr          post_reloc          build/tape/$filename.3
 
-    # Each region is compressed individually
-    exo_region $filename loader_copy_start eof build/tape/$filename.1
-    exo_region $filename post_reloc loader_copy_start build/tape/$filename.2
-    exo_region $filename load_addr post_reloc build/tape/$filename.3
-
-    # We assemble tape.asm, the decompression and initial loading code
+    # We assemble tape.asm, the initial loading code and decompression code
     acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/tape.asm
     sort -o build/tape.$filename.symbols.txt build/tape.$filename.symbols.txt
 }
@@ -108,8 +113,8 @@ mkdir -p build/tape
 build_tape 0 STAR.tape
 build_tape 1 STARELK.tape
 
-# Convert tape files into UEF files
-perl tools/maketape.pl build/tape/loader.STAR.tape build/tape/STAR.tape.?.exo >STAR2022.uef
+# Convert the three '*.tape' files into a single '.uef' file
+perl tools/maketape.pl build/tape/loader.STAR.tape    build/tape/STAR.tape.?.exo    >STAR2022.uef
 perl tools/maketape.pl build/tape/loader.STARELK.tape build/tape/STARELK.tape.?.exo >STARELK.uef
 
 if [ $USER == "tobynelson" ];
