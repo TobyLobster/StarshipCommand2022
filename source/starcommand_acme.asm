@@ -9983,6 +9983,20 @@ init_early
     lda #$40                                                          ; 'RTI' opcode
     sta $0d00                                                         ;
 
+!if tape {
+    ; copy tape loader code into page 5
+    ; !warn "loader len = ",loader_end-loader_start
+    ldy #loader_end-loader_start                                      ;
+-
+    lda loader_copy_start-1,y                                         ;
+    sta loader_start-1,y                                              ;
+    dey                                                               ;
+    bne -                                                             ;
+
+    ; start the animated loading
+    jsr irqdecr_init                                                  ;
+}
+
     ; TODO: On Electron disable Plus 1 using below code and read joystick directly in get_joystick_input
     ;       See https://archive.org/details/ElectronUserVolume3/Electron-User-03-11/page/n39/mode/2up
     ;
@@ -10048,19 +10062,6 @@ noshadow                                                              ; on earli
         }
     }
 
-!if tape {
-    ; copy tape loader code into page 5
-    ; !warn "loader len = ",loader_end-loader_start
-    ldy #loader_end-loader_start                                      ;
--
-    lda loader_copy_start-1,y                                         ;
-    sta loader_start-1,y                                              ;
-    dey                                                               ;
-    bne -                                                             ;
-
-    ; start the animated loading
-    jsr irqdecr_init                                                  ;
-}
     ; fall through...
 
 ; ----------------------------------------------------------------------------------

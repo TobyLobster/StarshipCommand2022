@@ -82,6 +82,15 @@ function build_tape {
     # We assemble tape.asm, the initial loading code and decompression code
     acme --symbollist build/tape.$filename.symbols.txt -r build/tape.$filename.report.txt -Delk=$1 -Dgo=\$$(sym entry_point $filename) -o build/tape/loader.$filename source/tape.asm
     sort -o build/tape.$filename.symbols.txt build/tape.$filename.symbols.txt
+
+    end_of_tape_area=$(sym end tape.$filename)
+    gcb_loc=$(sym gcb_loc $filename)
+    if [[ ${end_of_tape_area} != ${gcb_loc} ]];
+    then
+        echo "End of tape area: $end_of_tape_area"
+        echo "         gcb_loc: $gcb_loc"
+        echo "Please set gcb_loc appropriately in loader2.asm"
+    fi
 }
 
 # Build !BOOT image
