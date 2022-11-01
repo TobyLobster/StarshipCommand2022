@@ -15,7 +15,7 @@ acia6850DataRegister        = $fe09
 serialULAControlRegister    = $fe10
 
 !if elk=0 {
-    gcb_loc = $54d
+    gcb_loc = $557
 } else {
     gcb_loc = $552
 }

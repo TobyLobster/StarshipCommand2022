@@ -465,6 +465,7 @@ input_pixels                                = $21   ; }
 segment_angle                               = $22   ; } same location
 input_screens                               = $22   ; }
 
+; Note that $23-$C9 is used by the decompression routine (tape only)
 zp_start                                    = $23   ;
 
 rnd_1                                       = $23   ;
@@ -474,11 +475,12 @@ torpedoes_still_to_consider                 = $25
 enemy_ship_was_previously_on_screen         = $26   ; 0=previously on screen, $ff=otherwise
 enemy_ship_was_on_screen                    = $27
 how_enemy_ship_was_damaged                  = $28
-old_timing_counter                          = $29
-timing_counter                              = $2a
+
+sound_needed_for_low_energy                 = $29
+energy_flash_timer                          = $2a
 
 engine_sound_shifter                        = $2b
-irqtmp                                      = $2c   ; IRQ-safe temporary
+starship_collided_with_enemy_ship           = $2c
 enemy_low                                   = $2d
 enemy_high                                  = $2e
 plot_enemy_progress                         = $2f
@@ -495,8 +497,7 @@ cache_start_high                            = $34   ; } same location
 
 enemy_number                                = $35   ; Enemy definition 0-5
 explosion_loop_counter                      = $36   ;
-
-irq_counter                                 = $37   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
+velocity_gauge_position                     = $37
 
 enemy_ships_flags_or_explosion_timer        = $38 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $38
 enemy_ships_on_screen                       = $38 +  1 * maximum_number_of_enemy_ships    ; i.e. starts at $40
@@ -513,7 +514,7 @@ enemy_ships_energy                          = $38 + 11 * maximum_number_of_enemy
 
 segment_length                              = $98   ; } same location
 multiplier                                  = $98   ; }
-temp11                                      = $99
+unused99                                    = $99
 temp1_low                                   = $9a
 temp1_high                                  = $9b
 temp3                                       = $9c
@@ -556,6 +557,7 @@ starship_rotation_fraction                  = $bc
 velocity_delta                              = $bd
 velocity_damper                             = $be
 enemy_ship_type                             = $bf
+
 starship_torpedo_counter                    = $c0
 previous_starship_automatic_shields         = $c1
 starship_has_exploded                       = $c2
@@ -577,15 +579,15 @@ zp_end                                      = $d0
 
 ; $d0 - $e1 used by OS (VDU drivers)
 
-sound_needed_for_low_energy                 = $e2
-energy_flash_timer                          = $e3
-starship_collided_with_enemy_ship           = $e4
-velocity_gauge_position                     = $e5
+old_timing_counter                          = $e2
+timing_counter                              = $e3
+irqtmp                                      = $e4   ; IRQ-safe temporary
+irq_counter                                 = $e5   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 
 ; $e6 - $e7 used by OS (read key/input etc)
 
 current_object_index                        = $e8
-unusedE9                                    = $e9
+temp11                                      = $e9
 
 ; $ea-$f1 used by OS (misc)
 
@@ -645,9 +647,6 @@ enemy_ships_explosion_number            = $0400 + 10 * maximum_number_of_enemy_s
 
 enemy_ships_end                         = $0400 + 11 * maximum_number_of_enemy_ships    ; i.e. ends at $0458
 
-; stride
-stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
-
 ; 64 table entries. Each entry has a high byte and a low byte.
 ; The first  32 entries are the address of each angle of the first enemy type.
 ; The second 32 entries are the address of each angle of the second enemy type.
@@ -681,7 +680,7 @@ xandf8                                  = $1400  ; }
 xbit_table                              = $1500  ; }
 
 ; in front end:
-unused3                                 = $1600  ; UNUSED: 128 bytes.
+unused3                                 = $1600  ; UNUSED: 128 bytes (front end only).
 loader_string                           = $1680
 
 ; in game:
@@ -699,6 +698,7 @@ enemy_cache_b                           = enemy_explosion_radii + maximum_number
 end_of_tables = enemy_cache_b + 640
 ;!warn "end of tables: ", end_of_tables
 
+; ----------------------------------------------------------------------------------
 ; addresses on-screen
 starship_top_screen_address             = $6b38 ; starship in centre of screen
 starship_bottom_screen_address          = $6c78 ; starship in centre of screen
@@ -708,6 +708,9 @@ energy_screen_address                   = $6e48 ; 'ENERGY'
 ; Each frame is 312 pixel rows. Interrupt every sixteen pixel rows.
 ; This is used to track the electron gun to avoid flicker.
 ShortTimerValue  = 16*64 - 2
+
+; stride
+stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enemy_ships_previous_x_fraction
 
 ; ----------------------------------------------------------------------------------
 ; code and data
@@ -8549,6 +8552,8 @@ skip_change_of_stars
     jmp main_game_loop                                                ;
 
 ; ----------------------------------------------------------------------------------
+; Read joystick
+; TODO: On Electron, read joystick directly, see https://archive.org/details/ElectronUserVolume3/Electron-User-03-11/page/n39/mode/2up
 get_joystick_input
     lda #osbyte_read_adc_or_get_buffer_status                         ;
     ldx #0                                                            ; Read joystick buttons
@@ -8971,17 +8976,6 @@ post_reloc
     ldy #4                                                            ;
     jsr oswrch_ay                                                     ;
 
-; TOBY: DEBUG!
-;!if tape {
-;    ; loop until everything has loaded
-;-
-;    lda part_number                                                   ;
-;    bne -                                                             ;
-;
-;    jmp debug_me
-;}
-
-
 !if tape {
     ; frontiers loading screen
     jsr init_frontier_screen                                          ;
@@ -9027,7 +9021,7 @@ loader_string_count
     ; loop until everything has loaded
     lda part_number                                                   ;
     bne loader_stars_loop                                             ;
-debug_me
+
     ; do any remaining initialisation
     jsr init_late                                                     ;
 
@@ -9625,7 +9619,7 @@ rotated_x_correction_lsb
     !byte 0  , $ff, $fc, $f7, $f0, $e7                                ;
 
 rotated_x_correction_screens
-    !byte 0
+    !byte 0                                                           ; overlaps next table
 rotated_y_correction_screens
     !byte 0, 1, 2, 3, 4, 5                                            ;
 
@@ -9893,7 +9887,7 @@ loader_copy_end
 ;
 ; When in game:
 ;
-; 1 escape capsule              (5 bytes)               angle, time to live, position
+; 1 escape capsule              ( 1 * 5 =   5 bytes)    angle, time to live, position
 ; 24 enemy torpedos             (24 * 6 = 144 bytes)    angle, time to live, position
 ; 24 starship torpedo heads     (24 * 5 = 120 bytes)           time to live, position
 ; 24 starship torpedo tails     (24 * 4 =  96 bytes)                         position
@@ -9980,8 +9974,8 @@ init_early
     ldy #255                                                          ; page D
     jsr osbyte                                                        ; (and also A0-A7)
 
-    lda #$40                                                          ; 'RTI' opcode
-    sta $0d00                                                         ;
+    lda #$40                                                          ; store 'RTI' opcode
+    sta $0d00                                                         ; at NMI handler
 
 !if tape {
     ; copy tape loader code into page 5
@@ -9997,13 +9991,11 @@ init_early
     jsr irqdecr_init                                                  ;
 }
 
-    ; TODO: On Electron disable Plus 1 using below code and read joystick directly in get_joystick_input
-    ;       See https://archive.org/details/ElectronUserVolume3/Electron-User-03-11/page/n39/mode/2up
-    ;
-    ; lda #163                                                          ; disable printer and ADCs
-    ; ldx #128                                                          ; (improves performance
-    ; ldy #1                                                            ; with the Electron with
-    ; jsr osbyte                                                        ; Plus 1)
+    lda #163                                                          ; disable printer and ADCs
+    ldx #128                                                          ; (improves performance
+    ldy #1                                                            ; on the Electron with
+    jsr osbyte                                                        ; Plus 1 interface, and
+                                                                      ; means we can use Page D)
 
     lda #133                                                          ; read HIMEM were we to
     ldx #4                                                            ; switch into MODE 4

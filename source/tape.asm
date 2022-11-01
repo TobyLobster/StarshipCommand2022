@@ -55,11 +55,10 @@ main
     sta $fe08                   ;
 
     ; screen off
-; TOBY: DEBUG!
-;    lda #8                      ;
-;    sta $fe00                   ;
-;    lda #$f0                    ;
-;    sta $fe01                   ;
+    lda #8                      ;
+    sta $fe00                   ;
+    lda #$f0                    ;
+    sta $fe01                   ;
 
     dey                         ; Y=255
 } else {
