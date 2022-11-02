@@ -514,13 +514,13 @@ enemy_ships_energy                          = $38 + 11 * maximum_number_of_enemy
 
 segment_length                              = $98   ; } same location
 multiplier                                  = $98   ; }
-unused99                                    = $99
+enemy_ship_desired_velocity                 = $99
 temp1_low                                   = $9a
 temp1_high                                  = $9b
 temp3                                       = $9c
 temp4                                       = $9d
-unused9e                                    = $9e
-unused9f                                    = $9f
+timer_for_enemy_ships_regeneration          = $9e
+timer_for_starship_energy_regeneration      = $9f
 temp7                                       = $a0
 
 score_delta_low                             = $a1
@@ -662,14 +662,15 @@ enemy_cache_a                           = enemy_address_high_end
 
 frontier_star_positions                 = enemy_cache_a + 640                           ; to $79a
 
-unused1 = frontier_star_positions + 66           ; UNUSED: 102 bytes free to $800
+angle_addresses_destination = frontier_star_positions + 66           ; 86 bytes used
+unused1 = angle_addresses_destination + (copy_angle_addresses_end - copy_angle_addresses_start) ; UNUSED: 16 bytes free to $800
 
 ; $0800-$08ff   reserved for sound system
 
 squares1_low                            = $0900  ; } 512 entries of 16 bit value (i*i)/4
 squares1_high                           = $0b00  ; } (1024 bytes total)
 
-; TODO: Unused: $d01-dff
+some_starship_sprites                   = $0d00  ; Yes including byte $0d00 itself, which will contain the opcode for 'RTI'
 
 squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
 squares2_high                           = $1000  ; } (1024 bytes total)
@@ -680,8 +681,8 @@ xandf8                                  = $1400  ; }
 xbit_table                              = $1500  ; }
 
 ; in front end:
-unused3                                 = $1600  ; UNUSED: 128 bytes (front end only).
-loader_string                           = $1680
+unused2                                 = $1600  ; UNUSED: 128 bytes (front end only).
+loader_string                           = $1680  ;
 
 ; in game:
 ; each byte in 'enemy_explosion_ages' array stores information about an enemy explosion piece:
@@ -852,8 +853,6 @@ angle_result_table_11
     !byte $1d,$1b,$03,$05,$13,$15,$0d,$0b
 angle_result_table_12
     !byte $1c,$1c,$04,$04,$14,$14,$0c,$0c
-
-!align 255, 0
 
 !macro start_keyboard_read {
 !if elk=0 {
@@ -1066,97 +1065,44 @@ sine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ;
 
 ; ----------------------------------------------------------------------------------
-; Align to page boundary for speed
+; TODO: Align to page boundary for speed?
 
-plot_table_offset_low
-    !byte <plus_angle0
-    !byte <plus_angle1
-    !byte <plus_angle2
-    !byte <plus_angle3
-    !byte <plus_angle4
-    !byte <plus_angle5
-    !byte <plus_angle6
-    !byte <plus_angle7
-    !byte <plus_angle8
-    !byte <plus_angle9
-    !byte <plus_angle10
-    !byte <plus_angle11
-    !byte <plus_angle12
-    !byte <plus_angle13
-    !byte <plus_angle14
-    !byte <plus_angle15
-    !byte <plus_angle16
-    !byte <plus_angle17
-    !byte <plus_angle18
-    !byte <plus_angle19
-    !byte <plus_angle20
-    !byte <plus_angle21
-    !byte <plus_angle22
-    !byte <plus_angle23
-    !byte <plus_angle24
-    !byte <plus_angle25
-    !byte <plus_angle26
-    !byte <plus_angle27
-    !byte <plus_angle28
-    !byte <plus_angle29
-    !byte <plus_angle30
-    !byte <plus_angle31
-    !byte <plus_angle32
-    !byte <plus_angle33
-    !byte <plus_angle34
-    !byte <plus_angle35
-    !byte <plus_angle36
-    !byte <plus_angle37
-    !byte <plus_angle38
-    !byte <plus_angle39
-    !byte <plus_angle40
-    !byte <plus_angle41
-    !byte <plus_angle42
-!align 255, 0
-plot_table_offset_high
-    !byte >plus_angle0
-    !byte >plus_angle1
-    !byte >plus_angle2
-    !byte >plus_angle3
-    !byte >plus_angle4
-    !byte >plus_angle5
-    !byte >plus_angle6
-    !byte >plus_angle7
-    !byte >plus_angle8
-    !byte >plus_angle9
-    !byte >plus_angle10
-    !byte >plus_angle11
-    !byte >plus_angle12
-    !byte >plus_angle13
-    !byte >plus_angle14
-    !byte >plus_angle15
-    !byte >plus_angle16
-    !byte >plus_angle17
-    !byte >plus_angle18
-    !byte >plus_angle19
-    !byte >plus_angle20
-    !byte >plus_angle21
-    !byte >plus_angle22
-    !byte >plus_angle23
-    !byte >plus_angle24
-    !byte >plus_angle25
-    !byte >plus_angle26
-    !byte >plus_angle27
-    !byte >plus_angle28
-    !byte >plus_angle29
-    !byte >plus_angle30
-    !byte >plus_angle31
-    !byte >plus_angle32
-    !byte >plus_angle33
-    !byte >plus_angle34
-    !byte >plus_angle35
-    !byte >plus_angle36
-    !byte >plus_angle37
-    !byte >plus_angle38
-    !byte >plus_angle39
-    !byte >plus_angle40
-    !byte >plus_angle41
-    !byte >plus_angle42
+
+segment_angle_to_y_deltas_table
+    !byte $0     ; 0   y0
+    !byte $1     ; 1   y+
+    !byte $0     ; 2   y0
+    !byte $1     ; 3   y+
+    !byte $1     ; 4   y+
+    !byte $1     ; 5   y+
+    !byte $1     ; 6   y+
+    !byte $1     ; 7   y+
+
+; these bytes overlap with the following table...
+;    !byte $1     ; 8   y+
+;    !byte $1     ; 9   y+
+;    !byte $1     ; 10  y+
+;    !byte $1     ; 11  y+
+;    !byte $1     ; 12  y+
+;    !byte $0     ; 13  y0
+;    !byte $1     ; 14  y+
+;    !byte $0     ; 15  y0
+;    !byte $0     ; 16  y0
+;    !byte $ff    ; 17  y-
+;    !byte $0     ; 18  y0
+;    !byte $ff    ; 19  y-
+;    !byte $ff    ; 20  y-
+;    !byte $ff    ; 21  y-
+;    !byte $ff    ; 22  y-
+;    !byte $ff    ; 23  y-
+;    !byte $ff    ; 24  y-
+;    !byte $ff    ; 25  y-
+;    !byte $ff    ; 26  y-
+;    !byte $ff    ; 27  y-
+;    !byte $ff    ; 28  y-
+;    !byte $0     ; 29  y0
+;    !byte $ff    ; 30  y-
+;    !byte $0     ; 31  y0
 
 segment_angle_to_x_deltas_table
     !byte $1     ; 0   x+ y0
@@ -1191,40 +1137,6 @@ segment_angle_to_x_deltas_table
     !byte $1     ; 29  x+ y0
     !byte $1     ; 30  x+ y-
     !byte $1     ; 31  x+ y0
-
-segment_angle_to_y_deltas_table
-    !byte $0     ; 0   y0
-    !byte $1     ; 1   y+
-    !byte $0     ; 2   y0
-    !byte $1     ; 3   y+
-    !byte $1     ; 4   y+
-    !byte $1     ; 5   y+
-    !byte $1     ; 6   y+
-    !byte $1     ; 7   y+
-    !byte $1     ; 8   y+
-    !byte $1     ; 9   y+
-    !byte $1     ; 10  y+
-    !byte $1     ; 11  y+
-    !byte $1     ; 12  y+
-    !byte $0     ; 13  y0
-    !byte $1     ; 14  y+
-    !byte $0     ; 15  y0
-    !byte $0     ; 16  y0
-    !byte $ff    ; 17  y-
-    !byte $0     ; 18  y0
-    !byte $ff    ; 19  y-
-    !byte $ff    ; 20  y-
-    !byte $ff    ; 21  y-
-    !byte $ff    ; 22  y-
-    !byte $ff    ; 23  y-
-    !byte $ff    ; 24  y-
-    !byte $ff    ; 25  y-
-    !byte $ff    ; 26  y-
-    !byte $ff    ; 27  y-
-    !byte $ff    ; 28  y-
-    !byte $0     ; 29  y0
-    !byte $ff    ; 30  y-
-    !byte $0     ; 31  y0
 
 !src "build/sc_text.a"
 
@@ -5641,9 +5553,6 @@ enemy_ship_behaviour_routine_high_table
     !byte >(enemy_ship_behaviour_routine3)                            ;
     !byte >(enemy_ship_behaviour_routine1)                            ;
 
-enemy_ship_desired_velocity
-    !byte 0                                                           ;
-
 ; ----------------------------------------------------------------------------------
 enemy_ship_defensive_behaviour_handling
     lda enemy_ships_on_screen,x                                       ;
@@ -6033,281 +5942,6 @@ starship_sprite_3
     !byte %....#.#.
     !byte %.....#..
     !byte %#####...
-
-starship_sprite_4
-    !byte %.......#                                                   ; .......#........
-    !byte %.....###                                                   ; .....#####......
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#...###                                                   ; .#...#####...#..
-    !byte %.#.....#                                                   ; .#.....#.....#..
-    !byte %###...#.                                                   ; ###...#.#...###.
-    !byte %#.#....#                                                   ; #.#....#....#.#.
-    !byte %........                                                   ; #.#...#.#...#.#.
-    !byte %##......                                                   ; #.#....#....#.#.
-    !byte %.##..#..                                                   ; #..#..###..#..#.
-    !byte %.##..#..                                                   ; #..###...###..#.
-    !byte %##...#..                                                   ; #.#.#.....#.#.#.
-    !byte %.....#..                                                   ; .#...#...#...#..
-    !byte %#...###.                                                   ; ......#.#.......
-    !byte %....#.#.                                                   ; .......#........
-    !byte %#.#...#.                                                   ;
-    !byte %#.#....#                                                   ;
-    !byte %#..#..##                                                   ;
-    !byte %#..###..                                                   ;
-    !byte %#.#.#...                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %......#.                                                   ;
-    !byte %.......#                                                   ;
-    !byte %#...#.#.                                                   ;
-    !byte %....#.#.                                                   ;
-    !byte %#..#..#.                                                   ;
-    !byte %.###..#.                                                   ;
-    !byte %..#.#.#.                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %#.......                                                   ;
-    !byte %........                                                   ;
-
-; ADE:
-starship_sprite_5
-    !byte %..#.....                                                   ; ..#.........#...
-    !byte %.##....#                                                   ; .##....#....##..
-    !byte %.#.#...#                                                   ; .#.#...#...#.#..
-    !byte %.#.#..##                                                   ; .#.#..###..#.#..
-    !byte %#...#.##                                                   ; #...#.###.#...#.
-    !byte %#...#.##                                                   ; #...#.###.#...#.
-    !byte %#....###                                                   ; #....#####....#.
-    !byte %#..#..##                                                   ; #..#..###..#..#.
-    !byte %....#...                                                   ; #.###.###.###.#.
-    !byte %....##..                                                   ; .#.#..###..#.#..
-    !byte %...#.#..                                                   ; .#....###....#..
-    !byte %#..#.#..                                                   ; ..#..#####..#...
-    !byte %#.#...#.                                                   ; ...##..#..##....
-    !byte %#.#...#.                                                   ; ....##...##.....
-    !byte %##....#.                                                   ; ....##...##.....
-    !byte %#..#..#.                                                   ; .....#####......
-    !byte %#.###.##
-    !byte %.#.#..##
-    !byte %.#....##
-    !byte %..#..###
-    !byte %...##..#
-    !byte %....##..
-    !byte %....##..
-    !byte %.....###
-    !byte %#.###.#.
-    !byte %#..#.#..
-    !byte %#....#..
-    !byte %##..#...
-    !byte %..##....
-    !byte %.##.....
-    !byte %.##.....
-    !byte %##......
-
-starship_sprite_6
-    !byte %.......#                                                   ; .......#........
-    !byte %.......#                                                   ; .......#........
-    !byte %......##                                                   ; ......###.......
-    !byte %##....##                                                   ; ##....###....##.
-    !byte %##...##.                                                   ; ##...##.##...##.
-    !byte %##...##.                                                   ; ##...##.##...##.
-    !byte %##..##..                                                   ; ##..##...##..##.
-    !byte %##..##.#                                                   ; ##..##.#.##..##.
-    !byte %........                                                   ; #####..#..#####.
-    !byte %........                                                   ; ##....###....##.
-    !byte %#.......                                                   ; ######...######.
-    !byte %#....##.                                                   ; ##...##.##...##.
-    !byte %##...##.                                                   ; ####..###..####.
-    !byte %##...##.                                                   ; ##.##..#..##.##.
-    !byte %.##..##.                                                   ; ##..##.#.##..##.
-    !byte %.##..##.                                                   ; .....#####......
-    !byte %#####..#                                                   ;
-    !byte %##....##                                                   ;
-    !byte %######..                                                   ;
-    !byte %##...##.                                                   ;
-    !byte %####..##                                                   ;
-    !byte %##.##..#                                                   ;
-    !byte %##..##.#                                                   ;
-    !byte %.....###                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %.######.                                                   ;
-    !byte %##...##.                                                   ;
-    !byte %#..####.                                                   ;
-    !byte %..##.##.                                                   ;
-    !byte %.##..##.                                                   ;
-    !byte %##......                                                   ;
-
-; TOBY
-starship_sprite_7
-    !byte %.......#                                                   ; .......#........
-    !byte %......#.                                                   ; ......#.#.......
-    !byte %......#.                                                   ; ......#.#.......
-    !byte %.....#..                                                   ; .....#...#......
-    !byte %....#..#                                                   ; ....#..#..#.....
-    !byte %..##..#.                                                   ; ..##..#.#..##...
-    !byte %.#..#..#                                                   ; .#..#..#..#..#..
-    !byte %#....#.#                                                   ; #....#.#.#....#.
-    !byte %........                                                   ; #..#..#.#..#..#.
-    !byte %#.......                                                   ; #.#.#..#..#.#.#.
-    !byte %#.......                                                   ; #..#.#.#.#.#..#.
-    !byte %.#......                                                   ; .#....#.#....#..
-    !byte %..#.....                                                   ; ..#..#...#..#...
-    !byte %#..##...                                                   ; .#.##..#..##.#..
-    !byte %..#..#..                                                   ; #....#####....#.
-    !byte %.#....#.                                                   ; #.............#.
-    !byte %#..#..#.
-    !byte %#.#.#..#
-    !byte %#..#.#.#
-    !byte %.#....#.
-    !byte %..#..#..
-    !byte %.#.##..#
-    !byte %#....###
-    !byte %#.......
-    !byte %#..#..#.
-    !byte %..#.#.#.
-    !byte %.#.#..#.
-    !byte %#....#..
-    !byte %.#..#...
-    !byte %..##.#..
-    !byte %##....#.
-    !byte %......#.
-
-starship_sprite_8
-    !byte %........                                                   ; ................
-    !byte %......##                                                   ; ......###.......
-    !byte %.....#..                                                   ; .....#...#......
-    !byte %....#...                                                   ; ....#.....#.....
-    !byte %...#...#                                                   ; ...#...#...#....
-    !byte %...#..#.                                                   ; ...#..#.#..#....
-    !byte %...#...#                                                   ; ...#...#...#....
-    !byte %.#..#...                                                   ; .#..#.....#..#..
-    !byte %........                                                   ; ###..#...#..###.
-    !byte %#.......                                                   ; ###...###...###.
-    !byte %.#......                                                   ; ##.#..#.#..#.##.
-    !byte %..#.....                                                   ; ##.##.#.#.##.##.
-    !byte %...#....                                                   ; ###.###.###.###.
-    !byte %#..#....                                                   ; ###..#...#..###.
-    !byte %...#....                                                   ; .#....#.#....#..
-    !byte %..#..#..                                                   ; .#.....#.....#..
-    !byte %###..#..                                                   ;
-    !byte %###...##                                                   ;
-    !byte %##.#..#.                                                   ;
-    !byte %##.##.#.                                                   ;
-    !byte %###.###.                                                   ;
-    !byte %###..#..                                                   ;
-    !byte %.#....#.                                                   ;
-    !byte %.#.....#                                                   ;
-    !byte %.#..###.                                                   ;
-    !byte %#...###.                                                   ;
-    !byte %#..#.##.                                                   ;
-    !byte %#.##.##.                                                   ;
-    !byte %###.###.                                                   ;
-    !byte %.#..###.                                                   ;
-    !byte %#....#..                                                   ;
-    !byte %.....#..                                                   ;
-
-starship_sprite_9
-    !byte %......##                                                   ; ......###.......
-    !byte %.....##.                                                   ; .....##.##......
-    !byte %.#..##..                                                   ; .#..##...##..#..
-    !byte %.#...###                                                   ; .#...#####...#..
-    !byte %.#....#.                                                   ; .#....#.#....#..
-    !byte %###...#.                                                   ; ###...#.#...###.
-    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
-    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
-    !byte %#.......                                                   ; #..#..#.#..#..#.
-    !byte %##......                                                   ; #...#.#.#.#...#.
-    !byte %.##..#..                                                   ; #....#.#.#....#.
-    !byte %##...#..                                                   ; #..#...#...#..#.
-    !byte %#....#..                                                   ; #.#.#..#..#.#.#.
-    !byte %#...###.                                                   ; .#...#.#.#...#..
-    !byte %#...#.#.                                                   ; .#....###....#..
-    !byte %#...#.#.                                                   ; .......#........
-    !byte %#..#..#.                                                   ;
-    !byte %#...#.#.                                                   ;
-    !byte %#....#.#                                                   ;
-    !byte %#..#...#                                                   ;
-    !byte %#.#.#..#                                                   ;
-    !byte %.#...#.#                                                   ;
-    !byte %.#....##                                                   ;
-    !byte %.......#                                                   ;
-    !byte %#..#..#.                                                   ;
-    !byte %#.#...#.                                                   ;
-    !byte %.#....#.                                                   ;
-    !byte %...#..#.                                                   ;
-    !byte %..#.#.#.                                                   ;
-    !byte %.#...#..                                                   ;
-    !byte %#....#..                                                   ;
-    !byte %........                                                   ;
-
-starship_sprite_10
-    !byte %.......#                                                   ; .......#........
-    !byte %.......#                                                   ; .......#........
-    !byte %.#....##                                                   ; .#....###....#..
-    !byte %.#....##                                                   ; .#....###....#..
-    !byte %.#...##.                                                   ; .#...##.##...#..
-    !byte %###..##.                                                   ; ###..##.##..###.
-    !byte %###.##.#                                                   ; ###.##.#.##.###.
-    !byte %###.##.#                                                   ; ###.##.#.##.###.
-    !byte %........                                                   ; #####..#..#####.
-    !byte %........                                                   ; ##.....#.....##.
-    !byte %#....#..                                                   ; ######.#.######.
-    !byte %#....#..                                                   ; ##....###....##.
-    !byte %##...#..                                                   ; #####..#..#####.
-    !byte %##..###.                                                   ; ###.##.#.##.###.
-    !byte %.##.###.                                                   ; ###..##.##..###.
-    !byte %.##.###.                                                   ; .#....###....#..
-    !byte %#####..#                                                   ;
-    !byte %##.....#                                                   ;
-    !byte %######.#                                                   ;
-    !byte %##....##                                                   ;
-    !byte %#####..#                                                   ;
-    !byte %###.##.#                                                   ;
-    !byte %###..##.                                                   ;
-    !byte %.#....##                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %.....##.                                                   ;
-    !byte %.######.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %..#####.                                                   ;
-    !byte %.##.###.                                                   ;
-    !byte %##..###.                                                   ;
-    !byte %#....#..                                                   ;
-
-starship_sprite_11
-    !byte %.....###                                                   ;.....#####......
-    !byte %....##..                                                   ;....##...##.....
-    !byte %...##..#                                                   ;...##..#..##....
-    !byte %...##.##                                                   ;...##.###.##....
-    !byte %...##.##                                                   ;...##.###.##....
-    !byte %...##..#                                                   ;...##..#..##....
-    !byte %....##..                                                   ;....##...##.....
-    !byte %##...###                                                   ;##...#####...##.
-    !byte %##......                                                   ;##.....#.....##.
-    !byte %.##.....                                                   ;###...###...###.
-    !byte %..##....                                                   ;####..###..####.
-    !byte %#.##....                                                   ;##.##.###.##.##.
-    !byte %#.##....                                                   ;##..#######..##.
-    !byte %..##....                                                   ;##....###....##.
-    !byte %.##.....                                                   ;##....###....##.
-    !byte %##...##.                                                   ;##.....#.....##.
-    !byte %##.....#                                                   ;
-    !byte %###...##                                                   ;
-    !byte %####..##                                                   ;
-    !byte %##.##.##                                                   ;
-    !byte %##..####                                                   ;
-    !byte %##....##                                                   ;
-    !byte %##....##                                                   ;
-    !byte %##.....#                                                   ;
-    !byte %.....##.                                                   ;
-    !byte %#...###.                                                   ;
-    !byte %#..####.                                                   ;
-    !byte %#.##.##.                                                   ;
-    !byte %###..##.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %#....##.                                                   ;
-    !byte %.....##.                                                   ;
-
 
 ; ----------------------------------------------------------------------------------
 scores_for_destroying_enemy_ships
@@ -7130,10 +6764,6 @@ starship_type
     !byte 0                                                           ;
 command_number
     !byte 0                                                           ;
-timer_for_enemy_ships_regeneration
-    !byte 0                                                           ;
-timer_for_starship_energy_regeneration
-    !byte 3                                                           ;
 
 ; ----------------------------------------------------------------------------------
 initial_enemy_speed_per_command
@@ -8481,6 +8111,11 @@ start_game
 
     lda #maximum_number_of_stars_in_game                              ;
     sta maximum_number_of_stars                                       ;
+
+    lda #maximum_timer_for_starship_energy_regeneration               ;
+    sta timer_for_starship_energy_regeneration                        ;
+    lda #maximum_timer_for_enemy_ships_regeneration                   ;
+    sta timer_for_enemy_ships_regeneration                            ;
 
     ldy #3                                                            ;
 reset_enemy_ship_spawning_probabilities_loop
@@ -10189,6 +9824,22 @@ row_table_loop
     dex                                                               ;
     bne -                                                             ;
 
+    ; copy eight starships to page D
+    ldx #0                                                            ;
+-
+    lda copy_starships_start, x                                       ;
+    sta some_starship_sprites, x                                      ;
+    inx                                                               ;
+    bne -                                                             ;
+
+    ; copy angle tables to low memory
+    ldx #copy_angle_addresses_end - copy_angle_addresses_start        ;
+-
+    lda copy_angle_addresses_start - 1,x                              ;
+    sta angle_addresses_destination - 1, x                            ;
+    dex                                                               ;
+    bne -                                                             ;
+
 !if tape {
     ; wait for first part to load from tape before starting the globe spinning
 -
@@ -10263,6 +9914,377 @@ frontier_stars_y
 }
 copy_frontier_stars_end
 
+copy_starships_start
+!pseudopc some_starship_sprites {
+; ADE:
+starship_sprite_5
+    !byte %.#......                                                   ; .#...........#..   NOTE: opcode for 'RTI' written to $0d00!
+    !byte %.##....#                                                   ; .##....#....##..
+    !byte %.#.#...#                                                   ; .#.#...#...#.#..
+    !byte %.#.#..##                                                   ; .#.#..###..#.#..
+    !byte %#...#.##                                                   ; #...#.###.#...#.
+    !byte %#...#.##                                                   ; #...#.###.#...#.
+    !byte %#....###                                                   ; #....#####....#.
+    !byte %#..#..##                                                   ; #..#..###..#..#.
+    !byte %.....#..                                                   ; #.###.###.###.#.
+    !byte %....##..                                                   ; .#.#..###..#.#..
+    !byte %...#.#..                                                   ; .#....###....#..
+    !byte %#..#.#..                                                   ; ..#..#####..#...
+    !byte %#.#...#.                                                   ; ...##..#..##....
+    !byte %#.#...#.                                                   ; ....##...##.....
+    !byte %##....#.                                                   ; ....##...##.....
+    !byte %#..#..#.                                                   ; .....#####......
+    !byte %#.###.##
+    !byte %.#.#..##
+    !byte %.#....##
+    !byte %..#..###
+    !byte %...##..#
+    !byte %....##..
+    !byte %....##..
+    !byte %.....###
+    !byte %#.###.#.
+    !byte %#..#.#..
+    !byte %#....#..
+    !byte %##..#...
+    !byte %..##....
+    !byte %.##.....
+    !byte %.##.....
+    !byte %##......
+
+starship_sprite_4
+    !byte %.......#                                                   ; .......#........
+    !byte %.....###                                                   ; .....#####......
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#...###                                                   ; .#...#####...#..
+    !byte %.#.....#                                                   ; .#.....#.....#..
+    !byte %###...#.                                                   ; ###...#.#...###.
+    !byte %#.#....#                                                   ; #.#....#....#.#.
+    !byte %........                                                   ; #.#...#.#...#.#.
+    !byte %##......                                                   ; #.#....#....#.#.
+    !byte %.##..#..                                                   ; #..#..###..#..#.
+    !byte %.##..#..                                                   ; #..###...###..#.
+    !byte %##...#..                                                   ; #.#.#.....#.#.#.
+    !byte %.....#..                                                   ; .#...#...#...#..
+    !byte %#...###.                                                   ; ......#.#.......
+    !byte %....#.#.                                                   ; .......#........
+    !byte %#.#...#.                                                   ;
+    !byte %#.#....#                                                   ;
+    !byte %#..#..##                                                   ;
+    !byte %#..###..                                                   ;
+    !byte %#.#.#...                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %......#.                                                   ;
+    !byte %.......#                                                   ;
+    !byte %#...#.#.                                                   ;
+    !byte %....#.#.                                                   ;
+    !byte %#..#..#.                                                   ;
+    !byte %.###..#.                                                   ;
+    !byte %..#.#.#.                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %#.......                                                   ;
+    !byte %........                                                   ;
+
+starship_sprite_6
+    !byte %.......#                                                   ; .......#........
+    !byte %.......#                                                   ; .......#........
+    !byte %......##                                                   ; ......###.......
+    !byte %##....##                                                   ; ##....###....##.
+    !byte %##...##.                                                   ; ##...##.##...##.
+    !byte %##...##.                                                   ; ##...##.##...##.
+    !byte %##..##..                                                   ; ##..##...##..##.
+    !byte %##..##.#                                                   ; ##..##.#.##..##.
+    !byte %........                                                   ; #####..#..#####.
+    !byte %........                                                   ; ##....###....##.
+    !byte %#.......                                                   ; ######...######.
+    !byte %#....##.                                                   ; ##...##.##...##.
+    !byte %##...##.                                                   ; ####..###..####.
+    !byte %##...##.                                                   ; ##.##..#..##.##.
+    !byte %.##..##.                                                   ; ##..##.#.##..##.
+    !byte %.##..##.                                                   ; .....#####......
+    !byte %#####..#                                                   ;
+    !byte %##....##                                                   ;
+    !byte %######..                                                   ;
+    !byte %##...##.                                                   ;
+    !byte %####..##                                                   ;
+    !byte %##.##..#                                                   ;
+    !byte %##..##.#                                                   ;
+    !byte %.....###                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %.######.                                                   ;
+    !byte %##...##.                                                   ;
+    !byte %#..####.                                                   ;
+    !byte %..##.##.                                                   ;
+    !byte %.##..##.                                                   ;
+    !byte %##......                                                   ;
+
+; TOBY
+starship_sprite_7
+    !byte %.......#                                                   ; .......#........
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %......#.                                                   ; ......#.#.......
+    !byte %.....#..                                                   ; .....#...#......
+    !byte %....#..#                                                   ; ....#..#..#.....
+    !byte %..##..#.                                                   ; ..##..#.#..##...
+    !byte %.#..#..#                                                   ; .#..#..#..#..#..
+    !byte %#....#.#                                                   ; #....#.#.#....#.
+    !byte %........                                                   ; #..#..#.#..#..#.
+    !byte %#.......                                                   ; #.#.#..#..#.#.#.
+    !byte %#.......                                                   ; #..#.#.#.#.#..#.
+    !byte %.#......                                                   ; .#....#.#....#..
+    !byte %..#.....                                                   ; ..#..#...#..#...
+    !byte %#..##...                                                   ; .#.##..#..##.#..
+    !byte %..#..#..                                                   ; #....#####....#.
+    !byte %.#....#.                                                   ; #.............#.
+    !byte %#..#..#.
+    !byte %#.#.#..#
+    !byte %#..#.#.#
+    !byte %.#....#.
+    !byte %..#..#..
+    !byte %.#.##..#
+    !byte %#....###
+    !byte %#.......
+    !byte %#..#..#.
+    !byte %..#.#.#.
+    !byte %.#.#..#.
+    !byte %#....#..
+    !byte %.#..#...
+    !byte %..##.#..
+    !byte %##....#.
+    !byte %......#.
+
+starship_sprite_8
+    !byte %........                                                   ; ................
+    !byte %......##                                                   ; ......###.......
+    !byte %.....#..                                                   ; .....#...#......
+    !byte %....#...                                                   ; ....#.....#.....
+    !byte %...#...#                                                   ; ...#...#...#....
+    !byte %...#..#.                                                   ; ...#..#.#..#....
+    !byte %...#...#                                                   ; ...#...#...#....
+    !byte %.#..#...                                                   ; .#..#.....#..#..
+    !byte %........                                                   ; ###..#...#..###.
+    !byte %#.......                                                   ; ###...###...###.
+    !byte %.#......                                                   ; ##.#..#.#..#.##.
+    !byte %..#.....                                                   ; ##.##.#.#.##.##.
+    !byte %...#....                                                   ; ###.###.###.###.
+    !byte %#..#....                                                   ; ###..#...#..###.
+    !byte %...#....                                                   ; .#....#.#....#..
+    !byte %..#..#..                                                   ; .#.....#.....#..
+    !byte %###..#..                                                   ;
+    !byte %###...##                                                   ;
+    !byte %##.#..#.                                                   ;
+    !byte %##.##.#.                                                   ;
+    !byte %###.###.                                                   ;
+    !byte %###..#..                                                   ;
+    !byte %.#....#.                                                   ;
+    !byte %.#.....#                                                   ;
+    !byte %.#..###.                                                   ;
+    !byte %#...###.                                                   ;
+    !byte %#..#.##.                                                   ;
+    !byte %#.##.##.                                                   ;
+    !byte %###.###.                                                   ;
+    !byte %.#..###.                                                   ;
+    !byte %#....#..                                                   ;
+    !byte %.....#..                                                   ;
+
+starship_sprite_9
+    !byte %......##                                                   ; ......###.......
+    !byte %.....##.                                                   ; .....##.##......
+    !byte %.#..##..                                                   ; .#..##...##..#..
+    !byte %.#...###                                                   ; .#...#####...#..
+    !byte %.#....#.                                                   ; .#....#.#....#..
+    !byte %###...#.                                                   ; ###...#.#...###.
+    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
+    !byte %#.#...#.                                                   ; #.#...#.#...#.#.
+    !byte %#.......                                                   ; #..#..#.#..#..#.
+    !byte %##......                                                   ; #...#.#.#.#...#.
+    !byte %.##..#..                                                   ; #....#.#.#....#.
+    !byte %##...#..                                                   ; #..#...#...#..#.
+    !byte %#....#..                                                   ; #.#.#..#..#.#.#.
+    !byte %#...###.                                                   ; .#...#.#.#...#..
+    !byte %#...#.#.                                                   ; .#....###....#..
+    !byte %#...#.#.                                                   ; .......#........
+    !byte %#..#..#.                                                   ;
+    !byte %#...#.#.                                                   ;
+    !byte %#....#.#                                                   ;
+    !byte %#..#...#                                                   ;
+    !byte %#.#.#..#                                                   ;
+    !byte %.#...#.#                                                   ;
+    !byte %.#....##                                                   ;
+    !byte %.......#                                                   ;
+    !byte %#..#..#.                                                   ;
+    !byte %#.#...#.                                                   ;
+    !byte %.#....#.                                                   ;
+    !byte %...#..#.                                                   ;
+    !byte %..#.#.#.                                                   ;
+    !byte %.#...#..                                                   ;
+    !byte %#....#..                                                   ;
+    !byte %........                                                   ;
+
+starship_sprite_10
+    !byte %.......#                                                   ; .......#........
+    !byte %.......#                                                   ; .......#........
+    !byte %.#....##                                                   ; .#....###....#..
+    !byte %.#....##                                                   ; .#....###....#..
+    !byte %.#...##.                                                   ; .#...##.##...#..
+    !byte %###..##.                                                   ; ###..##.##..###.
+    !byte %###.##.#                                                   ; ###.##.#.##.###.
+    !byte %###.##.#                                                   ; ###.##.#.##.###.
+    !byte %........                                                   ; #####..#..#####.
+    !byte %........                                                   ; ##.....#.....##.
+    !byte %#....#..                                                   ; ######.#.######.
+    !byte %#....#..                                                   ; ##....###....##.
+    !byte %##...#..                                                   ; #####..#..#####.
+    !byte %##..###.                                                   ; ###.##.#.##.###.
+    !byte %.##.###.                                                   ; ###..##.##..###.
+    !byte %.##.###.                                                   ; .#....###....#..
+    !byte %#####..#                                                   ;
+    !byte %##.....#                                                   ;
+    !byte %######.#                                                   ;
+    !byte %##....##                                                   ;
+    !byte %#####..#                                                   ;
+    !byte %###.##.#                                                   ;
+    !byte %###..##.                                                   ;
+    !byte %.#....##                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %.....##.                                                   ;
+    !byte %.######.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %..#####.                                                   ;
+    !byte %.##.###.                                                   ;
+    !byte %##..###.                                                   ;
+    !byte %#....#..                                                   ;
+
+starship_sprite_11
+    !byte %.....###                                                   ;.....#####......
+    !byte %....##..                                                   ;....##...##.....
+    !byte %...##..#                                                   ;...##..#..##....
+    !byte %...##.##                                                   ;...##.###.##....
+    !byte %...##.##                                                   ;...##.###.##....
+    !byte %...##..#                                                   ;...##..#..##....
+    !byte %....##..                                                   ;....##...##.....
+    !byte %##...###                                                   ;##...#####...##.
+    !byte %##......                                                   ;##.....#.....##.
+    !byte %.##.....                                                   ;###...###...###.
+    !byte %..##....                                                   ;####..###..####.
+    !byte %#.##....                                                   ;##.##.###.##.##.
+    !byte %#.##....                                                   ;##..#######..##.
+    !byte %..##....                                                   ;##....###....##.
+    !byte %.##.....                                                   ;##....###....##.
+    !byte %##...##.                                                   ;##.....#.....##.
+    !byte %##.....#                                                   ;
+    !byte %###...##                                                   ;
+    !byte %####..##                                                   ;
+    !byte %##.##.##                                                   ;
+    !byte %##..####                                                   ;
+    !byte %##....##                                                   ;
+    !byte %##....##                                                   ;
+    !byte %##.....#                                                   ;
+    !byte %.....##.                                                   ;
+    !byte %#...###.                                                   ;
+    !byte %#..####.                                                   ;
+    !byte %#.##.##.                                                   ;
+    !byte %###..##.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %#....##.                                                   ;
+    !byte %.....##.                                                   ;
+}
+copy_starships_end
+
+copy_angle_addresses_start
+!pseudopc angle_addresses_destination {
+plot_table_offset_low
+    !byte <plus_angle0
+    !byte <plus_angle1
+    !byte <plus_angle2
+    !byte <plus_angle3
+    !byte <plus_angle4
+    !byte <plus_angle5
+    !byte <plus_angle6
+    !byte <plus_angle7
+    !byte <plus_angle8
+    !byte <plus_angle9
+    !byte <plus_angle10
+    !byte <plus_angle11
+    !byte <plus_angle12
+    !byte <plus_angle13
+    !byte <plus_angle14
+    !byte <plus_angle15
+    !byte <plus_angle16
+    !byte <plus_angle17
+    !byte <plus_angle18
+    !byte <plus_angle19
+    !byte <plus_angle20
+    !byte <plus_angle21
+    !byte <plus_angle22
+    !byte <plus_angle23
+    !byte <plus_angle24
+    !byte <plus_angle25
+    !byte <plus_angle26
+    !byte <plus_angle27
+    !byte <plus_angle28
+    !byte <plus_angle29
+    !byte <plus_angle30
+    !byte <plus_angle31
+    !byte <plus_angle32
+    !byte <plus_angle33
+    !byte <plus_angle34
+    !byte <plus_angle35
+    !byte <plus_angle36
+    !byte <plus_angle37
+    !byte <plus_angle38
+    !byte <plus_angle39
+    !byte <plus_angle40
+    !byte <plus_angle41
+    !byte <plus_angle42
+
+plot_table_offset_high
+    !byte >plus_angle0
+    !byte >plus_angle1
+    !byte >plus_angle2
+    !byte >plus_angle3
+    !byte >plus_angle4
+    !byte >plus_angle5
+    !byte >plus_angle6
+    !byte >plus_angle7
+    !byte >plus_angle8
+    !byte >plus_angle9
+    !byte >plus_angle10
+    !byte >plus_angle11
+    !byte >plus_angle12
+    !byte >plus_angle13
+    !byte >plus_angle14
+    !byte >plus_angle15
+    !byte >plus_angle16
+    !byte >plus_angle17
+    !byte >plus_angle18
+    !byte >plus_angle19
+    !byte >plus_angle20
+    !byte >plus_angle21
+    !byte >plus_angle22
+    !byte >plus_angle23
+    !byte >plus_angle24
+    !byte >plus_angle25
+    !byte >plus_angle26
+    !byte >plus_angle27
+    !byte >plus_angle28
+    !byte >plus_angle29
+    !byte >plus_angle30
+    !byte >plus_angle31
+    !byte >plus_angle32
+    !byte >plus_angle33
+    !byte >plus_angle34
+    !byte >plus_angle35
+    !byte >plus_angle36
+    !byte >plus_angle37
+    !byte >plus_angle38
+    !byte >plus_angle39
+    !byte >plus_angle40
+    !byte >plus_angle41
+    !byte >plus_angle42
+}
+copy_angle_addresses_end
 
 ; ----------------------------------------------------------------------------------
 ; Envelope 1, used by sound_3 (Starship fired torpedo)
