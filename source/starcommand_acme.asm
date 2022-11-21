@@ -248,6 +248,7 @@ maximum_number_of_explosions                                        = 8
 maximum_number_of_enemy_ships                                       = 8
 maximum_number_of_starship_torpedoes                                = 24
 maximum_number_of_enemy_torpedoes                                   = 24
+maximum_number_of_powerups                                          = 5
 maximum_starship_velocity                                           = 4
 size_of_enemy_ship_for_collisions_between_enemy_ships               = 8
 enemy_ship_explosion_duration                                       = 37
@@ -302,13 +303,14 @@ base_regeneration_rate_for_starship                                 = 12
 base_damage_to_enemy_ship_from_other_collision                      = 20
 change_in_number_of_stars_per_command                               = -2
 
-danger_height                                                       = 8
+danger_height                                                       = 9
 subtraction_from_starship_regeneration_when_shields_active          = 4
 maximum_timer_for_starship_energy_regeneration                      = 3
 
 enemy_stride                                                        = 4*5   ; offset in bytes to get from one enemy
                                                                             ; angle definition to the next.
                                                                             ; five segments, 4 bytes for each segment.
+powerup_duration                                                    = 100   ; 100*4 game ticks
 
 ; ----------------------------------------------------------------------------------
 ; OS constants
@@ -427,6 +429,7 @@ starship_rotation_sine_magnitude            = $0a
 stars_still_to_consider                     = $0b   ; }
 explosion_bits_still_to_consider            = $0b   ; } same location
 enemy_ships_still_to_consider               = $0b   ; }
+powerups_still_to_consider                  = $0b   ; }
 
 lookup_low                                  = $0c   ; used in decompressing text, and initialising the enemy cache
 lookup_high                                 = $0d   ;
@@ -456,14 +459,9 @@ segment_angle_change_per_pixel              = $1d   ; }
 output_fraction                             = $1e
 
 temp8                                       = $1f
-temp9                                       = $20   ; } same location
-input_fraction                              = $20   ; }
-
-temp10                                      = $21   ; } same location
-input_pixels                                = $21   ; }
-
-segment_angle                               = $22   ; } same location
-input_screens                               = $22   ; }
+temp9                                       = $20
+temp10                                      = $21
+segment_angle                               = $22
 
 ; Note that $23-$C9 is used by the decompression routine (tape only)
 zp_start                                    = $23   ;
@@ -497,6 +495,7 @@ cache_start_high                            = $34   ; } same location
 
 enemy_number                                = $35   ; Enemy definition 0-5
 explosion_loop_counter                      = $36   ;
+powerup_counter                             = $36
 velocity_gauge_position                     = $37
 
 enemy_ships_flags_or_explosion_timer        = $38 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $38
@@ -514,6 +513,7 @@ enemy_ships_energy                          = $38 + 11 * maximum_number_of_enemy
 
 segment_length                              = $98   ; } same location
 multiplier                                  = $98   ; }
+output_screens                              = $98   ; }
 enemy_ship_desired_velocity                 = $99
 temp1_low                                   = $9a
 temp1_high                                  = $9b
@@ -837,8 +837,18 @@ sound_11
     !byte 7, 0                                                        ; pitch 7
     !byte 20, 0                                                       ; duration 20
 
-!if >sound_1 != >sound_11 {
-    !error "alignment error", sound_1, sound_11;
+; ----------------------------------------------------------------------------------
+; Powerup taken
+; ----------------------------------------------------------------------------------
+sound_12
+    !byte $13, 0                                                      ; channel 3
+    !byte $f1, 0                                                      ; volume 15
+    !byte $a4, 0                                                      ; pitch
+    !byte 2  , 0                                                      ; duration 1
+
+
+!if >sound_1 != >sound_12 {
+    !error "alignment error", sound_1, sound_12;
 }
 sounds = sound_1 & 0xff00
 
@@ -1051,10 +1061,114 @@ plus_angle41
 plus_angle42
 
 ; ----------------------------------------------------------------------------------
+; Plot a point, with boundary check
+;
+; Checks that the point we are about to plot is close to the centre of the object.
+; If it isn't, it's because the point wrapped around from one side of the
+; play area and back onto the other side.
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;   temp9, temp10 = position of centre of object
+;
+; On Exit:
+;   X is preserved
+; ----------------------------------------------------------------------------------
+eor_pixel_with_boundary_check
+    ; boundary check X
+    txa                                                               ;
+    sec                                                               ;
+    sbc temp10                                                        ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs return                                                        ;
+
+    ; boundary check Y
+    lda y_pixels                                                      ;
+    sec                                                               ;
+    sbc temp9                                                         ;
+    bcs +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #$20                                                          ;
+    bcs return                                                        ;
+    ; fall through...
+
+; ----------------------------------------------------------------------------------
+; Plot a point (using 'exclusive or')
+;
+; On Entry:
+;   X        = x coordinate to plot
+;   y_pixels = y coordinate to plot
+;
+; On Exit:
+;   X is preserved
+; ----------------------------------------------------------------------------------
+eor_play_area_pixel
+    ldy y_pixels                                                      ;
+eor_play_area_pixel_ycoord_in_y
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+eor_pixel_entry
+    lda row_table_low,y                                               ;
+    sta screen_address_low                                            ;
+eor_pixel_same_y
+eor_play_area_pixel_same_y
+    ldy xandf8,x                                                      ;
+    lda xbit_table,x                                                  ;
+    eor (screen_address_low),y                                        ;
+    sta (screen_address_low),y                                        ;
+return
+    rts                                                               ;
+
+; ----------------------------------------------------------------------------------
+; version for the frontiers screen, offset stars by $0780
+; ----------------------------------------------------------------------------------
+eor_frontier_pixel
+    lda y_pixels                                                      ;
+    ;clc ; C is already clear
+    adc #48                                                           ;
+    tay                                                               ;
+    bne eor_play_area_pixel_ycoord_in_y                               ; ALWAYS branch
+
+; ----------------------------------------------------------------------------------
+; version that plots to scanner area
+; ----------------------------------------------------------------------------------
+eor_pixel
+    ldx x_pixels                                                      ;
+eor_pixel_xcoord_in_x
+    ldy y_pixels                                                      ;
+    lda play_area_row_table_high,y                                    ;
+    sta screen_address_high                                           ;
+    inc screen_address_high                                           ;
+    bne eor_pixel_entry                                               ; ALWAYS branch
+
+!if >eor_frontier_pixel != >eor_play_area_pixel {
+    !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
+}
+
+!if <eor_frontier_pixel = 0 {
+    !error "alignment error";
+}
+
+; ----------------------------------------------------------------------------------
+; The following two tables are used to rotate enemy ships and powerups about the starship.
+
+; The following cosine table is the lower byte of a 16 bit number (the upper byte is an implied $ff)
+; The following   sine table is the lower byte of a 16 bit number (the upper byte is an implied $00)
+;  starship_rotation_cosine_table[i] = <ROUND(65536*COS(i * 0.44765459549834 degrees))
+;    starship_rotation_sine_table[i] = <ROUND(65536*SIN(i * 0.44765459549834 degrees)))
 starship_rotation_cosine_table
     !byte 0  , $fe, $f8, $ee, $e0, $ce                                ;
 starship_rotation_sine_table
     !byte 0  , 2  , 4  , 6  , 8  , 10                                 ;
+
+; These tables are 8 bit signed, used when rotating enemy ships, explosion fragments etc:
+; cosine_table[i] = 6.25 * cos(360*(i-8)/32 degrees)
+;   sine_table[i] = 6.25 * sin(360*i/32 degrees)
 
 cosine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ; overlaps with sine table
@@ -1065,9 +1179,6 @@ sine_table
     !byte $fa, $fa, $fb, $fb, $fc, $fd, $fe, $ff                      ;
 
 ; ----------------------------------------------------------------------------------
-; TODO: Align to page boundary for speed?
-
-
 segment_angle_to_y_deltas_table
     !byte $0     ; 0   y0
     !byte $1     ; 1   y+
@@ -1217,6 +1328,15 @@ init_self_modifying_bytes_for_starship_rotation
     sta sm_sine_a4                                                    ;
     sta sm_sine_b4                                                    ;
     lda starship_rotation_cosine                                      ;
+    sta sm_powerup_cosine_b1                                          ;
+    sta sm_powerup_cosine_b2                                          ;
+    sta sm_powerup_cosine_b3                                          ;
+    sta sm_powerup_cosine_b4                                          ;
+    sta sm_powerup_cosine_c1                                          ;
+    sta sm_powerup_cosine_c2                                          ;
+    sta sm_powerup_cosine_c3                                          ;
+    sta sm_powerup_cosine_c4                                          ;
+
     sta sm_cosine_a1                                                  ;
     sta sm_cosine_b1                                                  ;
     sta sm_cosine_c1                                                  ;
@@ -1233,6 +1353,19 @@ init_self_modifying_bytes_for_starship_rotation
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Given one coordinate (either X or Y) of an enemy ship's 24 bit position,
+; multiply by the sine of the given angle.
+;
+; 24 bit result = (24 bit coordinate position) x sin(angle)
+;
+; On Entry:
+;   X is the enemy we are interested in
+;   starship_rotation_sine_magnitude is the rotation amount
+; On Exit:
+;   (output_fraction, output_pixels, output_screens) is the new rotated coordinate
+;
+; Preserves X
+; ----------------------------------------------------------------------------------
 multiply_enemy_position_by_starship_rotation_sine_magnitude
     ; set up inputs
     lda starship_rotation_sine_magnitude                              ;
@@ -1246,41 +1379,61 @@ multiply_enemy_position_by_starship_rotation_sine_magnitude
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
-; multiply 24 bit by 8 bit
-; input is (input_fraction,input_pixels,input_screens) x t
-; output is (multiplier, output_fraction, output_pixels)
-; Average cycle count: 354 cycles
+; Multiply 24 bit by 8 bit values
+;
+; On Entry:
+;   24 bit value: (input_fraction, input_pixels, input_screens)
+;    8 bit value: t
+; On Exit:
+;   24 bit value: (output_fraction, output_pixels, output_screens) is the result
+;
+; Preserves X
+;
+; Average cycle count: 342 cycles
+; ----------------------------------------------------------------------------------
 mul24x8
     lda #0                                                            ;
-    sta multiplier                                                    ;
+    sta output_screens                                                ;
     sta output_fraction                                               ;
     sta output_pixels                                                 ;
     ldy #8                                                            ;
 -
     lsr t                                                             ;
-    bcc skipZ                                                         ;
-
-    lda output_pixels                                                 ;
-    clc                                                               ;
-    adc input_fraction                                                ;
-    sta output_pixels                                                 ;
+    bcc skip_add                                                      ;
 
     lda output_fraction                                               ;
-    adc input_pixels                                                  ;
+    clc                                                               ;
+input_fraction = * + 1
+    adc #0                                                            ; self modifying code
     sta output_fraction                                               ;
 
-    lda multiplier                                                    ;
-    adc input_screens                                                 ;
-    sta multiplier                                                    ;
-skipZ
-    ror multiplier                                                    ;
-    ror output_fraction                                               ;
+    lda output_pixels                                                 ;
+input_pixels = * + 1
+    adc #0                                                            ; self modifying code
+    sta output_pixels                                                 ;
+
+    lda output_screens                                                ;
+input_screens = * + 1
+    adc #0                                                            ; self modifying code
+    sta output_screens                                                ;
+
+skip_add
+    ror output_screens                                                ;
     ror output_pixels                                                 ;
+    ror output_fraction                                               ;
     dey                                                               ;
     bne -                                                             ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Given one coordinate (either X or Y) of an enemy ship's 24 bit position,
+; multiply by cos(starship angle)
+;
+; On Entry:
+;   X = offset to enemy ship coordinate
+; On Exit:
+;   (temp9, temp10, segment_angle) are the new coordinates
+; preserves X
 multiply_enemy_position_by_starship_rotation_cosine
     stx temp_x                                                        ; remember x
 
@@ -1292,7 +1445,7 @@ multiply_enemy_position_by_starship_rotation_cosine
     ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
     ; result in A (low) and temp8 (high)
 
-    ; multiply X * starship_rotation_cosine, result in A (high byte) and prod_low
+    ; multiply X * starship_rotation_cosine, result in Y (high byte)
 sm_cosine_b1 = * + 1
     lda squares1_low,y                                                ;
     sec                                                               ;
@@ -1324,21 +1477,26 @@ sm_cosine_c4 = * + 1
     inc temp8                                                         ;
 +
 
-    ; update enemy position
+    ; (temp9, Y, segment_angle) = (A, temp8, 0) + current enemy position
     ldx temp_x                                                        ; restore x
     clc                                                               ;
     adc enemy_ships_x_fraction,x                                      ;
     sta temp9                                                         ;
+
     lda temp8                                                         ;
     adc enemy_ships_x_pixels,x                                        ;
     tay                                                               ;
+
     lda enemy_ships_x_screens,x                                       ;
     adc #0                                                            ;
     sta segment_angle                                                 ;
+
+    ; (temp9, temp10, segment_angle) = (temp9, y) - (enemy_pixels, enemy_screens)
     lda temp9                                                         ;
     sec                                                               ;
     sbc enemy_ships_x_pixels,x                                        ;
     sta temp9                                                         ;
+
     tya                                                               ;
     sbc enemy_ships_x_screens,x                                       ;
     sta temp10                                                        ;
@@ -1354,6 +1512,8 @@ apply_starship_rotation_and_velocity_to_enemy_ships
     jmp apply_starship_velocity_to_enemy_ship                         ;
 
 starship_is_rotating
+
+    ; new position = previous position + half a screen (so that we rotate about the correct position)
     lda enemy_ships_previous_x_pixels,x                               ;
     clc                                                               ;
     adc #$80                                                          ;
@@ -1368,6 +1528,8 @@ skip1
     bcc skip2                                                         ;
     inc enemy_ships_y_screens,x                                       ;
 skip2
+
+    ; invert position if rotating one way
     ldy starship_rotation                                             ;
     bmi skip_inversion1                                               ;
     lda enemy_ships_x_fraction,x                                      ;
@@ -1382,70 +1544,94 @@ skip2
     eor #$ff                                                          ;
     sta enemy_ships_x_screens,x                                       ;
 skip_inversion1
-    stx temp_y                                                        ;
+
+    stx temp_y                                                        ; store X, the offset to the X coordinates of the current enemy
+
+    ; X += stride to get Y coordinates
     txa                                                               ;
     clc                                                               ;
-    adc #stride_between_enemy_coordinates                             ; X += stride
+    adc #stride_between_enemy_coordinates                             ;
     tax                                                               ;
+    stx result                                                        ; store offset to Y coordinates
 
-    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
+    ; rotate by starship coordinates
+    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ; output = posY * sin(angle)
 
-    ldx temp_y                                                        ;
-    jsr multiply_enemy_position_by_starship_rotation_cosine           ;
+    ldx temp_y                                                        ; point back to X coordinates again
+    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (temp9, temp10, segment_angle) = posX * cos(angle)
+
+    ; (x_pixels, y_pixels, temp11) = posY * sin(angle) + posX * cos(angle)
     lda temp9                                                         ;
     clc                                                               ;
-    adc output_pixels                                                 ;
-    sta x_pixels                                                      ;
-    lda temp10                                                        ;
     adc output_fraction                                               ;
-    sta y_pixels                                                      ;
+    sta x_pixels                                                      ; store X fraction
+
+    lda temp10                                                        ;
+    adc output_pixels                                                 ;
+    sta y_pixels                                                      ; store X pixels
+
     lda segment_angle                                                 ;
-    adc segment_length                                                ;
-    sta temp11                                                        ;
-    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ;
+    adc output_screens                                                ;
+    sta temp11                                                        ; store X screens
 
-    txa                                                               ;
-    clc                                                               ;
-    adc #stride_between_enemy_coordinates                             ; X += stride
-    tax                                                               ;
+    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ; output = posX * sin(angle)
 
-    jsr multiply_enemy_position_by_starship_rotation_cosine           ;
+    ; X = look at Y coordinates again
+    ldx result                                                        ; recall offset to Y coordinates
+    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (temp9, temp10, segment_angle) = posY * cos(angle)
 
-    ldx temp_y                                                        ;
+    ; (temp9, temp10, segment_angle) = (temp9, temp10, segment_angle) - posX * sin(angle)
+    ;                                = posY * cos(angle) - posX * sin(angle)
+    ldx temp_y                                                        ; point back to X coordinates again
     lda temp9                                                         ;
     sec                                                               ;
-    sbc output_pixels                                                 ;
-    sta temp9                                                         ;
-    lda temp10                                                        ;
     sbc output_fraction                                               ;
-    sta temp10                                                        ;
+    sta temp9                                                         ; update fractions
+
+    lda temp10                                                        ;
+    sbc output_pixels                                                 ;
+    sta temp10                                                        ; update pixels
+
     lda segment_angle                                                 ;
-    sbc segment_length                                                ;
-    sta segment_angle                                                 ;
+    sbc output_screens                                                ;
+    sta segment_angle                                                 ; update screens
+
+    ; apply correction based on rotation angle:
+    ; new_posX = (x_pixels, y_pixels, temp11) - x_correction[angle]
+    ;          = posY * sin(angle) + posX * cos(angle) - x_correction[angle]
     ldy starship_rotation_magnitude                                   ;
-    lda x_pixels                                                      ;
+    lda x_pixels                                                      ; X coordinate fraction
     sec                                                               ;
     sbc rotated_x_correction_fraction,y                               ;
     eor starship_rotation_eor                                         ;
     sta enemy_ships_x_fraction,x                                      ;
-    lda y_pixels                                                      ;
+
+    lda y_pixels                                                      ; X coordinate pixels
     sbc rotated_x_correction_pixels,y                                 ;
     eor starship_rotation_eor                                         ;
     sta enemy_ships_x_pixels,x                                        ;
-    lda temp11                                                        ;
+
+    lda temp11                                                        ; X coordinate screens
     sbc rotated_x_correction_screens,y                                ;
     eor starship_rotation_eor                                         ;
     sta enemy_ships_x_screens,x                                       ;
-    lda temp9                                                         ;
+
+    ; new_posY = (temp9, temp10, segment_angle)
+    ;          = posY * cos(angle) - posX * sin(angle) + y_correction[angle]
+    lda temp9                                                         ; Y coordinate fraction
     clc                                                               ;
     adc rotated_y_correction_fraction,y                               ;
     sta enemy_ships_y_fraction,x                                      ;
-    lda temp10                                                        ;
+
+    lda temp10                                                        ; Y coordinate pixels
     adc rotated_y_correction_pixels,y                                 ;
     sta enemy_ships_y_pixels,x                                        ;
-    lda segment_angle                                                 ;
+
+    lda segment_angle                                                 ; Y coordinate screens
     adc rotated_y_correction_screens,y                                ;
     sta enemy_ships_y_screens,x                                       ;
+
+    ; subtract half a screen to restore correct centre point
     lda enemy_ships_y_pixels,x                                        ;
     sec                                                               ;
     sbc #$80                                                          ;
@@ -1461,10 +1647,12 @@ skip_inversion1
     dec enemy_ships_x_screens,x                                       ;
 +
 apply_starship_velocity_to_enemy_ship
+    ; add starship velocity to position
     lda enemy_ships_y_fraction,x                                      ;
     clc                                                               ;
     adc starship_velocity_low                                         ;
     sta enemy_ships_y_fraction,x                                      ;
+
     lda enemy_ships_y_pixels,x                                        ;
     adc starship_velocity_high                                        ;
     sta enemy_ships_y_pixels,x                                        ;
@@ -1607,8 +1795,9 @@ return2
 
 ; ----------------------------------------------------------------------------------
 fire_starship_torpedo
+start_of_starship_torpedo_streams = * + 1
     ldx #0                                                            ;
-    stx torpedo_dir                                                   ; loop counter - three directions of spray
+    stx torpedo_dir                                                   ; loop counter - up to three directions of spray
 
 fire_torpedo_loop
     ; find a free slot
@@ -1664,18 +1853,32 @@ found_empty_torpedo_slot
 next_torpedo_fire
     inc torpedo_dir                                                   ;
     ldx torpedo_dir                                                   ;
+end_of_starship_torpedo_streams = * + 1
     cpx #3                                                            ;
     bcc fire_torpedo_loop                                             ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-torpedo_dir_table
-    !byte $40, $7f, $c0
+set_number_of_torpedo_streams
+    lda stream_starts-1,x
+    sta start_of_starship_torpedo_streams
+    lda stream_stops-1,x
+    sta end_of_starship_torpedo_streams
+    rts
 
-    ;   -21012
-    ; -1 .ffg.
-    ;  0 aabbc
-    ;  1 .edd.
+stream_starts
+    !byte 2, 0, 0
+stream_stops
+    !byte 2, 2, 3
+
+; ----------------------------------------------------------------------------------
+torpedo_dir_table
+    !byte $40, $c0, $7f
+
+;   -21012
+; -1 .ffg.
+;  0 aabbc
+;  1 .edd.
 ; ----------------------------------------------------------------------------------
 plot_expiring_torpedo
     ldx object_table_xpixels,y                                        ; x coordinate
@@ -2114,7 +2317,8 @@ mark_enemy_ship_as_plotted_if_on_starship_screen
     cmp enemy_ships_y_screens,x                                       ;
     bne enemy_ship_not_on_starship_screen                             ;
     lda #0                                                            ;
-    beq set_enemy_ships_on_screen                                     ;
+    beq set_enemy_ships_on_screen                                     ; ALWAYS branch
+
 enemy_ship_not_on_starship_screen
     lda #1                                                            ;
 set_enemy_ships_on_screen
@@ -2158,7 +2362,7 @@ not_previously_on_screen
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships
-    ; initialize the array to ones (nothing done yet)
+    ; initialise the array to ones (nothing done yet)
     lda #(1<<maximum_number_of_enemy_ships)-1                         ;
     sta enemy_ship_update_done                                        ;
 
@@ -2459,6 +2663,28 @@ consider_next_enemy_ship
     jmp check_for_starship_collision_with_enemy_ships_loop            ;
 
 ; ----------------------------------------------------------------------------------
+; Draws a segment of this circle:
+;
+;                      31 00 01
+;                29 30          02 03
+;             28                      04
+;          27                            05
+;          26                            06
+;       25                                  07
+;       24                                  08
+;       23                                  09
+;          22                            10
+;          21                            11
+;             20                      12
+;                19 18          14 13
+;                      17 16 15
+;
+; On Entry:
+;   (x_pixels, y_pixels)            where on the screen to start drawing
+;   segment_angle                   which pixel around the circle to start with
+;   segment_angle_change_per_pixel  how much to progress around the circle after each pixel (usually 1, which is the fastest)
+;   segment_length                  number of pixels to plot
+; ----------------------------------------------------------------------------------
 plot_segment
     ; check if we are close to the side of the screen.
     ; If not we can forego the boundary checks and run faster.
@@ -2571,7 +2797,7 @@ plot_segment_unrolled
     lda #$60                                                          ; store opcode for RTS
     sta (codeptr_low),y                                               ;
 
-    ; initialize X,Y cell offsets and accumulator for current pixel
+    ; initialise X,Y cell offsets and accumulator for current pixel
     ldx x_pixels                                                      ;
     ldy y_pixels                                                      ;
     lda row_table_low,y                                               ;
@@ -2878,7 +3104,7 @@ skip_inversion3
     adc #$80                                                          ;
     tay                                                               ;
     sta starship_rotation_magnitude                                   ;
-    stx starship_rotation_eor                                         ;
+    stx starship_rotation_eor                                         ; remember invert if -ve
     lda starship_rotation_sine_table,y                                ;
     sta starship_rotation_sine_magnitude                              ;
     lda starship_rotation_cosine_table,y                              ;
@@ -2900,7 +3126,8 @@ finished_rotating
     bne set_starship_torpedo_cooldown                                 ; ALWAYS branch
 
 not_end_of_round
-    lda #starship_torpedo_cooldown_after_firing                       ;
+starship_torpedo_cooldown_reset_value = * + 1
+    lda #0                                                            ; self modifying code
 set_starship_torpedo_cooldown
     sta starship_torpedo_cooldown                                     ;
     jsr fire_starship_torpedo                                         ;
@@ -3000,10 +3227,7 @@ starship_still_has_energy
     cmp #$81                                                          ;
     bcc reset_damage_counter                                          ;
 skip15
-    lda #$0c                                                          ;
-    sta starship_energy_high                                          ;
-    lda #$80                                                          ;
-    sta starship_energy_low                                           ;
+    jsr reset_energy                                                  ;
 
 reset_damage_counter
     lda #0                                                            ;
@@ -6661,6 +6885,8 @@ initialise_enemy_ship
     jsr random_number_generator                                       ;
     and #$0f                                                          ; pick random behaviour type for enemy ship
     sta enemy_ships_flags_or_explosion_timer,x                        ;
+
+    ; set the initial enemy position on the boundary of the long range scanner
     ldy #$5f                                                          ;
     lda rnd_2                                                         ;
     bpl skip29                                                        ;
@@ -6684,12 +6910,14 @@ skip_swap1
     sta temp10                                                        ;
     lda x_pixels                                                      ;
     sta enemy_ships_y_screens,x                                       ;
+
     jsr calculate_enemy_ship_angle_to_starship_ycoord_in_a            ;
     eor #$10                                                          ; initially pointing away from starship
     asl                                                               ;
     asl                                                               ;
     asl                                                               ;
     sta enemy_ships_angle,x                                           ;
+
     jsr random_number_generator                                       ; properties depending on command probabilities
     lda probability_of_new_enemy_ship_being_defensive_about_damage    ;
     cmp rnd_2                                                         ;
@@ -6847,10 +7075,7 @@ prepare_starship_for_next_command
     sta starship_rotation                                             ;
     sta starship_rotation_fraction                                    ;
     sta starship_automatic_shields                                    ;
-    lda #$0c                                                          ;
-    sta starship_energy_high                                          ;
-    lda #$7f                                                          ;
-    sta starship_energy_low                                           ;
+    jsr reset_energy
     lda #$c7                                                          ;
     sta starship_energy_divided_by_sixteen                            ;
 
@@ -6861,8 +7086,16 @@ prepare_starship_for_next_command
     jsr zero_objects                                                  ;
     jsr initialise_stars_at_random_positions                          ;
     jsr initialise_enemy_ships                                        ;
+    jsr initialise_powerups                                           ;
     jsr initialise_game_screen                                        ;
     jmp plot_enemy_ships                                              ;
+
+reset_energy
+    lda #$0c                                                          ;
+    sta starship_energy_high                                          ;
+    lda #$7f                                                          ;
+    sta starship_energy_low                                           ;
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 plot_command_number
@@ -7096,9 +7329,10 @@ decelerate1
     jsr decrease_enemy_ship_velocity                                  ;
 skip_deceleration1
     jsr turn_enemy_ship_towards_desired_angle_accounting_for_starship_velocity ;
-    bne to_return_from_enemy_ship_behaviour_routine3                  ;
+    bne +                                                             ;
     jsr fire_enemy_torpedo                                            ;
-    jmp to_return_from_enemy_ship_behaviour_routine3                  ;
++
+    jmp return_from_enemy_ship_behaviour_routine                      ;
 
 kamikaze_stage_one_set
     lda enemy_ship_desired_angle_divided_by_eight                     ;
@@ -7123,7 +7357,6 @@ off_screen6
     jsr turn_enemy_ship_towards_starship_using_screens                ;
 return_after_changing_velocity5
     jsr increase_or_decrease_enemy_ship_velocity_towards_desired_velocity ;
-to_return_from_enemy_ship_behaviour_routine3
     jmp return_from_enemy_ship_behaviour_routine                      ;
 
 !if do_debug {
@@ -7346,6 +7579,7 @@ main_game_loop
     sta how_enemy_ship_was_damaged                                    ; -1 = collision with starship
     jsr check_for_starship_collision_with_enemy_ships                 ;
     jsr update_enemy_ships                                            ;
+    jsr update_powerups                                               ;
     lda starship_shields_active                                       ;
     beq skip_scanner_update                                           ;
     lda scanner_failure_duration                                      ;
@@ -8705,10 +8939,10 @@ screen_off
     jmp oswrch                                                        ; clear screen
 
 screen_on_with_cursor
-    lda #0                                                            ;
+    lda #0                                                            ; hide cursor
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
 screen_on
-    lda #$c0                                                          ;
+    lda #$c0                                                          ; show cursor
 writeR8
     pha                                                               ;
     lda #19                                                           ;
@@ -8737,15 +8971,16 @@ screen_on
     lda #$11                                                          ;
 writepal
     stx $d0                                                           ;
-    sta $804                                                          ;
-    sta $805                                                          ;
+    sta $804                                                          ; ???
+    sta $805                                                          ; ???
     ldy verticalSyncCounter                                           ;
 -
     cpy verticalSyncCounter                                           ;
     beq -                                                             ;
     sta $fe08                                                         ;
     sta $fe09                                                         ;
-    rts
+    rts                                                               ;
+
 fastwrch
     ; we deliberately don't save A here as it's rarely required
     stx xtmp2+1                                                       ;
@@ -8807,7 +9042,7 @@ plot_and_rotate_in_game_stars
     ; update and plot the stars
     jsr update_stars                                                  ;
 
-    ; from now on, unplot and plot
+    ; from now on, unplot and plot stars
     lda #$20                                                          ; 'JSR abs' opcode
     sta maybe_unplot_star                                             ;
 
@@ -8971,7 +9206,7 @@ init_fractions_loop
 ; then we calculate c*b as a 16 bit number and add t
 ;
 ; here b = starship_rotation_sine_magnitude
-;      a = x register
+;      a = X register
 ;
 ; On Entry:
 ;   X = low byte of position  (one coordinate)
@@ -8980,7 +9215,7 @@ init_fractions_loop
 ;   output_pixels (low) and output_fraction (high)
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_sine_magnitude
-    ; 8 bit multiply starship_rotation_sine_magnitude * x into A register (the high byte)
+    ; 8 bit multiply starship_rotation_sine_magnitude * X into A register (the high byte)
 sm_sine_a1 = * + 1
     lda squares1_low+$0a,x                                            ;
     sec                                                               ;
@@ -9066,21 +9301,21 @@ update_object_position_for_starship_rotation_and_speed
     eor starship_rotation_eor                                         ;
     sta object_x_fraction                                             ;
     lda object_table_xpixels,y                                        ;
-    sta x_pixels                                                      ; remember old x pixel position
+    sta x_pixels                                                      ; remember old pixel X position
     eor starship_rotation_eor                                         ;
     sta object_x_pixels                                               ;
 
     lda object_table_yfraction,y                                      ;
     sta object_y_fraction                                             ;
     lda object_table_ypixels,y                                        ;
-    sta y_pixels                                                      ; remember old y pixel position
+    sta y_pixels                                                      ; remember old pixel Y position
     sta object_y_pixels                                               ;
 
     ldx starship_rotation_sine_magnitude                              ;
     beq add_starship_velocity_to_object_position                      ;
 
     ; update position for rotation
-    sty temp_y                                                        ; remember Y
+    sty temp_y                                                        ; remember Y register
 
     ; X' = Y*sine + X*cosine
     ldx object_y_fraction                                             ;
@@ -9156,98 +9391,706 @@ add_starship_velocity_to_object_position
     sta object_table_xfraction,y                                      ;
     rts
 
-; ----------------------------------------------------------------------------------
-; Plot a point, with boundary check
-;
-; Checks that the point we are about to plot is close to the centre of the object.
-; If it isn't, it's because the point wrapped around from one side of the
-; play area and back onto the other side.
-;
-; On Entry:
-;   X        = x coordinate to plot
-;   y_pixels = y coordinate to plot
-;
-; On Exit:
-;   X is preserved
-; ----------------------------------------------------------------------------------
-eor_pixel_with_boundary_check
-    ; boundary check X
-    txa                                                               ;
-    sec                                                               ;
-    sbc temp10                                                        ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs return                                                        ;
+powerup_start_x_screens
+    !byte $7f, $7f, $7f, $7f, $7f
+powerup_start_x_pixels
+    !byte $3f, $5f, $7f, $9f, $bf
+powerup_start_x_fraction
+    !byte $7f, $7f, $7f, $7f, $7f
 
-    ; boundary check Y
+powerup_start_y_screens
+    !byte $7f, $7f, $7f, $7f, $7f
+powerup_start_y_pixels
+    !byte $20, $20, $20, $20, $20
+powerup_start_y_fraction
+    !byte $7f, $7f, $7f, $7f, $7f
+
+; ----------------------------------------------------------------------------------
+initialise_powerups
+    ldx #maximum_number_of_powerups-1
+-
+    lda powerup_start_x_screens,x
+    sta powerups_x_screens,x
+    lda powerup_start_x_pixels,x
+    sta powerups_x_pixels,x
+    lda powerup_start_x_fraction,x
+    sta powerups_x_fraction,x
+
+    lda powerup_start_y_screens,x
+    sta powerups_y_screens,x
+    lda powerup_start_y_pixels,x
+    sta powerups_y_pixels,x
+    lda powerup_start_y_fraction,x
+    sta powerups_y_fraction,x
+
+    lda #0
+    sta powerups_taken,x
+    dex
+    bpl -
+    sta game_counter
+
+    ; reset previous position
+!if (maximum_number_of_powerups * 6 > 128) {
+    !error "too many powerups for the following loop"
+}
+    lda #0                                                            ;
+    ldx #maximum_number_of_powerups * 6                               ;
+-
+    sta powerups_previous_x_fraction,x                                ;
+    dex                                                               ;
+    bpl -                                                             ;
+
+    lda #0                                                            ;
+    sta active_powerup                                                ; which powerup is active
+    sta powerup_timer                                                 ; no timer active
+
+    ldx #1                                                            ;
+    jmp set_number_of_torpedo_streams                                 ;
+
+game_counter
+    !byte 0
+active_powerup
+    !byte 0
+powerup_timer
+    !byte 0
+
+; ----------------------------------------------------------------------------------
+update_powerups
+    inc game_counter                                                  ;
+    lda game_counter                                                  ;
+    and #3                                                            ;
+    bne +                                                             ;
+    lda powerup_timer                                                 ;
+    beq +                                                             ;
+    dec powerup_timer                                                 ;
+    bne +                                                             ;
+
+    ; timer *just* finished, reset powerup effect
+    jsr reset_powerup                                                 ;
+
++
+    ldx #maximum_number_of_powerups - 1                               ;
+    stx powerups_still_to_consider                                    ; loop counter
+
+update_powerups_loop
+    ; if the powerup is taken, then don't update it's position
+    ; but we still unplot                                             ;
+    lda powerups_taken,x                                              ;
+    bne next_powerup                                                  ;
+    jsr apply_starship_rotation_and_velocity_to_powerup               ;
+
+    ldx powerups_still_to_consider                                    ;
+    lda #$7f                                                          ;
+    cmp powerups_previous_x_screens,x                                 ;
+    bne skip_unplot                                                   ;
+    cmp powerups_previous_y_screens,x                                 ;
+    bne skip_unplot                                                   ;
+
+    ldx powerups_still_to_consider                                    ;
+    lda powerups_previous_x_pixels,x                                  ;
+    sta x_pixels                                                      ;
+    lda powerups_previous_y_pixels,x                                  ;
+    sta y_pixels                                                      ;
+
+!if (elk=0) or (elk+antiflicker=2) {
+    ; check if we are in the danger zone, if so then wait until we aren't
+danger_loop
     lda y_pixels                                                      ;
-    sec                                                               ;
-    sbc temp9                                                         ;
-    bcs +                                                             ;
-    eor #$ff                                                          ;
-+
-    cmp #$20                                                          ;
-    bcs return                                                        ;
-    ; fall through...
+    jsr is_in_danger_area                                             ;
+    bcc danger_loop                                                   ; if in danger zone, wait
+}
+
+    jsr plot_powerup                                                  ; unplot
+
+skip_unplot
+    ; if the powerup has been taken, we don't want to plot it
+    ldx powerups_still_to_consider                                    ;
+    lda powerups_taken,x                                              ;
+    bne next_powerup                                                  ;
+
+    ; check if the new position is on screen
+    lda #$7f                                                          ;
+    cmp powerups_x_screens,x                                          ;
+    bne next_powerup
+    cmp powerups_y_screens,x                                          ;
+    bne next_powerup
+
+    jsr check_if_powerup_taken                                        ;
+
+    ldx powerups_still_to_consider                                    ;
+    lda powerups_taken,x                                              ;
+    bne next_powerup                                                  ;
+    lda powerups_x_pixels,x                                           ;
+    sta x_pixels                                                      ;
+    lda powerups_y_pixels,x                                           ;
+    sta y_pixels                                                      ;
+    jsr plot_powerup                                                  ; plot
+next_powerup
+    dec powerups_still_to_consider                                    ;
+    ldx powerups_still_to_consider                                    ;
+    bpl update_powerups_loop                                          ;
+
+!if (maximum_number_of_powerups * 6 > 128) {
+    !error "too many powerups for the following loop"
+}
+
+    ; set previous position
+    ldx #maximum_number_of_powerups * 6                               ;
+-
+    lda powerups_x_fraction,x                                         ;
+    sta powerups_previous_x_fraction,x                                ;
+    dex                                                               ;
+    bpl -                                                             ;
+
+    jmp update_screen_flash                                           ;
 
 ; ----------------------------------------------------------------------------------
-; Plot a point (using 'exclusive or')
+plot_powerup
+    lda powerup_types_start_indexes,x                                 ;
+    sta temp_index                                                    ;
+    lda powerup_types_num_segments,x                                  ;
+    sta powerup_counter                                               ;
+
+    lda #1                                                            ;
+    sta segment_angle_change_per_pixel                                ; always 1 for speed
+    lda x_pixels                                                      ;
+    sta temp10                                                        ; remember object coordinates
+    lda y_pixels                                                      ;
+    sta temp9                                                         ;
+
+    ; draw segments
+-
+temp_index = * + 1
+    ldy #0                                                            ; self modifying code
+    lda powerup_type_x,y                                              ;
+    clc                                                               ;
+    adc temp10                                                        ;
+    sta x_pixels                                                      ;
+    lda powerup_type_y,y                                              ;
+    clc                                                               ;
+    adc temp9                                                         ;
+    sta y_pixels                                                      ;
+    lda powerup_type_start_angle,y                                    ;
+    sta segment_angle                                                 ;
+    lda powerup_type_length,y                                         ;
+    sta segment_length                                                ;
+
+    jsr plot_segment                                                  ;
+    inc temp_index                                                    ; increment current segment index
+    dec powerup_counter                                               ; decrement loop counter
+    bne -                                                             ;
+    rts                                                               ;
+
+
+; From https://stackoverflow.com/a/402010
+;bool intersects(CircleType circle, RectType rect)
+;{
+;    circleDistance.x = abs(circle.x - rect.x);
+;    circleDistance.y = abs(circle.y - rect.y);
+;
+;    if (circleDistance.x > (rect.width/2 + circle.r)) { return false; }
+;    if (circleDistance.y > (rect.height/2 + circle.r)) { return false; }
+;
+;    if (circleDistance.x <= (rect.width/2)) { return true; }
+;    if (circleDistance.y <= (rect.height/2)) { return true; }
+;
+;    cornerDistance_sq = (circleDistance.x - rect.width/2)^2 +
+;                         (circleDistance.y - rect.height/2)^2
+;
+;    return (cornerDistance_sq <= (circle.r^2));
+;}
+
+; sizes for the purposes of collision detection with powerups
+starship_width  = 14
+starship_height = 16
+powerup_radius  =  5
+
+; test if the powerup circle intersects with the starship rectangle
+check_if_powerup_taken
+    lda powerups_x_pixels,x                                           ;
+    sec                                                               ;
+    sbc #$80                                                          ;
+    bpl +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #starship_width/2 + powerup_radius + 1                        ;
+    bcs not_taken                                                     ;
+    sta temp8                                                         ;
+    lda powerups_y_pixels,x                                           ;
+    sec                                                               ;
+    sbc #$80                                                          ;
+    bpl +                                                             ;
+    eor #$ff                                                          ;
++
+    cmp #starship_height / 2 + powerup_radius + 1                     ;
+    bcs not_taken                                                     ;
+    sec                                                               ;
+    sbc #starship_height / 2                                          ;
+    bcs taken                                                         ;
+    tay                                                               ;
+
+    lda temp8                                                         ;
+    sec                                                               ;
+    sbc #starship_width / 2                                           ;
+    bcs taken                                                         ;
+
+    lda squares1_low,y                                                ;
+    sta temp0_low                                                     ;
+    lda squares1_high,y                                               ;
+    sta temp0_high                                                    ;
+    ldy temp8                                                         ;
+    lda squares1_low,y                                                ;
+    sec                                                               ;
+    sbc temp0_low                                                     ;
+    sta temp0_low                                                     ;
+    lda squares1_high,y                                               ;
+    sec                                                               ;
+    sbc temp0_high                                                    ;
+    bne not_taken                                                     ;
+    lda temp0_low                                                     ;
+    cmp #1 + powerup_radius*powerup_radius/4                          ; test not against <=6*6, because we only have quarter squares
+    bcc taken                                                         ;
+not_taken
+    rts                                                               ;
+taken
+    ; reset any existing powerup
+    jsr reset_powerup                                                 ;
+    ; mark powerup as taken
+    lda #$ff                                                          ;
+    sta powerups_taken,x                                              ;
+
+    txa                                                               ;
+    pha                                                               ;
+    ldx #<(sound_12)                                                  ;
+    jsr do_osword_sound                                               ;
+    pla
+
+    sta active_powerup                                                ;
+    cmp #1                                                            ;
+    bcc take_powerup0                                                 ;
+    beq take_powerup1                                                 ;
+    cmp #3                                                            ;
+    bcc take_powerup2                                                 ;
+    beq take_powerup3                                                 ;
+
+take_powerup4
+    jmp smart_bomb                                                    ;
+
+take_powerup0
+    ; three bullets
+    lda #powerup_duration                                             ;
+    sta powerup_timer                                                 ;
+    ldx #3                                                            ;
+    jmp set_number_of_torpedo_streams                                 ;
+
+take_powerup1
+    ; two bullets
+    lda #powerup_duration                                             ;
+    sta powerup_timer                                                 ;
+    ldx #2                                                            ;
+    jmp set_number_of_torpedo_streams                                 ;
+
+take_powerup2
+    ; energy
+    jmp reset_energy                                                  ;
+
+take_powerup3
+    ; slow bullets
+    lda #starship_torpedo_cooldown_after_firing*4                     ;
+    sta starship_torpedo_cooldown_reset_value                         ;
+
+    lda #powerup_duration / 2                                         ;
+    sta powerup_timer                                                 ;
+    rts                                                               ;
+
+reset_powerup
+    stx temp9                                                         ;
+    ldx #1                                                            ;
+    jsr set_number_of_torpedo_streams                                 ;
+    lda #starship_torpedo_cooldown_after_firing                       ;
+    sta starship_torpedo_cooldown_reset_value                         ;
+    ldx temp9                                                         ;
+    rts                                                               ;
+
+smart_bomb
+    jsr start_screen_flash                                            ;
+    lda #maximum_number_of_enemy_ships                                ;
+    sta enemy_ships_still_to_consider                                 ;
+    ldx #0                                                            ;
+-
+    lda #$7f                                                          ;
+    cmp enemy_ships_x_screens,x                                       ;
+    bne next_ship                                                     ;
+    cmp enemy_ships_y_screens,x                                       ;
+    bne next_ship                                                     ;
+    lda #0                                                            ; set enemy ship to zero energy and explode it
+    sta enemy_ships_energy,x                                          ;
+    jsr explode_enemy_ship                                            ;
+next_ship
+    inx                                                               ;
+    dec enemy_ships_still_to_consider                                 ;
+    bpl -                                                             ;
+    rts                                                               ;
+
+start_screen_flash
+    ldx #<flash_white                                                 ;
+    ldy #>flash_white                                                 ;
+    lda #12                                                           ;
+    jsr osword                                                        ;
+    lda #3                                                            ;
+    sta flash_screen_timer                                            ;
+    rts                                                               ;
+
+update_screen_flash
+    lda flash_screen_timer                                            ; self modifying code
+    beq +                                                             ;
+    dec flash_screen_timer                                            ;
+    bne +                                                             ;
+    ldx #<flash_black                                                 ;
+    ldy #>flash_black                                                 ;
+    lda #12                                                           ;
+    jsr osword                                                        ;
++
+    rts                                                               ;
+
+flash_white
+    !byte 0,7           ; overlaps with next bytes
+flash_black
+    !byte 0,0,0,0,0     ;
+flash_screen_timer
+    !byte 0
+
+; ----------------------------------------------------------------------------------
+; The Circle
+;
+;                      31 00 01
+;                29 30          02 03
+;             28                      04
+;          27                            05
+;          26                            06
+;       25                                  07
+;       24                                  08
+;       23                                  09
+;          22                            10
+;          21                            11
+;             20                      12
+;                19 18          14 13
+;                      17 16 15
+;
+;
+;       three  two             lightning        spiral               explosion
+powerup_type_x
+    !byte   0,  0,    0,  2,    1, -2,  1,  1,  0,   0,  0, -3,  1,   0,  2,  2,  0, -2, -2,  0
+powerup_type_y
+    !byte   0, -6,    3, -2,   -3,  0,  0,  1, -6,  -1,  2,  0, -3,  -2, -1,  1,  2,  1, -1, -6
+powerup_type_start_angle
+    !byte  23,  0,   20,  7,   11, 31,  0, 11,  0,   6, 15, 26,  3,  23, 28,  3,  7, 11, 19,  0
+powerup_type_length
+    !byte   3, 32,    6,  5,    3,  3,  2,  3, 32,   3,  4,  5,  4,   2,  2,  2,  2,  2,  2, 32
+
+; ----------------------------------------------------------------------------------
+powerup_types_start_indexes
+    !byte 0, 1, 4, 8, 13
+powerup_types_num_segments
+    !byte 4, 3, 5, 5, 7
+
+; ----------------------------------------------------------------------------------
+; Given one coordinate (either X or Y) of a powerup's 24 bit position,
+; multiply by the sine of the given angle.
+;
+; 24 bit result = (24 bit coordinate position) x sin(angle)
 ;
 ; On Entry:
-;   X        = x coordinate to plot
-;   y_pixels = y coordinate to plot
-;
+;   X is the powerup we are interested in
+;   starship_rotation_sine_magnitude is the rotation amount
 ; On Exit:
-;   X is preserved
+;   (output_fraction, output_pixels, output_screens) is the new rotated coordinate
+;
+; Preserves X
 ; ----------------------------------------------------------------------------------
-eor_play_area_pixel
-    ldy y_pixels                                                      ;
-eor_play_area_pixel_ycoord_in_y
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-eor_pixel_entry
-    lda row_table_low,y                                               ;
-    sta screen_address_low                                            ;
-eor_pixel_same_y
-eor_play_area_pixel_same_y
-    ldy xandf8,x                                                      ;
-    lda xbit_table,x                                                  ;
-    eor (screen_address_low),y                                        ;
-    sta (screen_address_low),y                                        ;
-return
+multiply_powerup_position_by_starship_rotation_sine_magnitude
+    ; set up inputs
+    lda starship_rotation_sine_magnitude                              ;
+    sta t                                                             ;
+    lda powerups_x_fraction,x                                         ;
+    sta input_fraction                                                ;
+    lda powerups_x_pixels,x                                           ;
+    sta input_pixels                                                  ;
+    lda powerups_x_screens,x                                          ;
+    sta input_screens                                                 ;
+    jmp mul24x8
+
+; ----------------------------------------------------------------------------------
+; Given one coordinate (either X or Y) of a powerup's 24 bit position,
+; multiply by cos(starship angle)
+;
+; On Entry:
+;   X = offset to powerup coordinate
+; On Exit:
+;   (temp9, temp10, segment_angle) are the new coordinates
+; preserves X
+multiply_powerup_position_by_starship_rotation_cosine
+    stx temp_x                                                        ; remember x
+
+    ; set up inputs
+    lda powerups_x_screens,x                                          ;
+    ldy powerups_x_pixels,x                                           ;
+    tax                                                               ;
+
+    ; multiply the 16 bit number 'X.Y' by starship_rotation_cosine (8 bit)
+    ; result in A (low) and temp8 (high)
+
+    ; multiply X * starship_rotation_cosine, result in Y (high byte)
+sm_powerup_cosine_b1 = * + 1
+    lda squares1_low,y                                                ;
+    sec                                                               ;
+sm_powerup_cosine_b2 = * + 1
+    sbc squares2_low,y                                                ;
+sm_powerup_cosine_b3 = * + 1
+    lda squares1_high,y                                               ;
+sm_powerup_cosine_b4 = * + 1
+    sbc squares2_high,y                                               ;
+    tay                                                               ; remember high byte ('t')
+
+    ; multiply c * starship_rotation_cosine, result in A (high byte) and prod_low
+sm_powerup_cosine_c1 = * + 1
+    lda squares1_low,x                                                ;
+    sec                                                               ;
+sm_powerup_cosine_c2 = * + 1
+    sbc squares2_low,x                                                ;
+    sta prod_low                                                      ;
+sm_powerup_cosine_c3 = * + 1
+    lda squares1_high,x                                               ;
+sm_powerup_cosine_c4 = * + 1
+    sbc squares2_high,x                                               ;
+
+    sta temp8                                                         ;
+    tya                                                               ; recall 't'
+    clc                                                               ;
+    adc prod_low                                                      ;
+    bcc +                                                             ;
+    inc temp8                                                         ;
++
+
+    ; (temp9, Y, segment_angle) = (A, temp8, 0) + current powerup position
+    ldx temp_x                                                        ; restore x
+    clc                                                               ;
+    adc powerups_x_fraction,x                                         ;
+    sta temp9                                                         ;
+
+    lda temp8                                                         ;
+    adc powerups_x_pixels,x                                           ;
+    tay                                                               ;
+
+    lda powerups_x_screens,x                                          ;
+    adc #0                                                            ;
+    sta segment_angle                                                 ;
+
+    ; (temp9, temp10, segment_angle) = (temp9, y) - (powerup_pixels, powerup_screens)
+    lda temp9                                                         ;
+    sec                                                               ;
+    sbc #0  ; powerups_x_pixels,x                                           ;
+    sta temp9                                                         ;
+
+    tya                                                               ;
+    sec                                                               ;
+    sbc #$80 ; powerups_x_screens,x                                          ;
+    sta temp10                                                        ;
+    bcs +                                                             ;
+    dec segment_angle                                                 ;
++
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; version for the frontiers screen, offset stars by $0780
-; ----------------------------------------------------------------------------------
-eor_frontier_pixel
-    lda y_pixels                                                      ;
-    ;clc ; C is already clear
-    adc #48                                                           ;
-    tay                                                               ;
-    bne eor_play_area_pixel_ycoord_in_y                               ; ALWAYS branch
+apply_starship_rotation_and_velocity_to_powerup
+    lda starship_rotation_sine_magnitude                              ;
+    bne starship_is_rotating1                                         ;
+    jmp apply_starship_velocity_to_powerup                            ;
+
+starship_is_rotating1
+
+    ; new position = previous position + half a screen (so that we rotate about the correct position)
+    lda powerups_previous_x_pixels,x                                  ;
+    clc                                                               ;
+    adc #$80                                                          ;
+    sta powerups_x_pixels,x                                           ;
+    bcc +                                                             ;
+    inc powerups_x_screens,x                                          ;
++
+    lda powerups_previous_y_pixels,x                                  ;
+    clc                                                               ;
+    adc #$80                                                          ;
+    sta powerups_y_pixels,x                                           ;
+    bcc +                                                             ;
+    inc powerups_y_screens,x                                          ;
++
+
+    ; invert X position (i.e. mirror in Y axis) if rotating one way
+    ldy starship_rotation                                             ;
+    bmi +                                                             ;
+    lda powerups_x_fraction,x                                         ;
+    eor #$ff                                                          ;
+    sta powerups_x_fraction,x                                         ;
+
+    lda powerups_x_pixels,x                                           ;
+    eor #$ff                                                          ;
+    sta powerups_x_pixels,x                                           ;
+
+    lda powerups_x_screens,x                                          ;
+    eor #$ff                                                          ;
+    sta powerups_x_screens,x                                          ;
++
+
+    stx temp_y                                                        ; store X, the offset to the X coordinates of the current powerup
+
+    ; X += stride to get Y coordinates
+    txa                                                               ;
+    clc                                                               ;
+    adc #stride_between_powerup_coordinates                           ;
+    tax                                                               ;
+    stx result                                                        ; store offset to Y coordinates
+
+    ; rotate by starship coordinates
+    jsr multiply_powerup_position_by_starship_rotation_sine_magnitude ; output = posY * sin(angle)
+
+    ldx temp_y                                                        ; point back to X coordinates again
+    jsr multiply_powerup_position_by_starship_rotation_cosine         ; (temp9, temp10, segment_angle) = posX * cos(angle)
+
+    ; (x_pixels, y_pixels, temp11) = posY * sin(angle) + posX * cos(angle)
+    lda temp9                                                         ;
+    clc                                                               ;
+    adc output_fraction                                               ;
+    sta x_pixels                                                      ; store X fraction
+
+    lda temp10                                                        ;
+    adc output_pixels                                                 ;
+    sta y_pixels                                                      ; store X pixels
+
+    lda segment_angle                                                 ;
+    adc output_screens                                                ;
+    sta temp11                                                        ; store X screens
+
+    jsr multiply_powerup_position_by_starship_rotation_sine_magnitude ; output = posX * sin(angle)
+
+    ; X = look at Y coordinates again
+    ldx result                                                        ; recall offset to Y coordinates
+    jsr multiply_powerup_position_by_starship_rotation_cosine         ; (temp9, temp10, segment_angle) = posY * cos(angle)
+
+    ; (temp9, temp10, segment_angle) = (temp9, temp10, segment_angle) - posX * sin(angle)
+    ;                                = posY * cos(angle) - posX * sin(angle)
+    ldx temp_y                                                        ; point back to X coordinates again
+    lda temp9                                                         ;
+    sec                                                               ;
+    sbc output_fraction                                               ;
+    sta temp9                                                         ; update fractions
+
+    lda temp10                                                        ;
+    sbc output_pixels                                                 ;
+    sta temp10                                                        ; update pixels
+
+    lda segment_angle                                                 ;
+    sbc output_screens                                                ;
+    sta segment_angle                                                 ; update screens
+
+    ; apply correction based on rotation angle:
+    ; new_posX = (x_pixels, y_pixels, temp11) - x_correction[angle]
+    ;          = posY * sin(angle) + posX * cos(angle) - x_correction[angle]
+    ldy starship_rotation_magnitude                                   ;
+    lda x_pixels                                                      ; X coordinate fraction
+    sec                                                               ;
+    sbc rotated_x_correction_fraction,y                               ;
+    eor starship_rotation_eor                                         ;
+    sta powerups_x_fraction,x                                         ;
+
+    lda y_pixels                                                      ; X coordinate pixels
+    sbc rotated_x_correction_pixels,y                                 ;
+    eor starship_rotation_eor                                         ;
+    sta powerups_x_pixels,x                                           ;
+
+    lda temp11                                                        ; X coordinate screens
+    sbc rotated_x_correction_screens,y                                ;
+    eor starship_rotation_eor                                         ;
+    sta powerups_x_screens,x                                          ;
+
+    ; new_posY = (temp9, temp10, segment_angle)
+    ;          = posY * cos(angle) - posX * sin(angle) + y_correction[angle]
+    lda temp9                                                         ; Y coordinate fraction
+    clc                                                               ;
+    adc rotated_y_correction_fraction,y                               ;
+    sta powerups_y_fraction,x                                         ;
+
+    lda temp10                                                        ; Y coordinate pixels
+    adc rotated_y_correction_pixels,y                                 ;
+    sta powerups_y_pixels,x                                           ;
+
+    lda segment_angle                                                 ; Y coordinate screens
+    adc rotated_y_correction_screens,y                                ;
+    sta powerups_y_screens,x                                          ;
+
+    ; subtract half a screen to restore correct centre point
+    lda powerups_y_pixels,x                                           ;
+    sec                                                               ;
+    sbc #$80                                                          ;
+    sta powerups_y_pixels,x                                           ;
+    bcs +                                                             ;
+    dec powerups_y_screens,x                                          ;
+    sec                                                               ;
++
+    lda powerups_x_pixels,x                                           ;
+    sbc #$80                                                          ;
+    sta powerups_x_pixels,x                                           ;
+    bcs +                                                             ;
+    dec powerups_x_screens,x                                          ;
++
+apply_starship_velocity_to_powerup
+    ; add starship velocity to position
+    lda powerups_y_fraction,x                                         ;
+    clc                                                               ;
+    adc starship_velocity_low                                         ;
+    sta powerups_y_fraction,x                                         ;
+
+    lda powerups_y_pixels,x                                           ;
+    adc starship_velocity_high                                        ;
+    sta powerups_y_pixels,x                                           ;
+    bcc +                                                             ;
+    inc powerups_y_screens,x                                          ;
++
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; version that plots to scanner area
-; ----------------------------------------------------------------------------------
-eor_pixel
-    ldx x_pixels                                                      ;
-eor_pixel_xcoord_in_x
-    ldy y_pixels                                                      ;
-    lda play_area_row_table_high,y                                    ;
-    sta screen_address_high                                           ;
-    inc screen_address_high                                           ;
-    bne eor_pixel_entry                                               ; ALWAYS branch
+powerups_previous_x_fraction
+    !skip maximum_number_of_powerups                                  ;
+powerups_previous_x_pixels
+    !skip maximum_number_of_powerups                                  ;
+powerups_previous_x_screens
+    !skip maximum_number_of_powerups                                  ;
 
-!if >eor_frontier_pixel != >eor_play_area_pixel {
-    !error "alignment error: ", eor_frontier_pixel, "!=", eor_play_area_pixel;
-}
+powerups_previous_y_fraction
+    !skip maximum_number_of_powerups                                  ;
+powerups_previous_y_pixels
+    !skip maximum_number_of_powerups                                  ;
+powerups_previous_y_screens
+    !skip maximum_number_of_powerups                                  ;
 
-!if <eor_frontier_pixel = 0 {
-    !error "alignment error";
-}
+powerups_x_fraction
+    !skip maximum_number_of_powerups                                  ;
+powerups_x_pixels
+    !skip maximum_number_of_powerups                                  ;
+powerups_x_screens
+    !skip maximum_number_of_powerups                                  ;
+
+powerups_y_fraction
+    !skip maximum_number_of_powerups                                  ;
+powerups_y_pixels
+    !skip maximum_number_of_powerups                                  ;
+powerups_y_screens
+    !skip maximum_number_of_powerups                                  ;
+
+powerups_taken
+    !skip maximum_number_of_powerups                                  ;
+
+stride_between_powerup_coordinates        = powerups_previous_y_fraction - powerups_previous_x_fraction
+
 
 ; ----------------------------------------------------------------------------------
 rotated_x_correction_lsb
@@ -9267,9 +10110,11 @@ rotated_x_correction_pixels
     !byte 0  , $fe, $fb, $f6, $ef, $e6                                ;
 
 rotated_y_correction_fraction
-    !byte 1  , 0  , 2  , 0  , $ff, $fe                                ;
+    !byte <1, <256, <1026, <2304, <4095, <6398                        ;
 rotated_y_correction_pixels
-    !byte 0  , 1  , 4  , 9  , $0f, $18                                ;
+    !byte >1, >256, >1026, >2304, >4095, >6398                        ;
+
+
 
 !macro m_regular_strings {
 
@@ -9301,10 +10146,10 @@ energy_string
     !text "ENERGY"                                                    ;
     !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
     !byte 5                                                           ; VDU 5
-    !byte $31, 8, $0a                                                 ; "1"
-    !byte $32, 8, $0a                                                 ; "2"
-    !byte $33, 8, $0a                                                 ; "3"
-    !byte $34                                                         ; "4"
+    !byte '1', 8, $0a                                                 ; "1"
+    !byte '2', 8, $0a                                                 ; "2"
+    !byte '3', 8, $0a                                                 ; "3"
+    !byte '4'                                                         ; "4"
     !byte 4                                                           ; VDU 4
     !byte $19,  4  ,  0  ,  4  ,  $fc, 2                              ; MOVE 1024, 764
     !byte $19,  5  ,  $ff,  4  ,  $fc, 2                              ; DRAW 1279, 764
@@ -9526,6 +10371,7 @@ loader_copy_end
 ; 24 enemy torpedos             (24 * 6 = 144 bytes)    angle, time to live, position
 ; 24 starship torpedo heads     (24 * 5 = 120 bytes)           time to live, position
 ; 24 starship torpedo tails     (24 * 4 =  96 bytes)                         position
+; 1 power-up                    ( 1 * 4 =   4 bytes)                         position
 ; 17 in game stars              (17 * 4 =  68 bytes)                         position
 ;                        TOTAL: 433 bytes
 ;
@@ -9853,6 +10699,7 @@ row_table_loop
     jmp init_late                                                     ;
 }
 
+; ----------------------------------------------------------------------------------
 osbyte_zeroxy
     ldx #0                                                            ;
 osbyte_zeroy
@@ -9863,13 +10710,13 @@ osbyte_zeroy
 regular_string_index_shield_state_on            = shield_state_string1 - regular_strings_table
 regular_string_index_shield_state_off           = shield_state_string2 - regular_strings_table
 regular_string_index_shield_state_auto          = shield_state_string3 - regular_strings_table
-regular_string_index_energy_string              = energy_string - regular_strings_table
-regular_string_index_shields_on                 = shields_string - regular_strings_table
-regular_string_index_shields_off                = blank_string - regular_strings_table
+regular_string_index_energy_string              = energy_string        - regular_strings_table
+regular_string_index_shields_on                 = shields_string       - regular_strings_table
+regular_string_index_shields_off                = blank_string         - regular_strings_table
 regular_string_index_escape_capsule_launched    = escape_capsule_launched_string - regular_strings_table
 
-regular_string_index_command                    = command_string - regular_strings_table
-regular_string_index_command_move               = command_move_string - regular_strings_table
+regular_string_index_command                    = command_string       - regular_strings_table
+regular_string_index_command_move               = command_move_string  - regular_strings_table
 
 ; ----------------------------------------------------------------------------------
 initialise_envelopes

@@ -105,7 +105,7 @@ acme -o build/text.o --setpc 0 source/sc_loader_text.txt
 # Beeb disc version
 build_exe 0 0 STAR
 # Beeb tape version
-build_exe 0 1 STAR.tape
+#build_exe 0 1 STAR.tape
 # Elk disc version
 build_exe 1 0 STARELK
 # Elk tape version
