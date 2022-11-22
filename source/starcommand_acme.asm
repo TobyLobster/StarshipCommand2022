@@ -226,6 +226,7 @@
 ;"
 ; ----------------------------------------------------------------------------------
 
+debug_powerups = 1
 do_debug = 0
 rom_writes = 1
 !ifndef elk {
@@ -6414,80 +6415,80 @@ skip_rotation_gauge
 return33
     rts                                                               ;
 
+times10
+    !byte 0, 10, 20, 30, 40
+
+; ----------------------------------------------------------------------------------
+; Show enemy on the long range scanner and short range scanner
+;
+; On Entry:
+;   A = X screens
+;   Y = Y screens
+;   X = 0 or 1 (plot / unplot)
+;   temp8 = index of enemy ship to show
+;
+;   X screens/Y screens determine the pixel on the long range scanner to use
+;   i.e. which screen it's in, i.e. which of the 25 squares in the short range scanner to use
 ; ----------------------------------------------------------------------------------
 plot_or_unplot_enemy_on_scanner
-    sta set_pixel_flag                                                ;
-    lda x_pixels                                                      ;
-    clc                                                               ;
-    adc #$a0                                                          ;
+    stx set_pixel_flag                                                ;
+
+    cmp #$60                                                          ;
+    bcc return33                                                      ;
+    cmp #$9f                                                          ;
+    bcs return33                                                      ;
+    adc #$a0                                                          ; carry clear
     sta x_pixels                                                      ;
+
+    cpy #$60                                                          ;
+    bcc return33                                                      ;
+    cpy #$9f                                                          ;
+    bcs return33                                                      ;
+    tya                                                               ;
+    adc #$a1                                                          ; carry clear
+    sta y_pixels                                                      ;
+
     jsr set_or_unset_pixel                                            ; set single pixel on
                                                                       ; long range scanner
 
     ; check if on short range scanner
-    lda x_pixels                                                      ;
-    sec                                                               ;
-    sbc #$1d                                                          ;
-    bcc return33                                                      ;
-    cmp #5                                                            ;
-    bcs return33                                                      ;
-    tay                                                               ; remember x_pixels
-
     lda y_pixels                                                      ;
     sec                                                               ;
     sbc #$1e                                                          ;
-    bcc return33                                                      ;
     cmp #5                                                            ;
     bcs return33                                                      ;
+    sta y_pixels                                                      ; remember screen Y (0-4)
 
-    ; scale up y coordinate
-    asl                                                               ;
-    sta y_pixels                                                      ;
-    asl                                                               ;
-    asl                                                               ;
-    adc y_pixels                                                      ;
-    sta y_pixels                                                      ; y_pixels *= 10
+    lda x_pixels                                                      ;
+    sec                                                               ;
+    sbc #$1d                                                          ;
+    cmp #5                                                            ;
+    bcs return33                                                      ;
+    tay                                                               ; remember screen X (0-4)
 
-    ldx temp8                                                         ;
-    lda enemy_ships_y_pixels,x                                        ;
-    bit set_pixel_flag                                                ;
-    bmi +                                                             ;
-    lda enemy_ships_previous_y_pixels,x                               ;
-+
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    clc                                                               ;
-    adc y_pixels                                                      ;
-    adc #$41                                                          ;
-    sta y_pixels                                                      ;
+    ldx temp8                                                         ; index of enemy ship
 
-    tya                                                               ; recall x_pixels
-
-    ; scale up x coordinate
-    asl                                                               ;
-    sta x_pixels                                                      ;
-    asl                                                               ;
-    asl                                                               ;
-    adc x_pixels                                                      ;
-    sta x_pixels                                                      ; x_pixels *= 10
-
+    ; handle x coordinate
     lda enemy_ships_x_pixels,x                                        ;
     bit set_pixel_flag                                                ;
     bmi +                                                             ;
     lda enemy_ships_previous_x_pixels,x                               ;
 +
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    clc                                                               ;
-    adc x_pixels                                                      ;
-    sta x_pixels                                                      ;
+    jsr a_over_32_plus_ten_times_y
+    sta x_pixels                                                      ; x_pixels = 10*screenX + enemyX/32
 
+    ; handle y coordinate
+    ldy y_pixels                                                      ; recall screen Y (0-4)
+    lda enemy_ships_y_pixels,x                                        ;
+    bit set_pixel_flag                                                ;
+    bmi +                                                             ;
+    lda enemy_ships_previous_y_pixels,x                               ;
++
+    jsr a_over_32_plus_ten_times_y                                    ;
+    adc #$41                                                          ; carry clear
+    sta y_pixels                                                      ; y_pixels = 10*screenY + 65 + enemyY/32
+
+    ; plot four pixels in a 2x2 square
     jsr set_or_unset_pixel                                            ;
     inc x_pixels                                                      ;
     jsr set_or_unset_pixel                                            ;
@@ -6496,65 +6497,44 @@ plot_or_unplot_enemy_on_scanner
     dec x_pixels                                                      ;
     jmp set_or_unset_pixel                                            ;
 
+a_over_32_plus_ten_times_y
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ;
+    lsr                                                               ;
+    clc                                                               ;
+    adc times10,y                                                     ;
+    rts                                                               ;
+
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships_on_scanners
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
 plot_enemy_ships_on_scanners_loop
-    stx temp8                                                         ;
-    lda enemy_ships_previous_x_screens,x                              ;
-    cmp #$60                                                          ;
-    bcc skip_unplotting_enemy_ship_on_scanner                         ;
-    cmp #$9f                                                          ;
-    bcs skip_unplotting_enemy_ship_on_scanner                         ;
-    sta x_pixels                                                      ;
-
-    lda enemy_ships_previous_y_screens,x                              ;
-    cmp #$60                                                          ;
-    bcc skip_unplotting_enemy_ship_on_scanner                         ;
-    cmp #$9f                                                          ;
-    bcs skip_unplotting_enemy_ship_on_scanner                         ;
-    adc #$a1                                                          ;
-    sta y_pixels                                                      ;
-
-    lda #0                                                            ; unplot
+    stx temp8                                                         ; enemy index
+    lda enemy_ships_previous_x_screens,x                              ; x screen
+    ldy enemy_ships_previous_y_screens,x                              ; y screen
+    ldx #0                                                            ; unplot
     jsr plot_or_unplot_enemy_on_scanner                               ;
 skip_unplotting_enemy_ship_on_scanner
     lda starship_shields_active                                       ;
-    beq to_skip_plotting_enemy_ship_on_scanner                        ;
-    ldx temp8                                                         ;
+    beq skip_plotting_enemy_ship_on_scanner                           ;
+    ldx temp8                                                         ; enemy index
     lda enemy_ships_energy,x                                          ;
-    bne continue2                                                     ;
-to_skip_plotting_enemy_ship_on_scanner
-    jmp skip_plotting_enemy_ship_on_scanner                           ;
+    beq skip_plotting_enemy_ship_on_scanner                           ;
 
-continue2
-    lda enemy_ships_x_screens,x                                       ;
-    cmp #$60                                                          ;
-    bcc skip_plotting_enemy_ship_on_scanner                           ;
-    cmp #$9f                                                          ;
-    bcs skip_plotting_enemy_ship_on_scanner                           ;
-    sta x_pixels                                                      ;
-
-    lda enemy_ships_y_screens,x                                       ;
-    cmp #$60                                                          ;
-    bcc skip_plotting_enemy_ship_on_scanner                           ;
-    cmp #$9f                                                          ;
-    bcs skip_plotting_enemy_ship_on_scanner                           ;
-    adc #$a1                                                          ;
-    sta y_pixels                                                      ;
-
-    lda #$ff                                                          ; plot
+    lda enemy_ships_x_screens,x                                       ; x screen
+    ldy enemy_ships_y_screens,x                                       ; y screen
+    ldx #$ff                                                          ; plot
     jsr plot_or_unplot_enemy_on_scanner                               ;
 skip_plotting_enemy_ship_on_scanner
-    ldx temp8                                                         ;
+    ldx temp8                                                         ; enemy index
     inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
-    beq continue3                                                     ;
-    jmp plot_enemy_ships_on_scanners_loop                             ;
+    bne plot_enemy_ships_on_scanners_loop                             ;
 
-continue3
     ldy #$1f                                                          ;
     sty x_pixels                                                      ;
     iny                                                               ;
@@ -9391,6 +9371,7 @@ add_starship_velocity_to_object_position
     sta object_table_xfraction,y                                      ;
     rts
 
+!if debug_powerups {
 powerup_start_x_screens
     !byte $7f, $7f, $7f, $7f, $7f
 powerup_start_x_pixels
@@ -9404,35 +9385,69 @@ powerup_start_y_pixels
     !byte $20, $20, $20, $20, $20
 powerup_start_y_fraction
     !byte $7f, $7f, $7f, $7f, $7f
+}
+
+powerup_screens
+    !skip maximum_number_of_powerups
 
 ; ----------------------------------------------------------------------------------
 initialise_powerups
-    ldx #maximum_number_of_powerups-1
+
+!if (maximum_number_of_powerups * 6 > 128) {
+    !error "too many powerups for the following loops"
+}
+
+    ; set powerup positions
+    ldx #maximum_number_of_powerups-1                                 ;
 -
-    lda powerup_start_x_screens,x
-    sta powerups_x_screens,x
-    lda powerup_start_x_pixels,x
-    sta powerups_x_pixels,x
-    lda powerup_start_x_fraction,x
-    sta powerups_x_fraction,x
+!if debug_powerups = 0 {
 
-    lda powerup_start_y_screens,x
-    sta powerups_y_screens,x
-    lda powerup_start_y_pixels,x
-    sta powerups_y_pixels,x
-    lda powerup_start_y_fraction,x
-    sta powerups_y_fraction,x
+    ; random locations nearby
+    jsr random_number_generator                                       ;
+    and #7                                                            ;
+    clc                                                               ;
+    adc #$7c                                                          ;
+    sta powerups_x_screens,x                                          ;
+    jsr random_number_generator                                       ;
+    and #7                                                            ;
+    clc                                                               ;
+    adc #$7c                                                          ;
+    sta powerups_y_screens,x                                          ;
 
-    lda #0
-    sta powerups_taken,x
-    dex
-    bpl -
-    sta game_counter
+    jsr random_number_generator                                       ;
+    sta powerups_x_pixels,x                                           ;
+    jsr random_number_generator                                       ;
+    sta powerups_x_fraction,x                                         ;
+    jsr random_number_generator                                       ;
+    sta powerups_y_pixels,x                                           ;
+    jsr random_number_generator                                       ;
+    sta powerups_y_fraction,x                                         ;
+
+} else {
+
+    ; place them in a line ahead of the starship
+    lda powerup_start_x_screens,x                                     ;
+    sta powerups_x_screens,x                                          ;
+    lda powerup_start_x_pixels,x                                      ;
+    sta powerups_x_pixels,x                                           ;
+    lda powerup_start_x_fraction,x                                    ;
+    sta powerups_x_fraction,x                                         ;
+
+    lda powerup_start_y_screens,x                                     ;
+    sta powerups_y_screens,x                                          ;
+    lda powerup_start_y_pixels,x                                      ;
+    sta powerups_y_pixels,x                                           ;
+    lda powerup_start_y_fraction,x                                    ;
+    sta powerups_y_fraction,x                                         ;
+}
+
+    lda #0                                                            ;
+    sta powerups_taken,x                                              ;
+    dex                                                               ;
+    bpl -                                                             ;
+    sta game_counter                                                  ;
 
     ; reset previous position
-!if (maximum_number_of_powerups * 6 > 128) {
-    !error "too many powerups for the following loop"
-}
     lda #0                                                            ;
     ldx #maximum_number_of_powerups * 6                               ;
 -
@@ -9448,11 +9463,11 @@ initialise_powerups
     jmp set_number_of_torpedo_streams                                 ;
 
 game_counter
-    !byte 0
+    !byte 0                                                           ;
 active_powerup
-    !byte 0
+    !byte 0                                                           ;
 powerup_timer
-    !byte 0
+    !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
 update_powerups
@@ -9737,7 +9752,7 @@ start_screen_flash
     ldy #>flash_white                                                 ;
     lda #12                                                           ;
     jsr osword                                                        ;
-    lda #3                                                            ;
+    lda #5                                                            ;
     sta flash_screen_timer                                            ;
     rts                                                               ;
 
@@ -9818,7 +9833,7 @@ multiply_powerup_position_by_starship_rotation_sine_magnitude
     sta input_pixels                                                  ;
     lda powerups_x_screens,x                                          ;
     sta input_screens                                                 ;
-    jmp mul24x8
+    jmp mul24x8                                                       ;
 
 ; ----------------------------------------------------------------------------------
 ; Given one coordinate (either X or Y) of a powerup's 24 bit position,
