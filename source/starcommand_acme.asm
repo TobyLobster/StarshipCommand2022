@@ -430,7 +430,8 @@ starship_rotation_sine_magnitude            = $0a
 stars_still_to_consider                     = $0b   ; }
 explosion_bits_still_to_consider            = $0b   ; } same location
 enemy_ships_still_to_consider               = $0b   ; }
-powerups_still_to_consider                  = $0b   ; }
+
+powerups_still_to_consider                  = $0c   ; used in-game when updating powerups but a different memory location from enemy_ships_still_to_consider due to a smart bomb looping over enemy ships
 
 lookup_low                                  = $0c   ; used in decompressing text, and initialising the enemy cache
 lookup_high                                 = $0d   ;
@@ -583,7 +584,9 @@ zp_end                                      = $d0
 old_timing_counter                          = $e2
 timing_counter                              = $e3
 irqtmp                                      = $e4   ; IRQ-safe temporary
-irq_counter                                 = $e5   ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen), 1 = electron beam is somewhere between rtc and vsync (lower half of screen)
+irq_counter                                 = $e5   ; Beeb: counts character rows of the electron beam
+                                                    ; Elk: 0 = electron beam is somewhere between vsync and rtc (upper half of screen)
+                                                    ;      1 = electron beam is somewhere between rtc and vsync (lower half of screen)
 
 ; $e6 - $e7 used by OS (read key/input etc)
 
@@ -1138,13 +1141,12 @@ eor_frontier_pixel
 ; ----------------------------------------------------------------------------------
 ; version that plots to scanner area
 ; ----------------------------------------------------------------------------------
-eor_pixel
-    ldx x_pixels                                                      ;
 eor_pixel_xcoord_in_x
     ldy y_pixels                                                      ;
     lda play_area_row_table_high,y                                    ;
+    clc                                                               ;
+    adc #1                                                            ;
     sta screen_address_high                                           ;
-    inc screen_address_high                                           ;
     bne eor_pixel_entry                                               ; ALWAYS branch
 
 !if >eor_frontier_pixel != >eor_play_area_pixel {
@@ -1834,7 +1836,7 @@ found_empty_torpedo_slot
     sta object_table_xfraction,y                                      ; head x fraction
     lda #$7f                                                          ;
     sta object_table_xfraction,x                                      ; tail x fraction
-    lda #$7f                                                          ;
+;    lda #$7f                                                          ;
     sta object_table_xpixels,y                                        ; head x pixels
     sta object_table_xpixels,x                                        ; tail x pixels
     lda #$80                                                          ;
@@ -1859,18 +1861,34 @@ end_of_starship_torpedo_streams = * + 1
     bcc fire_torpedo_loop                                             ;
     rts                                                               ;
 
-; ----------------------------------------------------------------------------------
-set_number_of_torpedo_streams
-    lda stream_starts-1,x
-    sta start_of_starship_torpedo_streams
-    lda stream_stops-1,x
-    sta end_of_starship_torpedo_streams
-    rts
-
 stream_starts
     !byte 2, 0, 0
 stream_stops
     !byte 2, 2, 3
+
+; ----------------------------------------------------------------------------------
+set_number_of_torpedo_streams
+    ldy #0
+    lda stream_starts-1,x                                             ;
+    cmp start_of_starship_torpedo_streams                             ;
+    beq +                                                             ;
+    sta start_of_starship_torpedo_streams                             ;
+    iny
++
+    lda stream_stops-1,x                                              ;
+    cmp end_of_starship_torpedo_streams                               ;
+    beq +                                                             ;
+    sta end_of_starship_torpedo_streams                               ;
+    iny
++
+    cpy #0                                                            ; has the spray pattern changed?
+    beq return5                                                       ; if not then we are done
+    lda #1                                                            ;
+    sta starship_torpedo_counter                                      ; pause firing long enough
+    lda #6                                                            ; to get the spray pattern
+    sta starship_torpedo_cooldown                                     ; back in sync
+return5
+    rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 torpedo_dir_table
@@ -1921,11 +1939,8 @@ unplot_long_range_scanner_if_shields_inactive
     iny                                                               ;
     sty y_pixels                                                      ;
     jsr unset_pixel                                                   ;
-    ldx #regular_string_index_shields_on                              ;
-    jmp print_regular_string                                          ;
-
-return5
-    rts                                                               ;
+    ldx #shields_string                                               ;
+    jmp print_compressed_string                                       ;
 
 ; ----------------------------------------------------------------------------------
 plot_top_and_right_edge_of_long_range_scanner_with_blank_text
@@ -1933,8 +1948,8 @@ plot_top_and_right_edge_of_long_range_scanner_with_blank_text
     bne return5                                                       ;
     lda #1                                                            ;
     sta starship_shields_active                                       ;
-    ldx #regular_string_index_shields_off                             ;
-    jsr print_regular_string                                          ;
+    ldx #blank_string                                                 ;
+    jsr print_compressed_string                                       ;
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
@@ -2019,7 +2034,8 @@ add_fraction
 skip6
     dex                                                               ;
     bne add_fraction                                                  ;
-    beq set_starship_angle_fraction                                   ;
+    beq set_starship_angle_fraction                                   ; ALWAYS branch
+
 subtract_fraction
     sec                                                               ;
     sbc #$52                                                          ;
@@ -3339,12 +3355,17 @@ return13
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   A = number of pixels
+;   X = pixel column
+;   Y = pixel row
 plot_horizontal_line_xy
     sty y_pixels                                                      ;
 plot_horizontal_line
     sta temp3                                                         ;
     jsr eor_pixel_xcoord_in_x                                         ;
     jmp +                                                             ;
+
 plot_horizontal_line_loop
     jsr eor_pixel_same_y                                              ;
 +
@@ -4641,7 +4662,7 @@ plot_2x2_a
 plot_2x1_a
     jsr eor_two_play_area_pixels                                      ;
 leave_after_restoring_y
-    ldy temp11                                                        ;
+    ldy temp11                                                        ; recall Y
     rts                                                               ;
 plot_1x1_a
     jsr eor_play_area_pixel                                           ;
@@ -5102,24 +5123,17 @@ consider_warning_sound
 
 ; ----------------------------------------------------------------------------------
 invert_energy_text
-    ldy #7                                                            ;
+    ldy #15                                                           ;
 invert_energy_text_loop
-    lda energy_screen_address,y                                       ; E
+    lda energy_screen_address,y                                       ;
     eor #$ff                                                          ;
     sta energy_screen_address,y                                       ;
-    sta energy_screen_address+16,y                                    ; second E
-    lda energy_screen_address+8,y                                     ; N
+    lda energy_screen_address+16,y                                    ;
     eor #$ff                                                          ;
-    sta energy_screen_address+8,y                                     ;
-    lda energy_screen_address+24,y                                    ; R
-    eor #$ff                                                          ;
-    sta energy_screen_address+24,y                                    ;
-    lda energy_screen_address+32,y                                    ; G
+    sta energy_screen_address+16,y                                    ;
+    lda energy_screen_address+32,y                                    ;
     eor #$ff                                                          ;
     sta energy_screen_address+32,y                                    ;
-    lda energy_screen_address+40,y                                    ; Y
-    eor #$ff                                                          ;
-    sta energy_screen_address+40,y                                    ;
     dey                                                               ;
     bpl invert_energy_text_loop                                       ;
 return20
@@ -6292,15 +6306,14 @@ plot_gauge_edges_loop
     lda lengths,y                                                     ;
 
     cpy #4                                                            ;
+    ldy temp_y                                                        ;
     bcc plot_gauge_v                                                  ;
 
 plot_gauge_h
-    ldy temp_y                                                        ;
     jsr plot_horizontal_line_xy                                       ;
     jmp plot_gauge_edges_loop                                         ;
 
 plot_gauge_v
-    ldy temp_y                                                        ;
     jsr plot_vertical_line_xy                                         ;
     jmp plot_gauge_edges_loop                                         ;
 
@@ -6309,9 +6322,9 @@ plot_starship_velocity_and_rotation_on_gauges
 
     ; velocity gauge
     lda starship_velocity_low                                         ;
+    asl                                                               ;
     sta y_pixels                                                      ;
     lda starship_velocity_high                                        ;
-    asl y_pixels                                                      ;
     rol                                                               ;
     asl y_pixels                                                      ;
     rol                                                               ;
@@ -6322,38 +6335,40 @@ plot_starship_velocity_and_rotation_on_gauges
     cmp velocity_gauge_position                                       ;
     beq skip_velocity_gauge                                           ;
     tay                                                               ;
+
     lda #$81                                                          ;
     sec                                                               ;
-    sbc velocity_gauge_position                                       ;
+    sbc velocity_gauge_position                                       ; old gauge position
     sta y_pixels                                                      ;
-    sty velocity_gauge_position                                       ;
+    sty velocity_gauge_position                                       ; new gauge position
     lda #$36                                                          ;
     sta x_pixels                                                      ;
     lda #5                                                            ;
     sta temp7                                                         ;
     sta temp11                                                        ;
 plot_velocity_gauge_unset_loop
-    jsr unset_pixel                                                   ;
-    inc y_pixels                                                      ;
-    jsr unset_pixel                                                   ;
-    dec y_pixels                                                      ;
+    jsr unset_pixel                                                   ; }
+    inc y_pixels                                                      ; } remove old bar
+    jsr unset_pixel                                                   ; }
+    dec y_pixels                                                      ; }
     inc x_pixels                                                      ;
     dec temp7                                                         ;
     bne plot_velocity_gauge_unset_loop                                ;
+
     lda #$81                                                          ;
     sec                                                               ;
     sbc velocity_gauge_position                                       ;
     sta y_pixels                                                      ;
 plot_velocity_gauge_set_loop
     dec x_pixels                                                      ;
-    jsr set_pixel                                                     ;
-    inc y_pixels                                                      ;
-    jsr set_pixel                                                     ;
-    dec y_pixels                                                      ;
+    jsr set_pixel                                                     ; }
+    inc y_pixels                                                      ; } plot new bar
+    jsr set_pixel                                                     ; }
+    dec y_pixels                                                      ; }
     dec temp11                                                        ;
     bne plot_velocity_gauge_set_loop                                  ;
-skip_velocity_gauge
 
+skip_velocity_gauge
     ; rotation gauge
     lda starship_rotation_fraction                                    ;
     sta y_pixels                                                      ;
@@ -6367,8 +6382,8 @@ skip_velocity_gauge
     cmp rotation_gauge_position                                       ;
     beq skip_rotation_gauge                                           ;
     tay                                                               ;
-    lda rotation_gauge_position                                       ;
-    sty rotation_gauge_position                                       ;
+    lda rotation_gauge_position                                       ; old position
+    sty rotation_gauge_position                                       ; new position
     cmp #$15                                                          ;
     bcc set_rotation_gauge_position_for_unset                         ; rotating anticlockwise
     sbc #3                                                            ;
@@ -6392,7 +6407,8 @@ plot_rotation_gauge_unset_loop
     inc y_pixels                                                      ;
     dec temp7                                                         ;
     bne plot_rotation_gauge_unset_loop                                ;
-    lda rotation_gauge_position                                       ;
+
+    lda rotation_gauge_position                                       ; new position
     cmp #$15                                                          ;
     bcc set_rotation_gauge_position_for_set                           ;
     sbc #3                                                            ;
@@ -6414,9 +6430,6 @@ plot_rotation_gauge_set_loop
 skip_rotation_gauge
 return33
     rts                                                               ;
-
-times10
-    !byte 0, 10, 20, 30, 40
 
 ; ----------------------------------------------------------------------------------
 ; Show enemy on the long range scanner and short range scanner
@@ -6497,6 +6510,7 @@ plot_or_unplot_enemy_on_scanner
     dec x_pixels                                                      ;
     jmp set_or_unset_pixel                                            ;
 
+; ----------------------------------------------------------------------------------
 a_over_32_plus_ten_times_y
     lsr                                                               ;
     lsr                                                               ;
@@ -6506,6 +6520,9 @@ a_over_32_plus_ten_times_y
     clc                                                               ;
     adc times10,y                                                     ;
     rts                                                               ;
+
+times10
+    !byte 0, 10, 20, 30, 40                                           ;
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_ships_on_scanners
@@ -8360,6 +8377,7 @@ end_of_command
     lda #$ff                                                          ;
     sta starship_energy_divided_by_sixteen                            ; disable energy low
     sta enableKeyboardInterruptProcessingFlag                         ; enable keyboard interrupt
+    jsr stop_screen_flash                                             ;
     jsr screen_off                                                    ;
     jsr plot_debriefing                                               ;
     jsr screen_on_and_flush                                           ;
@@ -8701,6 +8719,7 @@ get_byte
     bne resume_getting_bits                                           ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
+; On Exit: carry clear
 get_5_bits
     ldx #5                                                            ;
 get_x_bits
@@ -8741,40 +8760,48 @@ print_compressed_string
 
 ++
     sta bytes_left                                                    ;
-    sty lookup_byte                                                   ; 0
+    sty lookup_byte                                                   ; Y=0
 print_compressed_loop
     jsr get_5_bits                                                    ;
-    cmp #31                                                           ;
-    beq token                                                         ;
-    cmp #29                                                           ;
-    beq extended1                                                     ;
-    bcs extended2                                                     ;
+    cmp #31                                                           ; some values have special meanings:
+    beq token                                                         ;   29 = explicit 7 bit character
+    cmp #29                                                           ;   30 = explicit 5 bit character
+    beq explicit_7bit_character                                       ;   31 = token
+    bcs explicit_5bit_character                                       ;
+
+    ; read character from header data
     tax                                                               ;
-    lda text_header_data,x                                            ;
+    lda text_header_data,x                                            ; get character from header table
 output_character
     jsr oswrch                                                        ;
     jmp print_compressed_loop                                         ;
 
-extended1
-    ldx #7                                                            ;
+explicit_7bit_character
+    ldx #7                                                            ; get 7 bits
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
-extended2
-    ldx #5                                                            ;
+explicit_5bit_character
+    ldx #5                                                            ; get 5 bits
     jsr get_x_bits                                                    ;
     bcc output_character                                              ; ALWAYS branch
 
 token
     jsr get_5_bits                                                    ;
-    sec                                                               ;
-    sbc #$100 - award_you_the_order_of_the                            ;
-    tax                                                               ;
+    clc                                                               ;
+    adc #token128                                                     ;
+    tax                                                               ; index of token string to print
+
+    ; remember the next four bytes on the stack (this is the context for the string we are currently decoding)
     ldy #3                                                            ;
 -
     lda lookup_low,y                                                  ;
     pha                                                               ;
     dey                                                               ;
     bpl -                                                             ;
+
+    ; X=index of string to decode
     jsr print_compressed_string                                       ;
+
+    ; restore the next four bytes from the stack (this is the context for the string we were currently decoding)
     ldy #0                                                            ;
 -
     pla                                                               ;
@@ -8782,6 +8809,8 @@ token
     iny                                                               ;
     cpy #4                                                            ;
     bne -                                                             ;
+
+    ; loop back with Y=0
     ldy #0                                                            ;
     beq print_compressed_loop                                         ; ALWAYS branch
 
@@ -9369,7 +9398,7 @@ add_starship_velocity_to_object_position
     sta object_table_xpixels,y                                        ;
     lda object_x_fraction                                             ;
     sta object_table_xfraction,y                                      ;
-    rts
+    rts                                                               ;
 
 !if debug_powerups {
 powerup_start_x_screens
@@ -9745,28 +9774,27 @@ next_ship
     inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     bpl -                                                             ;
+return34
     rts                                                               ;
 
 start_screen_flash
+    lda #5                                                            ;
+    sta flash_screen_timer                                            ;
     ldx #<flash_white                                                 ;
     ldy #>flash_white                                                 ;
     lda #12                                                           ;
-    jsr osword                                                        ;
-    lda #5                                                            ;
-    sta flash_screen_timer                                            ;
-    rts                                                               ;
+    jmp osword                                                        ;
 
 update_screen_flash
     lda flash_screen_timer                                            ; self modifying code
-    beq +                                                             ;
+    beq return34                                                      ;
     dec flash_screen_timer                                            ;
-    bne +                                                             ;
+    bne return34                                                      ;
+stop_screen_flash
     ldx #<flash_black                                                 ;
     ldy #>flash_black                                                 ;
     lda #12                                                           ;
-    jsr osword                                                        ;
-+
-    rts                                                               ;
+    jmp osword                                                        ;
 
 flash_white
     !byte 0,7           ; overlaps with next bytes
@@ -10137,28 +10165,28 @@ regular_strings_table
 shield_state_string1
     !byte shield_state_string1_end - shield_state_string1             ;
     !byte $1f, $22, $18                                               ;
-    !text " ON "                                                      ;
+    !text " On "                                                      ;
 shield_state_string1_end
 
 ; ----------------------------------------------------------------------------------
 shield_state_string2
     !byte shield_state_string2_end - shield_state_string2             ;
     !byte $1f, $22, $18                                               ;
-    !text " OFF"                                                      ;
+    !text " Off"                                                      ;
 shield_state_string2_end
 
 ; ----------------------------------------------------------------------------------
 shield_state_string3
     !byte shield_state_string3_end - shield_state_string3             ;
     !byte $1f, $22, $18                                               ;
-    !text "AUTO"                                                      ;
+    !text "Auto"                                                      ;
 shield_state_string3_end
 
 ; ----------------------------------------------------------------------------------
 energy_string
     !byte energy_string_end - energy_string
     !byte $1f, 33, 17                                                 ; TAB(33, 17)
-    !text "ENERGY"                                                    ;
+    !text "Energy"                                                    ;
     !byte $19, 4, 8, 4, $ac, 1                                        ; MOVE 1032, 428
     !byte 5                                                           ; VDU 5
     !byte '1', 8, $0a                                                 ; "1"
@@ -10176,35 +10204,16 @@ energy_string
 energy_string_end
 
 ; ----------------------------------------------------------------------------------
-shields_string
-    !byte shields_string_end - shields_string
-    !byte $1f, 33, 2                                                  ; TAB(33, 2)
-    !text "SHIELDS"                                                   ;
-    !byte $1f, 35, 5                                                  ; TAB(35, 5)
-    !text "ON"                                                        ;
-shields_string_end
-
-; ----------------------------------------------------------------------------------
-; aka shields_off
-blank_string
-    !byte blank_string_end - blank_string
-    !byte $1f, 33, 2                                                  ; TAB(33, 2)
-    !text "       "                                                   ;
-    !byte $1f, 35, 5                                                  ; TAB(35, 5)
-    !text "  "                                                        ;
-blank_string_end
-
-; ----------------------------------------------------------------------------------
 escape_capsule_launched_string
     !byte escape_capsule_launched_string_end - escape_capsule_launched_string
     !byte $1f, 33, 23                                                 ; TAB(33, 23); "ESCAPE"
-    !text "ESCAPE"                                                    ; TAB(32.5,24);"CAPSULE"
+    !text "Escape"                                                    ; TAB(32.5,24);"CAPSULE"
     !byte $1f, 34, 24                                                 ; TAB(32, 25); "LAUNCHED"
     !text "    "                                                      ;
     !byte 5,25,4,$10,4,$ff,0                                          ;
-    !text "CAPSULE"                                                   ;
+    !text "Capsule"                                                   ;
     !byte 25,4,0,4,$df,0                                              ;
-    !text "LAUNCHED"                                                  ;
+    !text "Launched"                                                  ;
     !byte 4
 escape_capsule_launched_string_end
 
@@ -10213,7 +10222,7 @@ command_string
     !byte command_string_end - command_string
     !byte $19, 4, $0f, 4, $a2, 0                                      ; MOVE &040f, &00a2
     !byte 5                                                           ; VDU 5
-    !text "COMMAND"                                                   ;
+    !text "Command"                                                   ;
 command_string_end
 
 ; ----------------------------------------------------------------------------------
@@ -10726,8 +10735,6 @@ regular_string_index_shield_state_on            = shield_state_string1 - regular
 regular_string_index_shield_state_off           = shield_state_string2 - regular_strings_table
 regular_string_index_shield_state_auto          = shield_state_string3 - regular_strings_table
 regular_string_index_energy_string              = energy_string        - regular_strings_table
-regular_string_index_shields_on                 = shields_string       - regular_strings_table
-regular_string_index_shields_off                = blank_string         - regular_strings_table
 regular_string_index_escape_capsule_launched    = escape_capsule_launched_string - regular_strings_table
 
 regular_string_index_command                    = command_string       - regular_strings_table
