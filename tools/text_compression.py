@@ -460,7 +460,7 @@ if label:
 #byte_dict = detokenise(byte_dict)
 #output_dict(byte_dict, "sc_text_out.txt")
 retokenise(byte_dict)
-output_dict(byte_dict, "sc_text_out.txt")
+#output_dict(byte_dict, "sc_text_out.txt")
 
 compress(byte_dict)
 
