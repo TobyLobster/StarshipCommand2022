@@ -2491,7 +2491,7 @@ skip_enemy_altogether
     inx                                                               ;
     dec enemy_ships_still_to_consider                                 ;
     beq retry_loop                                                    ;
-    bne plot_enemy_ships_loop                                         ;
+    bne plot_enemy_ships_loop                                         ; ALWAYS branch
 
 return8
     rts                                                               ;
@@ -2879,17 +2879,16 @@ rightfix2
 downfix
     lda #$40                                                          ;
 downfix_with_offset
+    ldy #0                                                            ;
     clc                                                               ;
     adc screen_address_low                                            ;
     sta screen_address_low                                            ;
-    inc screen_address_high                                           ;
-    bcc +                                                             ;
-    inc screen_address_high                                           ;
-+
+    lda screen_address_high                                           ;
+    adc #1                                                            ;
 !if rom_writes {
     bmi offscreen_down                                                ;
 }
-    ldy #0                                                            ;
+    sta screen_address_high                                           ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -2924,31 +2923,27 @@ downleftfix
 upfix
     lda #$100-$40                                                     ;
 upfix_with_offset
+    ldy #7                                                            ;
     clc                                                               ;
     adc screen_address_low                                            ;
     sta screen_address_low                                            ;
     lda screen_address_high                                           ;
     sbc #1                                                            ;
-    sta screen_address_high                                           ;
+
 !if rom_writes {
     cmp #$58                                                          ;
-}
-    ldy #7                                                            ;
-!if rom_writes {
     bcc offscreen_up                                                  ;
 }
--
+    sta screen_address_high                                           ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 !if rom_writes {
 offscreen_down
-    ldy #0                                                            ;
     ; if screen address >$8000 then we're off the bottom
     ; we leave the address unchanged, writing to ROM (but that's OK)
-    lda screen_address_high                                           ;
     cmp #$98                                                          ;
-    bcc -                                                             ;
+    bcc +                                                             ;
     ; we've just moved back onto the top of the screen
     ; subtract $4000 to reinstate the screen address
 
@@ -2956,6 +2951,7 @@ offscreen_up
     ; if screen address <$5800 then we're off the top
     ; we add $4000 to make the address <$9800, which is also in ROM.
     eor #$c0                                                          ;
++
     sta screen_address_high                                           ;
     rts                                                               ;
 }
@@ -3412,19 +3408,16 @@ enemy_ship_isnt_cloaked
     sta temp11                                                        ; enemy angle to draw at (0-31)
 
 debug_plot_enemy
+    ldx temp11                                                        ; angle
     ; which enemy to use
     lda enemy_ship_type                                               ;
-    beq first_ship_type                                               ;
+    beq got_ship                                                      ; branch if first ship type
 
     ; second enemy ship type
-    lda temp11                                                        ; angle
+    txa                                                               ; angle
     clc                                                               ;
     adc #32                                                           ; move to second ship definition
     tax                                                               ;
-    bne got_ship                                                      ; ALWAYS branch
-
-first_ship_type
-    ldx temp11                                                        ; angle
 got_ship
     lda enemy_address_low,x                                           ;
     sta enemy_low                                                     ;
@@ -6917,12 +6910,13 @@ skip_swap1
 
     jsr random_number_generator                                       ; properties depending on command probabilities
     lda probability_of_new_enemy_ship_being_defensive_about_damage    ;
-    cmp rnd_2                                                         ;
+    cmp rnd_1                                                         ;
     bcc not_defensive_about_damage                                    ;
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     ora #$40                                                          ;
     sta enemy_ships_flags_or_explosion_timer,x                        ;
 not_defensive_about_damage
+    jsr random_number_generator                                       ; properties depending on command probabilities
     lda probability_of_new_enemy_ship_being_defensive_about_angle     ;
     cmp rnd_1                                                         ;
     bcc defensive_about_angle                                         ;
@@ -6938,9 +6932,10 @@ defensive_about_angle
     ora #$10                                                          ;
     sta enemy_ships_flags_or_explosion_timer,x                        ;
 clusters_unset
+    jsr random_number_generator                                       ;
     ldy #0                                                            ;
     lda probability_of_new_enemy_ship_being_second_type               ;
-    cmp rnd_2                                                         ;
+    cmp rnd_1                                                         ;
     bcc small_ship                                                    ;
     iny                                                               ;
 small_ship
@@ -7551,7 +7546,7 @@ is_in_danger_area
     sbc irq_counter                                                   ;
     cmp #danger_height                                                ;
     bcc done1                                                         ;
-    sec                                                               ;
+;    sec ; carry already set
     sbc #256-38                                                       ;
     cmp #danger_height                                                ;
 done1
@@ -7677,23 +7672,15 @@ score_threshold_table
     ; ----------------------------+-----------------------------------
     !byte 2, 3, 4, 7, 13, 20, 30                                      ;
 
-print_escape_capsule_launched_with_qualifier
-    jsr oswrch_ay                                                     ;
-    ; Print " escape capsule was launched "                           ;
-    ldx #escape_capsule_was_launched_string                           ;
-    jmp print_compressed_string                                       ;
-
 ; ----------------------------------------------------------------------------------
 no_escape_capsule
     ; Print "No escape capsule was launched "
-    lda #'N'                                                          ;
-    ldy #'o'                                                          ;
-    jsr print_escape_capsule_launched_with_qualifier                  ;
+    ldx #no_escape_capsule_was_launched_string                        ;
+    bne print_experience                                              ; ALWAYS branch
 
-    ; Print "before the starship exploded."
-    ldx #before_the_starship_exploded_string                          ;
-    jsr print_compressed_string                                       ;
-    jmp print_experience                                              ;
+!if no_escape_capsule_was_launched_string = 0 {
+    !error "Adjust branch condition above"
+}
 
 ; ----------------------------------------------------------------------------------
 plot_debriefing
@@ -7724,21 +7711,19 @@ plot_debriefing
     beq no_escape_capsule                                             ; if (no escape capsule launched) then branch
 
     ; Print "An escape capsule was launched"
-    lda #'A'                                                          ;
-    ldy #'n'                                                          ;
-    jsr print_escape_capsule_launched_with_qualifier                  ;
+    ldx #an_escape_capsule_was_launched_string                        ;
+    jsr print_compressed_string                                       ;
 
     ; Print one of:
     ;   " and returned safely from the combat zone."
     ;   " but collided with an enemy ship."
     ldx #but_collided_string                                          ;
     lda escape_capsule_destroyed                                      ;
-    bne +                                                             ; if (capsule destroyed) then branch
+    bne print_experience                                              ; if (capsule destroyed) then branch
     dex
-+
+print_experience
     jsr print_compressed_string                                       ;
 
-print_experience
     ; Print "Your official combat experience rating is now recorded as"
     ldx #combat_experience_rating_string                              ;
     jsr print_compressed_string                                       ;
@@ -8057,8 +8042,8 @@ plot_selected_options
     ldx #3                                                            ;
     ldy #13                                                           ;
 plot_selected_options_loop
-    jsr plot_selected_option                                          ;
-    jsr plot_selected_option                                          ;
+    jsr plot_selected_option                                          ; draw * or space
+    jsr plot_selected_option                                          ; draw space or *
     dex                                                               ;
     bpl plot_selected_options_loop                                    ;
 get_keypress
@@ -8068,7 +8053,9 @@ get_keypress
     bcs get_keypress                                                  ;
     cpx #'0'                                                          ;
     bcc get_keypress                                                  ;
-    bne not_f0                                                        ;
+    bne try_f1                                                        ;
+
+    ; f0
 instructions_screen
     jsr screen_off                                                    ;
     ldx #instructions_string1                                         ;
@@ -8077,34 +8064,40 @@ instructions_screen
     jsr print_string_finish_and_wait                                  ;
     beq combat_preparation_screen                                     ; ALWAYS branch
 
-not_f0
+try_f1
     cpx #'1'                                                          ;
-    bne not_f1                                                        ;
+    bne f2_upwards                                                    ;
+
+    ; f1
     jsr starfleet_records_screen                                      ;
     beq combat_preparation_screen                                     ; ALWAYS branch
 
-not_f1
+f2_upwards
+    ; f2-f9
     txa                                                               ; Translate ASCII '2'-'9'
     and #$0f                                                          ; into option number
-    lsr                                                               ; Y=1-4
-    tay                                                               ;
+    lsr                                                               ;
+    tay                                                               ; Y=1-4
     txa                                                               ;
     and #1                                                            ; 0=switch off, 1=switch on
 
     ; calculate destination address for the new option
     sta game_options - 1,y                                            ;
     lda option_address_low_table - 1,y                                ;
-    sta temp0_low                                                     ;
+    sta option_address_low                                            ;
     lda option_address_high_table - 1,y                               ;
-    sta temp0_high                                                    ;
+    sta option_address_high                                           ;
 
     ; write the new option value
     lda options_values_to_write-'0'-2,x                               ; read new value from table
-    ldy #0                                                            ;
-    sta (temp0_low),y                                                 ; write to destination address
-    beq plot_selected_options                                         ; ALWAYS branch
+option_address_low = * + 1
+option_address_high = * + 2
+    sta $ffff                                                         ; write to destination address (self modifying code)
+    jmp plot_selected_options                                         ; ALWAYS branch
 
 ; ----------------------------------------------------------------------------------
+; On Exit:
+;   Z Set
 starfleet_records_screen
     jsr screen_off                                                    ;
 
@@ -8163,7 +8156,11 @@ plot_name_loop
 
 leave_after_plotting_underscores
     ldx #starfleet_records_string                                     ;
+    ; fall through...
 
+; ----------------------------------------------------------------------------------
+; On Exit:
+;   Z Set
 print_string_finish_and_wait
     jsr print_string_and_finish_screen                                ;
 wait_for_return
@@ -8173,13 +8170,10 @@ wait_for_return
 
 ; ----------------------------------------------------------------------------------
 print_three_spaces
-    ldy #3                                                            ;
--
-    lda #9                                                            ;
+    lda #' '                                                          ;
     jsr oswrch                                                        ;
-    dey                                                               ;
-    bpl -                                                             ;
-    rts                                                               ;
+    tay                                                               ;
+    jmp oswrch_ay                                                     ;
 
 ; ----------------------------------------------------------------------------------
 plot_final_two_digits
@@ -8305,7 +8299,7 @@ finished_padding_name
 ; ----------------------------------------------------------------------------------
 plot_shields_string_and_something
     stx starship_shields_active_before_failure                        ;
-    jsr plot_shields_string                                           ;
+    jsr print_regular_string                                          ;
     lda scanner_failure_duration                                      ;
     beq return29                                                      ;
     pla                                                               ; abandon any further plotting in handle_player_movement
@@ -8319,7 +8313,6 @@ plot_auto_shields_string
     cmp starship_automatic_shields                                    ;
     bpl return29                                                      ;
     ldx #regular_string_index_shield_state_auto                       ;
-plot_shields_string
     jmp print_regular_string                                          ;
 
 ; ----------------------------------------------------------------------------------

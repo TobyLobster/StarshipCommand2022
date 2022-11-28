@@ -1,9 +1,9 @@
 combat_experience_heading_string
     !text 31,13,31,"Press <RETURN>",31,11,5,"STARSHIP COMMAND "
-escape_capsule_was_launched_string
-    !text " escape capsule was launched"
-before_the_starship_exploded_string
-    !text 13,10,9,"before the starship exploded."
+no_escape_capsule_was_launched_string
+    !text "No escape capsule was launched",13,10,9,"before the starship exploded."
+an_escape_capsule_was_launched_string
+    !text "An escape capsule was launched"
 and_returned_safely_string
     !text " and   returned safely from the combat zone."
 but_collided_string
