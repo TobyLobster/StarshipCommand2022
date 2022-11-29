@@ -848,13 +848,13 @@ sound_12
     !byte $13, 0                                                      ; channel 3
     !byte $f1, 0                                                      ; volume 15
     !byte $a4, 0                                                      ; pitch
-    !byte 2  , 0                                                      ; duration 1
+    !byte 2  , 0                                                      ; duration
 
 
 !if >sound_1 != >sound_12 {
     !error "alignment error", sound_1, sound_12;
 }
-sounds = sound_1 & 0xff00
+sounds_high = sound_1 & 0xff00
 
 ; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
 angle_result_table_8
@@ -877,6 +877,7 @@ angle_result_table_12
     sta $fe40                                                         ;
 }
 }
+
 !macro finish_keyboard_read {
 !if elk=0 {
     lda #$0b                                                          ;
@@ -1130,6 +1131,8 @@ return
 
 ; ----------------------------------------------------------------------------------
 ; version for the frontiers screen, offset stars by $0780
+; On Entry:
+;   Carry clear
 ; ----------------------------------------------------------------------------------
 eor_frontier_pixel
     lda y_pixels                                                      ;
@@ -4680,6 +4683,7 @@ plot_enemy_ship_or_explosion_segments
 
 ; ----------------------------------------------------------------------------------
 plot_enemy_explosion_segments
+    ; plots thee explosion segments
     and #$1f                                                          ;
     sta segment_angle                                                 ;
     lda temp10                                                        ;
@@ -4691,6 +4695,7 @@ plot_enemy_explosion_segments
     lda #1                                                            ;
     sta segment_angle_change_per_pixel                                ;
     jsr plot_segment                                                  ;
+
     ldx temp7                                                         ;
     lda enemy_ships_flags_or_explosion_timer,x                        ;
     eor #$1f                                                          ;
@@ -4698,8 +4703,8 @@ plot_enemy_explosion_segments
     sta segment_angle                                                 ;
     lda #7                                                            ;
     sta segment_length                                                ;
-    inc segment_angle_change_per_pixel                                ; two
     jsr plot_segment                                                  ;
+
     ldx temp7                                                         ;
     lda temp10                                                        ;
     sta x_pixels                                                      ;
@@ -4711,8 +4716,6 @@ plot_enemy_explosion_segments
     sta segment_angle                                                 ;
     lda #6                                                            ;
     sta segment_length                                                ;
-    lda #$ff                                                          ;
-    sta segment_angle_change_per_pixel                                ;
     jmp plot_segment                                                  ;
 
 ; ----------------------------------------------------------------------------------
@@ -4804,17 +4807,17 @@ use_keyboard_input
     +do_key inkey_x, 11, 3, +, 0                                      ;
     inc rotation_delta                                                ;
 +
-    +do_key inkey_m, 6, 3, speed_up, 1                                ;
+;    +do_key inkey_m, 6, 3, speed_up, 1                                ;
     +do_key inkey_colon, 2, 2, +, 0                                   ;
 speed_up
     inc velocity_delta                                                ;
 +
-    +do_key inkey_comma, 5, 3, slow_down, 1                           ;
+;    +do_key inkey_comma, 5, 3, slow_down, 1                           ;
     +do_key inkey_slash, 3, 3, +, 0                                   ;
 slow_down
     dec velocity_delta                                                ;
 +
-    +do_key inkey_n, 7, 3, fire, 1                                    ;
+;    +do_key inkey_n, 7, 3, fire, 1                                    ;
     +do_key inkey_return, 1, 2, check_for_additional_keys, 0          ;
 fire
     inc fire_pressed                                                  ;
@@ -5077,11 +5080,11 @@ sound_with_volume
     eor #$ff                                                          ;
     clc                                                               ;
     adc #1                                                            ;
-    sta sounds+2, x                                                   ; volume low byte
+    sta sounds_high+2, x                                              ; volume low byte
     beq set_volume_high                                               ;
     lda #$ff                                                          ;
 set_volume_high
-    sta sounds+3, x                                                   ; volume high byte
+    sta sounds_high+3, x                                              ; volume high byte
 do_osword_sound
     ldy #>(sound_1)                                                   ; all sounds in the same page
     lda #osword_sound                                                 ;
@@ -5113,6 +5116,7 @@ consider_warning_sound
 }
     ldx #<(sound_9)                                                   ;
     jsr do_osword_sound                                               ;
+    ; fall through...
 
 ; ----------------------------------------------------------------------------------
 invert_energy_text
@@ -5200,6 +5204,7 @@ return21
 ; On Entry:
 ;   X = enemy ship index
 ; Preserves X
+; ----------------------------------------------------------------------------------
 fire_enemy_torpedo
     ; are we done?
     lda torpedoes_still_to_consider                                   ;
@@ -5228,6 +5233,7 @@ found_free_slot
     lsr                                                               ;
     lsr                                                               ;
     lsr                                                               ;
+    tay                                                               ;
     cmp enemy_ship_desired_angle_divided_by_eight                     ;
     bne leave_after_clearing_carry                                    ; can't fire if not pointing at starship
     lda enemy_ships_firing_cooldown,x                                 ;
@@ -5242,11 +5248,6 @@ found_free_slot
     beq single_torpedo                                                ;
 
     ; fire enemy torpedo cluster
-    lda enemy_ships_angle,x                                           ;
-    lsr                                                               ;
-    lsr                                                               ;
-    lsr                                                               ;
-    tay                                                               ;
     lda sine_table,y                                                  ;
     clc                                                               ;
     adc enemy_ships_x_pixels,x                                        ;
@@ -6590,28 +6591,20 @@ handle_failed_scanner
 
 ; ----------------------------------------------------------------------------------
 clear_long_range_scanner
-    lda #0                                                            ;
-    sta temp0_low                                                     ;
-    lda #$59                                                          ;
-    sta temp0_high                                                    ;
-    ldx #8                                                            ;
 clear_long_range_scanner_row_loop
     ldy #$3f                                                          ;
     lda #0                                                            ;
 clear_long_range_scanner_column_loop
-    sta (temp0_low),y                                                 ;
+    sta $5900 + 0*$140,y                                              ;
+    sta $5900 + 1*$140,y                                              ;
+    sta $5900 + 2*$140,y                                              ;
+    sta $5900 + 3*$140,y                                              ;
+    sta $5900 + 4*$140,y                                              ;
+    sta $5900 + 5*$140,y                                              ;
+    sta $5900 + 6*$140,y                                              ;
+    sta $5900 + 7*$140,y                                              ;
     dey                                                               ;
     bpl clear_long_range_scanner_column_loop                          ;
-    lda temp0_low                                                     ;
-    clc                                                               ;
-    adc #$40                                                          ;
-    sta temp0_low                                                     ;
-    lda temp0_high                                                    ;
-    adc #1                                                            ;
-    sta temp0_high                                                    ;
-    dex                                                               ;
-    bne clear_long_range_scanner_row_loop                             ;
-    lda #0                                                            ;
     sta starship_shields_active                                       ;
     jsr plot_top_and_right_edge_of_long_range_scanner_with_blank_text ;
     lda starship_shields_active_before_failure                        ;
@@ -6970,7 +6963,7 @@ skip_addition
 
     ; use the top four bits
     clc                                                               ;
-    adc #$10                                                          ; not range 0-(max-1) but range 1-max
+    adc #$10                                                          ; not range 0 to (max-1) but range 1 to max
     and #$f0                                                          ; in top nybble
     sta enemy_ships_firing_cooldown,x                                 ;
     lda #1                                                            ;
@@ -7008,8 +7001,8 @@ prepare_starship_for_next_command
     ; from the previous round. The call to fill_enemy_cache below
     ; will increment it again to be the second ship type again for
     ; the duration of this command.
-    inc enemy_number                                                  ;
     ldx enemy_number                                                  ;
+    inx                                                               ;
     cpx #6                                                            ;
     bcc +                                                             ;
     ldx #0                                                            ;
@@ -7027,7 +7020,7 @@ prepare_starship_for_next_command
     cld                                                               ; BCD off
     cli                                                               ;
     sta command_number                                                ;
-    tax
+    tax                                                               ;
 
     ; set velocity of enemy ships, based on command number
     lda #enemy_full_speed                                             ; full speed
@@ -7057,11 +7050,10 @@ prepare_starship_for_next_command
     sta sound_needed_for_low_energy                                   ;
     sta energy_flash_timer                                            ;
     sta enableKeyboardInterruptProcessingFlag                         ; disable keyboard interrupt
-    lda #4                                                            ;
-    sta starship_velocity_high                                        ;
-    lda #0                                                            ;
     sta scanner_failure_duration                                      ;
     sta starship_shields_active_before_failure                        ;
+    lda #4                                                            ;
+    sta starship_velocity_high                                        ;
     lda #$80                                                          ;
     sta starship_angle_fraction                                       ;
     sta starship_rotation                                             ;
@@ -8187,6 +8179,7 @@ plot_final_two_digits
     bne print_final_zero                                              ; padding still in place?
 +
     rts                                                               ;
+
 plot_two_bcd_digits_with_no_spaces
     ldy #0                                                            ; null padding. printing this is a no-op
     !byte $2c                                                         ; 'BIT abs' opcode, to skip the next instruction
@@ -8835,7 +8828,7 @@ straddle
     eor (screen_address_low),y                                        ;
     sta (screen_address_low),y                                        ;
 returna
-    dex                                                               ; restore
+    dex                                                               ; restore X
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -8998,9 +8991,6 @@ ytmp2
 ; ----------------------------------------------------------------------------------
 init_frontier_screen
     ; initialise stars for frontiers rotating globe
-
-    ; initialise the constant x coordinates
-    lda #$5e                                                          ;
     ldx #0                                                            ;
     stx starship_rotation_eor                                         ;
 
@@ -9060,7 +9050,7 @@ update_stars_loop
     jsr update_object_position_for_starship_rotation_and_speed        ;
     ldx x_pixels                                                      ;
 maybe_unplot_star
-    jsr eor_play_area_pixel                                           ; unplot. Target of self modifying code.
+    jsr eor_play_area_pixel                                           ; unplot. Target of self modifying code. Skipped on first execution.
     ldy current_object_index                                          ;
     ldx object_table_xpixels,y                                        ;
     lda object_table_ypixels,y                                        ;
@@ -10152,9 +10142,10 @@ rotated_y_correction_pixels
 
 
 
-!macro m_regular_strings {
-
+; ----------------------------------------------------------------------------------
+regular_strings_start
 regular_strings_table
+
 shield_state_string1
     !byte shield_state_string1_end - shield_state_string1             ;
     !byte $1f, $22, $18                                               ;
@@ -10221,18 +10212,13 @@ command_string_end
 ; ----------------------------------------------------------------------------------
 command_move_string
     !byte command_move_string_end - command_move_string
-    !byte $19, 4                                                      ; MOVE &046f, &0081
+    !byte $19, 4                                                      ; MOVE 1123 or 1139, 129
 command_move_string_horizontal_pos
-    !byte $6f                                                         ;
-    !byte 4, $81, 0                                                   ;
+    !word 1139                                                        ; This centres the command number
+    !word 129                                                         ; underneath the word 'Command'
 command_move_string_end
 
-} ; end macro m_regular_strings
-
 ; ----------------------------------------------------------------------------------
-regular_strings_start
-    +m_regular_strings
-
 regular_strings_end
 
 ; ----------------------------------------------------------------------------------

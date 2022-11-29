@@ -11,7 +11,7 @@ but_collided_string
 combat_experience_rating_string
     !text 13,10,9,13,10,9,13,10,9,9,9," Your official combat experience",13,10,9,"rating is now recorded as "
 having_just_gained_string
-    !text ", having",8,13,10,9,"just gained "
+    !text ", having",13,10,9,"just gained "
 after_your_performance_string
     !text 13,10,9,13,10,9,13,10,9,9,9," After your performance on this",13,10,9,"command the Star-Fleet authorities",13,10,9,"are said to be \""
 emotions_1
@@ -89,17 +89,17 @@ award_outcome_escape_9
 award_outcome_escape_10
     !text "elect you President",13,10,9,"of the Solar Federation"
 instructions_string1
-    !text 31,5,2," **** STARSHIP CONTROLS **** ",31,13,5,"Z  -  Rotate left",31,13,6,"X  -  Rotate right",13,10,9,9,9,"Return or N  -  Fire torpedoes",31,7,8," : or M  -  Thrust",31,7,9," / or ,  -  Brake",13,10,9,13,10,9,9,9,"F  -  Launch port escape capsule",13,10,9,9,9,"G  -  Launch starboard escape capsule",31,0,14,"All the above may operate simultaneouslyAlternatively, ONE of the following may be depressed:"
+    !text 31,5,2," **** STARSHIP CONTROLS **** ",31,7,5,"Z  -  Rotate left",31,7,6,"X  -  Rotate right",13,10,9,9,"Return  -  Fire torpedoes",31,7,8,":  -  Thrust",31,7,9,"/  -  Brake",31,7,11,"F  -  Port escape capsule",31,7,12,"G  -  Starboard escape capsule",31,2,14,"Switches:"
 instructions_string2
-    !text 13,10,9,13,10,9,9,9,"B  -  Shields ON / Scanners OFF",13,10,9,9,9,"V  -  Scanners ON / Shields OFF",13,10,9,9,9,"C  -  Auto-Changeover ON",13,10,9,13,10,9,9,9,"f0 -  Rotation Dampers ON",13,10,9,9,9,"2  -  Rotation Dampers OFF",13,10,9,9,9,"f1 -  Velocity Dampers ON",13,10,9,9,9,"3  -  Velocity Dampers OFF",31,13,27,"P  -  Pause",31,9,28,"Space  -  Resume",31,13,31,"Press <RETURN>"
+    !text 31,7,16,"B  -  Shields ON / Scanners OFF",31,7,17,"V  -  Scanners ON / Shields OFF",31,7,18,"C  -  Auto-Change ON",31,7,20,"f0 -  Rotation Dampers ON",31,7,21,"2  -  Rotation Dampers OFF",31,7,22,"f1 -  Velocity Dampers ON",31,7,23,"3  -  Velocity Dampers OFF",31,13,27,"P  -  Pause",31,9,28,"Space  -  Resume",31,13,31,"Press <RETURN>"
 combat_preparation_string
     !text 31,5,2," **** COMBAT PREPARATION **** ",31,6,6,"f0  View starship controls",13,10,9,13,10,9,9,9,9,9,9,"f1  View Star-Fleet records",13,10,9,13,10,9,9,9,9,9,9,"f2  Enable",13,10,9,13,10,9,9,9,9,9,9,"f3  Disable",13,10,9,13,10,9,9,9,9,9,9,"f4  Small",13,10,9,13,10,9,9,9,9,9,9,"f5  Large",13,10,9,13,10,9,9,9,9,9,9,"f6  Small",13,10,9,13,10,9,9,9,9,9,9,"f7  Large",13,10,9,13,10,9,9,9,9,9,9,"f8  Keyboard",13,10,9,13,10,9,9,9,9,9,9,"f9  Joystick",31,17,11,"}the sound effects",31,17,15,"}starship torpedoes",31,17,19,"}enemy torpedoes",31,13,31,"Press <RETURN>"
 starfleet_records_string
-    !text 31,5,2," **** STAR-FLEET RECORDS **** ",31,4,6,"Below is a list of the most highly",13,10,9,"rated of Star-Fleet ",8,"'s past commanders.",31,13,31,"Press <RETURN>"
+    !text 31,5,2," **** STAR-FLEET RECORDS **** ",31,4,6,"Below is a list of the most highly",13,10,9,"rated of Star-Fleet's past commanders.",31,13,31,"Press <RETURN>"
 enter_your_name_string
     !text 31,0,10,"Enter your name for Star-Fleet records.",31,13,16,"-------------",31,13,15
 the_frontiers_string
-    !text 31,3,5,"The frontiers of space are frequentlypenetrated by hostile alien ships. Theseare tackled by battle starships, the ",13,10,"command of which is given to deserving  captains from the ",8," Star-Fleet ",8,".",31,11,2,"STARSHIP  COMMAND ",31,4,31,"2022 Edition by TobyLobster (v2)"
+    !text 31,3,5,"The frontiers of space are frequentlypenetrated by hostile alien ships.",13,10,"These are opposed by battle starships",13,10,"commanded by deserving captains from theStar-Fleet.",31,11,2,"STARSHIP  COMMAND ",31,4,31,"2022 Edition by TobyLobster (v2)"
 begin_first_command_string
     !text 31,3,11,"   To begin your first command, ",31,12,12,"press <RETURN>"
 and_string

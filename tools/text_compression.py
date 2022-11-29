@@ -323,6 +323,7 @@ def retokenise(byte_dict):
     getting_better = True
     global next_token
     next_token = 128
+
     while getting_better and (next_token < token_limit):
         saving = find_best_saving(byte_dict)
         getting_better = saving[0] > 0
