@@ -227,9 +227,10 @@
 ; ----------------------------------------------------------------------------------
 
 debug_powerups = 0
-do_debug = 0
-rom_writes = 1
+do_debug       = 0
+rom_writes     = 1
 rotation_debug = 0
+update_enemies = 1
 
 !ifndef elk {
 elk=0           ; 0xC0DE: 0=Beeb version, 1=Elk version
@@ -267,6 +268,8 @@ enemy_full_speed                                                    = 24
 
 number_of_enemy_explosion_pieces                                    = 32
 number_of_bytes_per_enemy_explosion                                 = 2 * number_of_enemy_explosion_pieces
+number_of_high_score_entries                                        = 6
+size_of_high_score_entry                                            = 16
 
 starship_maximum_x_for_collisions_with_enemy_torpedoes              = $7f + 7
 starship_minimum_x_for_collisions_with_enemy_torpedoes              = $7f - 7
@@ -652,8 +655,8 @@ allowed_another_command                 = award + 1
 ; High score table.
 ; There are eight entries of 16 bytes each. The first three bytes are the score, then 13 bytes for the name
 high_score_table                        = $0100
-high_score_table_end                    = $0180
-input_buffer                            = $0180
+high_score_table_end                    = high_score_table + (size_of_high_score_entry * number_of_high_score_entries)
+sounds_start                            = high_score_table_end
 
 ; enemy data $0400-$0758
 enemy_ships_previous_on_screen          = $0400 +  0 * maximum_number_of_enemy_ships    ; i.e. starts at $0400
@@ -686,7 +689,7 @@ enemy_cache_a                           = enemy_address_high_end
 frontier_star_positions                 = enemy_cache_a + 640                           ; to $79a
 
 angle_addresses_destination = frontier_star_positions + 66           ; 86 bytes used
-unused1 = angle_addresses_destination + (copy_angle_addresses_end - copy_angle_addresses_start) ; UNUSED: 16 bytes free to $800
+input_buffer                            = angle_addresses_destination + (copy_angle_addresses_end - copy_angle_addresses_start) ; UNUSED: 3 bytes free to $800
 
 ; $0800-$08ff   reserved for sound system
 
@@ -743,137 +746,6 @@ stride_between_enemy_coordinates        = enemy_ships_previous_y_fraction - enem
 * = end_of_tables
 
 load_addr
-
-; ----------------------------------------------------------------------------------
-; Exploding starship 1
-; ----------------------------------------------------------------------------------
-sound_1
-    !byte $11, 0                                                      ; channel 1
-    !byte 0, 0                                                        ; volume 0 (silent)
-sound_1_pitch
-    !byte 0, 0                                                        ; pitch for the white noise of sound_2
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Exploding starship 2
-; ----------------------------------------------------------------------------------
-sound_2
-    !byte $10, 0                                                      ; channel 0 (white noise)
-sound_2_volume_low
-    !byte 0                                                           ; volume
-sound_2_volume_high
-    !byte 0
-    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_3
-    !byte $13, 0                                                      ; channel 3
-    !byte 1, 0                                                        ; envelope 1
-    !byte $80, 0                                                      ; pitch 128
-    !byte 4, 0                                                        ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Enemy ship fired torpedo
-; ----------------------------------------------------------------------------------
-sound_4
-    !byte $12, 0                                                      ; channel 2
-    !byte 2, 0                                                        ; envelope 2
-    !byte $c0, 0                                                      ; pitch 192
-!if elk {
-    ; echo effect is totally wasted on Electron
-    !byte $4, 0                                                      ; duration 4
-} else {
-    !byte $1f, 0                                                      ; duration 31
-}
-; ----------------------------------------------------------------------------------
-; Enemy ship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_5
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $40, 0                                                      ; pitch 64
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Starship hit by torpedo
-; ----------------------------------------------------------------------------------
-sound_6
-    !byte $12, 0                                                      ; channel 2
-    !byte 4, 0                                                        ; envelope 4
-    !byte $be, 0                                                      ; pitch 190
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Enemy ships collided with each other
-; ----------------------------------------------------------------------------------
-sound_7
-    !byte $13, 0                                                      ; channel 3
-    !byte 2, 0                                                        ; envelope 2
-    !byte $6c, 0                                                      ; pitch 108
-    !byte 8, 0                                                        ; duration 8
-
-; ----------------------------------------------------------------------------------
-; Escape capsule launched
-; ----------------------------------------------------------------------------------
-sound_8
-    !byte $13, 0                                                      ; channel 3
-sound_8_volume_low
-    !byte 0                                                           ; volume
-sound_8_volume_high
-    !byte 0                                                           ;
-    !byte $64, 0                                                      ; pitch 100
-    !byte 4  , 0                                                      ; duration 4
-
-; ----------------------------------------------------------------------------------
-; Low energy warning
-; ----------------------------------------------------------------------------------
-sound_9
-    !byte $11, 0                                                      ; channel 1
-    !byte $f1, $ff                                                    ; volume 15
-    !byte $c8, 0                                                      ; duration 200
-    !byte 2, 0                                                        ; duration 2
-
-!if elk=0 {
-; ----------------------------------------------------------------------------------
-; Starship engine
-; ----------------------------------------------------------------------------------
-sound_10
-    !byte $11, 0                                                      ; channel 1
-sound_10_volume_low
-    !byte 0                                                           ; volume
-sound_10_volume_high
-    !byte 0                                                           ;
-sound_10_pitch
-    !byte 0, 0                                                        ; pitch
-    !byte 4, 0                                                        ; duration 4
-}
-
-; ----------------------------------------------------------------------------------
-; Exploding enemy ship
-; ----------------------------------------------------------------------------------
-sound_11
-    !byte $10, 0                                                      ; channel 0 (white noise)
-    !byte 3, 0                                                        ; envelope 3
-    !byte 7, 0                                                        ; pitch 7
-    !byte 20, 0                                                       ; duration 20
-
-; ----------------------------------------------------------------------------------
-; Powerup taken
-; ----------------------------------------------------------------------------------
-sound_12
-    !byte $13, 0                                                      ; channel 3
-    !byte $f1, 0                                                      ; volume 15
-    !byte $a4, 0                                                      ; pitch
-    !byte 2  , 0                                                      ; duration
-
-
-!if >sound_1 != >sound_12 {
-    !error "alignment error", sound_1, sound_12;
-}
-sounds_high = sound_1 & 0xff00
 
 ; tables of rotations for each of the eight combinations of x-flip, y-flip and xy-swap
 angle_result_table_8
@@ -1149,14 +1021,14 @@ return
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; version for the frontiers screen, offset stars by $0780
+; version for the frontiers screen, offset stars down by several rows
 ; On Entry:
 ;   Carry clear
 ; ----------------------------------------------------------------------------------
 eor_frontier_pixel
     lda y_pixels                                                      ;
     ;clc ; C is already clear
-    adc #48                                                           ;
+    adc #28                                                           ;
     tay                                                               ;
     bne eor_play_area_pixel_ycoord_in_y                               ; ALWAYS branch
 
@@ -2320,6 +2192,7 @@ enemy_torpedo_type_instruction
 
 ; ----------------------------------------------------------------------------------
 apply_velocity_to_enemy_ships
+!if update_enemies {
     lda #maximum_number_of_enemy_ships                                ;
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
@@ -2426,7 +2299,7 @@ set_enemy_ships_on_screen
     dec enemy_ships_still_to_consider                                 ;
     beq return7                                                       ;
     jmp apply_velocity_to_enemy_ships_loop                            ;
-
+}
 return7
     rts                                                               ;
 
@@ -3596,6 +3469,11 @@ enemy_table_high
     !byte >enemy4
     !byte >enemy5
 
+!macro make_enemy .x, .y, .start_angle, .length {
+    ; (nothing special here, but maybe it could be compressed in the future...)
+    !byte .x, .y, .start_angle, .length
+}
+
 ; There are 32 angles for each enemy covering the full 360 degrees.
 ; We define just 5 angles for each enemy. This covers 0-45 degrees. All other angles
 ; are copies of these rotated and/or reflected into a cache for the current command.
@@ -3603,234 +3481,234 @@ enemy0
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  3, -1, 3, 9
-    !byte -5,  7,21, 9
-    !byte -4,  6,28, 9
-    !byte -1,  3,21, 7
-    !byte  0, -4, 4, 8
+    +make_enemy   3, -1, 3,  9
+    +make_enemy  -5,  7, 21, 9
+    +make_enemy  -4,  6, 28, 9
+    +make_enemy  -1,  3, 21, 7
+    +make_enemy   0, -4,  4, 8
 
     ; angle 1
-    !byte  3,  0, 4, 9
-    !byte -6,  6,22, 9
-    !byte -5,  5,29, 9
-    !byte -1,  3,22, 7
-    !byte  1, -4, 5, 8
+    +make_enemy   3,  0,  4, 9
+    +make_enemy  -6,  6, 22, 9
+    +make_enemy  -5,  5, 29, 9
+    +make_enemy  -1,  3, 22, 7
+    +make_enemy   1, -4,  5, 8
 
     ; angle 2
-    !byte  4,  0, 5, 9
-    !byte -7,  4,23, 9
-    !byte -6,  4,30, 9
-    !byte -2,  2,23, 7
-    !byte  2, -4, 6, 8
+    +make_enemy   4,  0,  5, 9
+    +make_enemy  -7,  4, 23, 9
+    +make_enemy  -6,  4, 30, 9
+    +make_enemy  -2,  2, 23, 7
+    +make_enemy   2, -4,  6, 8
 
     ; angle 3
-    !byte  3,  1, 6, 8
-    !byte -8,  3,24,10
-    !byte -7,  3,31, 9
-    !byte -2,  3,23, 8
-    !byte  3, -3, 7, 8
+    +make_enemy   3,  1,  6, 8
+    +make_enemy  -8,  3, 24,10
+    +make_enemy  -7,  3, 31, 9
+    +make_enemy  -2,  3, 23, 8
+    +make_enemy   3, -3,  7, 8
 
     ; angle 4
-    !byte  3,  1, 7, 7
-    !byte -7,  1,26, 8
-    !byte -7,  2, 0, 8
-    !byte -4,  2,25, 8
-    !byte  3, -3, 8, 9
+    +make_enemy   3,  1,  7, 7
+    +make_enemy  -7,  1, 26, 8
+    +make_enemy  -7,  2,  0, 8
+    +make_enemy  -4,  2, 25, 8
+    +make_enemy   3, -3,  8, 9
 
 enemy1
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  3,  1, 3, 9
-    !byte -5,  9,21, 9
-    !byte -4,  8,28, 9
-    !byte  0,  4,20, 8
-    !byte  0, -4, 4, 8
+    +make_enemy   3,  1,  3, 9
+    +make_enemy  -5,  9, 21, 9
+    +make_enemy  -4,  8, 28, 9
+    +make_enemy   0,  4, 20, 8
+    +make_enemy   0, -4,  4, 8
 
     ; angle 1
-    !byte  2,  2, 4, 9
-    !byte -6,  8,22, 9
-    !byte -5,  7,30, 8
-    !byte -1,  3,22, 7
-    !byte  1, -4, 5, 8
+    +make_enemy  2,  2,  4, 9
+    +make_enemy -6,  8, 22, 9
+    +make_enemy -5,  7, 30, 8
+    +make_enemy -1,  3, 22, 7
+    +make_enemy  1, -4,  5, 8
 
     ; angle 2
-    !byte  2,  2, 5, 8
-    !byte -7,  6,23, 8
-    !byte -6,  6,31, 8
-    !byte -1,  3,22, 8
-    !byte  2, -4, 6, 8
+    +make_enemy  2,  2,  5, 8
+    +make_enemy -7,  6, 23, 8
+    +make_enemy -6,  6, 31, 8
+    +make_enemy -1,  3, 22, 8
+    +make_enemy  2, -4,  6, 8
 
     ; angle 3
-    !byte  2,  2, 6, 8
-    !byte -9,  5,24,10
-    !byte -8,  5,31, 9
-    !byte -2,  3,23, 8
-    !byte  3, -3, 7, 8
+    +make_enemy  2,  2,  6, 8
+    +make_enemy -9,  5, 24,10
+    +make_enemy -8,  5, 31, 9
+    +make_enemy -2,  3, 23, 8
+    +make_enemy  3, -3,  7, 8
 
     ; angle 4
-    !byte  1,  3, 7, 7
-    !byte -9,  3,26, 8
-    !byte -8,  3, 0, 8
-    !byte -4,  2,25, 8
-    !byte  3, -3, 8, 9
+    +make_enemy  1,  3,  7, 7
+    +make_enemy -9,  3, 26, 8
+    +make_enemy -8,  3,  0, 8
+    +make_enemy -4,  2, 25, 8
+    +make_enemy  3, -3,  8, 9
 
 enemy2
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  3, -1, 4, 8
-    !byte -4,  6,21, 8
-    !byte -3,  4,29, 7
-    !byte  0, -5, 4, 4
-    !byte -1, -4, 8, 3
+    +make_enemy  3, -1,  4, 8
+    +make_enemy -4,  6, 21, 8
+    +make_enemy -3,  4, 29, 7
+    +make_enemy  0, -5,  4, 4
+    +make_enemy -1, -4,  8, 3
 
     ; angle 1
-    !byte  3, -1, 5, 8
-    !byte -4,  5,21, 8
-    !byte -3,  4,30, 6
-    !byte  1, -5, 5, 4
-    !byte  0, -5, 9, 4
+    +make_enemy  3, -1,  5, 8
+    +make_enemy -4,  5, 21, 8
+    +make_enemy -3,  4, 30, 6
+    +make_enemy  1, -5,  5, 4
+    +make_enemy  0, -5,  9, 4
 
     ; angle 2
-    !byte  3, -1, 5, 9
-    !byte -5,  4,23, 7
-    !byte -4,  3,31, 6
-    !byte  3, -2,22, 4
-    !byte  1, -5, 9, 4
+    +make_enemy  3, -1,  5, 9
+    +make_enemy -5,  4, 23, 7
+    +make_enemy -4,  3, 31, 6
+    +make_enemy  3, -2, 22, 4
+    +make_enemy  1, -5,  9, 4
 
     ; angle 3
-    !byte  2,  0, 6, 9
-    !byte -6,  4,23, 8
-    !byte -5,  3,31, 6
-    !byte  3, -4, 8, 4
-    !byte  2, -5,12, 4
+    +make_enemy  2,  0,  6, 9
+    +make_enemy -6,  4, 23, 8
+    +make_enemy -5,  3, 31, 6
+    +make_enemy  3, -4,  8, 4
+    +make_enemy  2, -5, 12, 4
 
     ; angle 4
-    !byte  2,  1, 7, 8
-    !byte -7,  2,26, 8
-    !byte -6,  1, 1, 7
-    !byte  4, -4, 8, 5
-    !byte  3, -4,12, 4
+    +make_enemy  2,  1,  7, 8
+    +make_enemy -7,  2, 26, 8
+    +make_enemy -6,  1,  1, 7
+    +make_enemy  4, -4,  8, 5
+    +make_enemy  3, -4, 12, 4
 
 enemy3
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  2, -2, 3,11
-    !byte -2,  8,19,11
-    !byte -2,  6,30, 5
-    !byte -1,  3,21, 7
-    !byte  0, -4, 4, 9
+    +make_enemy  2, -2,  3,11
+    +make_enemy -2,  8, 19,11
+    +make_enemy -2,  6, 30, 5
+    +make_enemy -1,  3, 21, 7
+    +make_enemy  0, -4,  4, 9
 
     ; angle 1
-    !byte  3, -1, 5,10
-    !byte -5,  6,21,11
-    !byte -4,  4,31, 6
-    !byte -1,  3,22, 7
-    !byte  1, -4, 5, 8
+    +make_enemy  3, -1,  5,10
+    +make_enemy -5,  6, 21,11
+    +make_enemy -4,  4, 31, 6
+    +make_enemy -1,  3, 22, 7
+    +make_enemy  1, -4,  5, 8
 
     ; angle 2
-    !byte  4,  0, 7, 9
-    !byte -7,  3,24, 9
-    !byte -6,  2, 0, 7
-    !byte -2,  2,23, 7
-    !byte  2, -4, 6, 9
+    +make_enemy  4,  0,  7, 9
+    +make_enemy -7,  3, 24, 9
+    +make_enemy -6,  2,  0, 7
+    +make_enemy -2,  2, 23, 7
+    +make_enemy  2, -4,  6, 9
 
     ; angle 3
-    !byte  3,  1, 7,10
-    !byte -7,  4,24, 9
-    !byte -6,  3, 0, 6
-    !byte -2,  3,23, 8
-    !byte  3, -3, 7, 8
+    +make_enemy  3,  1,  7,10
+    +make_enemy -7,  4, 24, 9
+    +make_enemy -6,  3,  0, 6
+    +make_enemy -2,  3, 23, 8
+    +make_enemy  3, -3,  7, 8
 
     ; angle 4
-    !byte  3,  0, 7,11
-    !byte -7,  4,23,11
-    !byte -6,  3, 2, 5
-    !byte -4,  2,25, 8
-    !byte  3, -3, 8, 9
+    +make_enemy  3,  0,  7,11
+    +make_enemy -7,  4, 23,11
+    +make_enemy -6,  3,  2, 5
+    +make_enemy -4,  2, 25, 8
+    +make_enemy  3, -3,  8, 9
 
 enemy4
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  1, -5, 1,11
-    !byte  4,  5,12,11
-    !byte -6,  2,23, 9
-    !byte -1,  3,21, 7
-    !byte  0, -4, 4, 9
+    +make_enemy  1, -5,  1,11
+    +make_enemy  4,  5, 12,11
+    +make_enemy -6,  2, 23, 9
+    +make_enemy -1,  3, 21, 7
+    +make_enemy  0, -4,  4, 9
 
     ; angle 1
-    !byte  2, -4, 2,10
-    !byte  4,  5,12,11
-    !byte -6,  2,23,10
-    !byte -1,  3,22, 7
-    !byte  1, -4, 5, 8
+    +make_enemy  2, -4,  2,10
+    +make_enemy  4,  5, 12,11
+    +make_enemy -6,  2, 23,10
+    +make_enemy -1,  3, 22, 7
+    +make_enemy  1, -4,  5, 8
 
     ; angle 2
-    !byte  3, -4, 3, 9
-    !byte  4,  5,12,11
-    !byte -6,  2,23,11
-    !byte -2,  2,23, 7
-    !byte  2, -4, 6, 9
+    +make_enemy  3, -4,  3, 9
+    +make_enemy  4,  5, 12,11
+    +make_enemy -6,  2, 23,11
+    +make_enemy -2,  2, 23, 7
+    +make_enemy  2, -4,  6, 9
 
     ; angle 3
-    !byte  4, -3, 4,10
-    !byte  2,  6,14,11
-    !byte -6,  0,25,10
-    !byte -2,  3,23, 8
-    !byte  3, -3, 7, 8
+    +make_enemy  4, -3,  4,10
+    +make_enemy  2,  6, 14,11
+    +make_enemy -6,  0, 25,10
+    +make_enemy -2,  3, 23, 8
+    +make_enemy  3, -3,  7, 8
 
     ; angle 4
-    !byte  4, -3, 4,10
-    !byte  2,  6,14,11
-    !byte -6,  0,25,10
-    !byte -4,  2,25, 8
-    !byte  3, -3, 8, 9
+    +make_enemy  4, -3,  4,10
+    +make_enemy  2,  6, 14,11
+    +make_enemy -6,  0, 25,10
+    +make_enemy -4,  2, 25, 8
+    +make_enemy  3, -3,  8, 9
 
 enemy5
     ; (x, y, start_angle, length)
 
     ; angle 0
-    !byte  3,  3,21, 7
-    !byte -1,  0,31, 3
-    !byte  4, -4, 4, 9
-    !byte -5,  3,21, 7
-    !byte -4, -4, 4, 9
-    ;!byte  0, -3, 7, 3
+    +make_enemy  3,  3, 21, 7
+    +make_enemy -1,  0, 31, 3
+    +make_enemy  4, -4,  4, 9
+    +make_enemy -5,  3, 21, 7
+    +make_enemy -4, -4,  4, 9
+    ;+make_enemy  0, -3,  7, 3
 
     ; angle 1
-    !byte  3,  4,22, 7
-    !byte -1, -1, 1, 3
-    !byte  5, -3, 5, 8
-    !byte -5,  3,22, 7
-    !byte -3, -4, 5, 8
-    ;!byte  1, -3, 9, 3
+    +make_enemy  3,  4, 22, 7
+    +make_enemy -1, -1,  1, 3
+    +make_enemy  5, -3,  5, 8
+    +make_enemy -5,  3, 22, 7
+    +make_enemy -3, -4,  5, 8
+    ;+make_enemy  1, -3,  9, 3
 
     ; angle 2
-    !byte  1,  4,23, 7
-    !byte -1, -1, 1, 3
-    !byte  5, -2, 6, 9
-    !byte -6,  1,23, 7
-    !byte -2, -5, 6, 9
-    ;!byte  1, -3, 8, 3
+    +make_enemy  1,  4, 23, 7
+    +make_enemy -1, -1,  1, 3
+    +make_enemy  5, -2,  6, 9
+    +make_enemy -6,  1, 23, 7
+    +make_enemy -2, -5,  6, 9
+    ;+make_enemy  1, -3,  8, 3
 
     ; angle 3
-    !byte  1,  4,23, 8
-    !byte  0,  0, 1, 2
-    !byte  6, -2, 7, 8
-    !byte -5,  1,23, 8
-    !byte  0, -5, 7, 8
-    ;!byte  2, -3,11, 3
+    +make_enemy  1,  4, 23, 8
+    +make_enemy  0,  0,  1, 2
+    +make_enemy  6, -2,  7, 8
+    +make_enemy -5,  1, 23, 8
+    +make_enemy  0, -5,  7, 8
+    ;+make_enemy  2, -3, 11, 3
 
     ; angle 4
-    !byte -1,  5,25, 8
-    !byte  0,  0, 1, 2
-    !byte  6,  0, 8, 9
-    !byte -6,  0,25, 8
-    !byte  1, -5, 8, 9
-    ;!byte  3, -3,11, 3
+    +make_enemy -1,  5, 25, 8
+    +make_enemy  0,  0,  1, 2
+    +make_enemy  6,  0,  8, 9
+    +make_enemy -6,  0, 25, 8
+    +make_enemy  1, -5,  8, 9
+    ;+make_enemy  3, -3, 11, 3
 
 ; Enemy definitions for the current command
 
@@ -4090,8 +3968,7 @@ starship_explosion_piece_ageing_table
 
 ; ----------------------------------------------------------------------------------
 initialise_stars_at_random_positions
-    lda maximum_number_of_stars                                       ;
-    sta stars_still_to_consider                                       ;
+    ldx maximum_number_of_stars                                       ;
     ldy #index_of_in_game_stars                                       ;
 initialise_stars_at_random_positions_loop
     jsr random_number_generator                                       ;
@@ -4100,7 +3977,7 @@ initialise_stars_at_random_positions_loop
     lda rnd_2                                                         ;
     sta object_table_ypixels,y                                        ;
     iny                                                               ;
-    dec stars_still_to_consider                                       ;
+    dex                                                               ;
     bne initialise_stars_at_random_positions_loop                     ;
     rts                                                               ;
 
@@ -7331,6 +7208,7 @@ initialise_joystick
 
 ; ----------------------------------------------------------------------------------
 update_enemy_ships
+!if update_enemies {
     dec timer_for_enemy_ships_regeneration                            ;
     bpl skip_timer_reset                                              ;
     lda #maximum_timer_for_enemy_ships_regeneration                   ;
@@ -7441,6 +7319,9 @@ skip_resetting_hit_count
     dec enemy_ships_still_to_consider                                 ;
     beq return27                                                      ;
     jmp update_enemy_ships_loop                                       ;
+} else {
+return_from_enemy_ship_behaviour_routine
+}
 
 return27
     rts                                                               ;
@@ -8346,8 +8227,8 @@ plot_name_loop
     jsr plot_two_bcd_digits                                           ;
 
     ; loop over all entries
-    txa                                                               ;
-    bpl plot_high_scores_loop                                         ;
+    cpx #size_of_high_score_entry*number_of_high_score_entries        ;
+    bcc plot_high_scores_loop                                         ;
 
 leave_after_plotting_underscores
     ldx #starfleet_records_string                                     ;
@@ -8437,15 +8318,15 @@ consider_next_record
     txa                                                               ;
     clc                                                               ;
     adc #$10                                                          ;
-    tax                                                               ;
-    bpl consider_records_loop                                         ;
+    cmp #size_of_high_score_entry*number_of_high_score_entries        ;
+    bcc consider_records_loop                                         ;
 score_is_zero
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
 higher_score
     stx temp7                                                         ;
-    ldx #$70                                                          ;
+    ldx #size_of_high_score_entry*(number_of_high_score_entries-1)    ;
 move_records_down_a_slot_loop
     cpx temp7                                                         ;
     beq finished_moving_records                                       ;
@@ -8499,7 +8380,7 @@ plot_shields_string_and_something
     lda scanner_failure_duration                                      ;
     beq return29                                                      ;
     pla                                                               ; abandon any further plotting in handle_player_movement
-    pla                                                               ;
+    pla                                                               ; by stack manipulation
 return29
     rts                                                               ;
 
@@ -9733,7 +9614,7 @@ danger_loop
     bcc danger_loop                                                   ; if in danger zone, wait
 }
 
-    jsr plot_powerup                                                  ; unplot
+    jsr plot_powerup                                                  ; unplot powerup
 
 skip_unplot
     ; if the powerup has been taken, we don't want to plot it
@@ -9757,7 +9638,7 @@ skip_unplot
     sta x_pixels                                                      ;
     lda powerups_y_pixels,x                                           ;
     sta y_pixels                                                      ;
-    jsr plot_powerup                                                  ; plot
+    jsr plot_powerup                                                  ; plot powerup
 next_powerup
     dec powerups_still_to_consider                                    ;
     ldx powerups_still_to_consider                                    ;
@@ -9869,6 +9750,7 @@ check_if_powerup_taken
     sbc #starship_width / 2                                           ;
     bcs taken                                                         ;
 
+    ; TODO: Can we get away without this bit?
     lda squares1_low,y                                                ;
     sta temp0_low                                                     ;
     lda squares1_high,y                                               ;
@@ -9883,7 +9765,7 @@ check_if_powerup_taken
     sbc temp0_high                                                    ;
     bne not_taken                                                     ;
     lda temp0_low                                                     ;
-    cmp #1 + powerup_radius*powerup_radius/4                          ; test not against <=6*6, because we only have quarter squares
+    cmp #1 + powerup_radius*powerup_radius/4                          ; test not against <=6*6, because we only have squares/4
     bcc taken                                                         ;
 not_taken
     rts                                                               ;
@@ -9996,6 +9878,7 @@ flash_screen_timer
 
 ; ----------------------------------------------------------------------------------
 ; The Circle
+; When drawing things, we use arcs of this circle:
 ;
 ;                      31 00 01
 ;                29 30          02 03
@@ -10029,6 +9912,91 @@ powerup_types_num_segments
     !byte 4, 3, 5, 5, 7
 
 ; ----------------------------------------------------------------------------------
+input_times_two_over_256
+    ;          screens  pixels  fraction
+    ; input  = abcdefgh ijklmnop qrstuvwx
+    ; output = 0000000a bcdefghi jklmnopq
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
+    lda input_pixels            ;
+    sta output_fraction         ; output = ???????? ???????? jklmnopq
+
+    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
+    lda input_screens           ;
+    sta output_pixels           ; output = ???????? bcdefghi jklmnopq
+
+    lda #0                      ;
+    jmp finish_up_mul
+    ; jmp above does...
+    ;rol                         ; A      = 0000000a
+    ;sta output_screens          ; output = 0000000a bcdefghi jklmnopq
+    ;jmp mul_done                ;
+
+input_times_six_over_256
+    ;          screens  pixels  fraction
+    ; input = abcdefgh ijklmnop qrstuvwx
+    ; 99 cycles
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    lda input_screens           ; A      = abcdefgh
+    lsr                         ; A      = 0abcdefg                         carry=h
+    sta output_screens          ; output = 0abcdefg ???????? ????????
+
+    lda input_pixels            ; A      = ijklmnop
+    ror                         ; A      = hijklmno                         carry=p
+    sta output_pixels           ; output = 0abcdefg hijklmno ????????
+
+    lda input_fraction          ; A      =                   qrstuvwx
+    ror                         ; A      =                   pqrstuvw
+    clc                         ;
+    adc input_fraction          ;
+    sta output_fraction         ;
+
+    lda output_pixels           ;
+    adc input_pixels            ;
+    sta output_pixels           ;
+
+    lda output_screens          ;
+    adc input_screens           ;
+    sta output_screens          ; output = input + 0.5 * input = 1.5*input
+
+
+    ; shift down 6 times
+    ; change of notation, now:
+    ;          screens  pixels  fraction
+    ; output = abcdefgh ijklmnop qrstuvwx
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    asl output_fraction         ; output = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol output_pixels           ; output = abcdefgh jklmnopq rstuvwx0       carry=i
+    rol output_screens          ; output = bcdefghi jklmnopq rstuvwx0       carry=a
+
+    lda #0                      ; A      = 00000000
+    rol                         ; A      = 0000000a
+    pha                         ;
+
+    asl output_fraction         ; output = bcdefghi jklmnopq stuvwx00       carry=r
+    lda output_pixels           ; A      =                   jklmnopq
+    rol                         ; A      =                   klmnopqr       carry=j
+    sta output_fraction         ; output = bcdefghi jklmnopq klmnopqr
+    lda output_screens          ; A      = bcdefghi
+    rol                         ; A      = cdefghij                         carry=b
+    sta output_pixels           ; output = bcdefghi cdefghij klmnopqr
+
+    pla                         ; A      = 0000000a
+finish_up_mul
+    rol                         ; A      = 000000ab
+    sta output_screens          ; output = 000000ab cdefghij klmnopqr
+    jmp mul_done                ;
+
+jump_to_input_times_two_over_256
+    jmp input_times_two_over_256
+jump_to_input_times_four_over_256
+    jmp input_times_four_over_256
+
+; ----------------------------------------------------------------------------------
 ; Given one coordinate (either X or Y) of a powerup's 24 bit position,
 ; multiply by the sine of the given angle.
 ;
@@ -10038,45 +10006,145 @@ powerup_types_num_segments
 ;   X is the powerup we are interested in
 ;   starship_rotation_sine_magnitude is the rotation amount
 ; On Exit:
-;   (output_fraction, output_pixels, output_screens) is the new rotated coordinate
+;   (sine_fraction, sine_pixels, sine_screens) is the new rotated coordinate
 ;   sets negated flag as appropriate
 ;   Preserves X
 ; ----------------------------------------------------------------------------------
 multiply_powerup_position_by_starship_rotation_sine
     ; set up inputs
-    lda starship_rotation_sine_magnitude                              ;
-    sta t                                                             ;
-
     lda #0                                                            ;
     sta negated                                                       ;
 
+    ; set up input values, inverting if needed, and doubling
     lda powerups_x_screens,x                                          ;
     bpl +                                                             ;
     eor #$ff                                                          ;
     dec negated                                                       ;
 +
     sta input_screens                                                 ;
-
-    lda powerups_x_pixels,x                                           ;
-    eor negated                                                       ;
-    sta input_pixels                                                  ;
     lda powerups_x_fraction,x                                         ;
     eor negated                                                       ;
     sta input_fraction                                                ;
+    lda powerups_x_pixels,x                                           ;
+    eor negated                                                       ;
+    sta input_pixels                                                  ;
 
-    jsr mul24x8                                                       ;
+mul_for_sine
+    ; choose a specific multiply routine
+    lda starship_rotation_sine_magnitude                              ;
+    cmp #4                                                            ;
+    bcc jump_to_input_times_two_over_256                              ;
+    beq jump_to_input_times_four_over_256                             ;
+    cmp #8                                                            ;
+    bcc input_times_six_over_256                                      ;
+    beq input_times_eight_over_256                                    ;
 
+input_times_ten_over_256
+    ;          screens   pixels  fraction
+    ; input  = abcdefgh ijklmnop qrstuvwx
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    ; input = input*2
+    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
+    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
+
+    ; output = input/256
+    lda input_pixels
+    sta output_fraction         ; output = ???????? ???????? jklmnopq
+    lda input_screens
+    sta output_pixels           ; output = ???????? bcdefghi jklmnopq
+
+    lda #0                      ; A      = 00000000
+    rol                         ; A      = 0000000a     (not needed since sign bit a=0?)
+
+    ; input = input*4
+    asl input_fraction          ; input  = bcdefghi jklmnopq stuvwx00       carry=r
+    rol input_pixels            ; input  = bcdefghi klmnopqr stuvwx00       carry=j
+    rol input_screens           ; input  = cdefghij klmnopqr stuvwx00       carry=b
+    rol                         ; A      = 000000ab
+    asl input_fraction          ; input  = cdefghij klmnopqr tuvwx000       carry=s
+    rol input_pixels            ; input  = cdefghij lmnopqrs tuvwx000       carry=k
+    rol input_screens           ; input  = defghijk lmnopqrs tuvwx000       carry=c
+    rol                         ; A      = 00000abc
+    sta output_screens          ; output = 00000abc bcdefghi jklmnopq
+
+    ; output += input/256
+    lda output_fraction         ;
+    clc                         ;
+    adc input_pixels            ;
+    sta output_fraction         ;
+    lda output_pixels           ;
+    adc input_screens           ;
+    sta output_pixels           ;
+    bcc +                       ;
+    inc output_screens          ;
++
+
+mul_done
     ; negate result as needed
-    lda output_screens                                                ;
-    eor negated                                                       ;
-    sta sine_screens                                                  ; result
-    lda output_pixels                                                 ;
-    eor negated                                                       ;
-    sta sine_pixels                                                   ; result
     lda output_fraction                                               ;
     eor negated                                                       ;
     sta sine_fraction                                                 ; result
+    lda output_pixels                                                 ;
+    eor negated                                                       ;
+    sta sine_pixels                                                   ; result
+    lda output_screens                                                ;
+    eor negated                                                       ;
+    sta sine_screens                                                  ; result
     rts                                                               ;
+
+input_times_eight_over_256
+    ;          screens   pixels  fraction
+    ; input  = abcdefgh ijklmnop qrstuvwx
+    ; output = 00000abc defghijk lmnopqrs
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
+    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
+    lda #0                      ; A      = 00000000
+    rol                         ; A      = 0000000a
+    asl input_fraction          ; input  = bcdefghi jklmnopq stuvwx00       carry=r
+    rol input_pixels            ; input  = bcdefghi klmnopqr stuvwx00       carry=j
+    rol input_screens           ; input  = cdefghij klmnopqr stuvwx00       carry=b
+    rol                         ; A      = 000000ab
+    asl input_fraction          ; input  = cdefghij klmnopqr tuvwx000       carry=s
+    rol input_pixels            ; input  = cdefghij lmnopqrs tuvwx000       carry=k
+    rol input_screens           ; input  = defghijk lmnopqrs tuvwx000       carry=c
+    rol                         ; A      = 00000abc
+    sta output_screens          ; output = 00000abc ???????? ????????
+    lda input_screens           ;
+    sta output_pixels           ; output = 00000abc defghijk ????????
+    lda input_pixels            ;
+    sta output_fraction         ; output = 00000abc defghijk lmnopqrs
+    jmp mul_done                ;
+
+input_times_four_over_256
+    ;           screens  pixels  fraction
+    ; input  = abcdefgh ijklmnop qrstuvwx
+    ; output = 000000ab cdefghij klmnopqr
+    ; 51 cycles
+    ;                                      screens   pixels  fraction
+    ; ------------------------------------------------------------------------------
+    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
+    lda input_pixels            ;
+    sta output_fraction         ; output = ???????? ???????? jklmnopq
+
+    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
+    lda input_screens           ;
+    sta output_pixels           ; output = ???????? bcdefghi jklmnopq
+
+    lda #0                      ;
+    rol                         ; A      = 0000000a
+
+    asl input_fraction          ; input  = bcdefghi jklmnopq stuvwx00       carry=r
+    rol output_fraction         ; output = 0000000a bcdefghi klmnopqr
+    rol output_pixels           ; output = 0000000a cdefghij klmnopqr
+    rol                         ; A      = 000000ab
+    sta output_screens          ; output = 000000ab cdefghij klmnopqr
+    jmp mul_done                ;
 
 ; ----------------------------------------------------------------------------------
 ; Given one coordinate (either X or Y) of a powerup's 24 bit position,
@@ -10873,6 +10941,14 @@ row_table_loop
     dex                                                               ;
     bne -                                                             ;
 
+    ; copy sounds to low memory
+    ldx #copy_sounds_end - copy_sounds_start                          ;
+-
+    lda copy_sounds_start - 1,x                                       ;
+    sta sounds_start - 1, x                                           ;
+    dex                                                               ;
+    bne -                                                             ;
+
 !if tape {
     ; wait for first part to load from tape before starting the globe spinning
 -
@@ -10892,6 +10968,143 @@ osbyte_zeroxy
 osbyte_zeroy
     ldy #0                                                            ;
     jmp (bytev)                                                       ;
+
+
+copy_sounds_start
+!pseudopc sounds_start {
+; ----------------------------------------------------------------------------------
+; Exploding starship 1
+; ----------------------------------------------------------------------------------
+sound_1
+    !byte $11, 0                                                      ; channel 1
+    !byte 0, 0                                                        ; volume 0 (silent)
+sound_1_pitch
+    !byte 0, 0                                                        ; pitch for the white noise of sound_2
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Exploding starship 2
+; ----------------------------------------------------------------------------------
+sound_2
+    !byte $10, 0                                                      ; channel 0 (white noise)
+sound_2_volume_low
+    !byte 0                                                           ; volume
+sound_2_volume_high
+    !byte 0
+    !byte 7, 0                                                        ; pitch determined by the pitch of channel 1
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_3
+    !byte $13, 0                                                      ; channel 3
+    !byte 1, 0                                                        ; envelope 1
+    !byte $80, 0                                                      ; pitch 128
+    !byte 4, 0                                                        ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Enemy ship fired torpedo
+; ----------------------------------------------------------------------------------
+sound_4
+    !byte $12, 0                                                      ; channel 2
+    !byte 2, 0                                                        ; envelope 2
+    !byte $c0, 0                                                      ; pitch 192
+!if elk {
+    ; echo effect is totally wasted on Electron
+    !byte $4, 0                                                      ; duration 4
+} else {
+    !byte $1f, 0                                                      ; duration 31
+}
+; ----------------------------------------------------------------------------------
+; Enemy ship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_5
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $40, 0                                                      ; pitch 64
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Starship hit by torpedo
+; ----------------------------------------------------------------------------------
+sound_6
+    !byte $12, 0                                                      ; channel 2
+    !byte 4, 0                                                        ; envelope 4
+    !byte $be, 0                                                      ; pitch 190
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Enemy ships collided with each other
+; ----------------------------------------------------------------------------------
+sound_7
+    !byte $13, 0                                                      ; channel 3
+    !byte 2, 0                                                        ; envelope 2
+    !byte $6c, 0                                                      ; pitch 108
+    !byte 8, 0                                                        ; duration 8
+
+; ----------------------------------------------------------------------------------
+; Escape capsule launched
+; ----------------------------------------------------------------------------------
+sound_8
+    !byte $13, 0                                                      ; channel 3
+sound_8_volume_low
+    !byte 0                                                           ; volume
+sound_8_volume_high
+    !byte 0                                                           ;
+    !byte $64, 0                                                      ; pitch 100
+    !byte 4  , 0                                                      ; duration 4
+
+; ----------------------------------------------------------------------------------
+; Low energy warning
+; ----------------------------------------------------------------------------------
+sound_9
+    !byte $11, 0                                                      ; channel 1
+    !byte $f1, $ff                                                    ; volume 15
+    !byte $c8, 0                                                      ; duration 200
+    !byte 2, 0                                                        ; duration 2
+
+!if elk=0 {
+; ----------------------------------------------------------------------------------
+; Starship engine
+; ----------------------------------------------------------------------------------
+sound_10
+    !byte $11, 0                                                      ; channel 1
+sound_10_volume_low
+    !byte 0                                                           ; volume
+sound_10_volume_high
+    !byte 0                                                           ;
+sound_10_pitch
+    !byte 0, 0                                                        ; pitch
+    !byte 4, 0                                                        ; duration 4
+}
+
+; ----------------------------------------------------------------------------------
+; Exploding enemy ship
+; ----------------------------------------------------------------------------------
+sound_11
+    !byte $10, 0                                                      ; channel 0 (white noise)
+    !byte 3, 0                                                        ; envelope 3
+    !byte 7, 0                                                        ; pitch 7
+    !byte 20, 0                                                       ; duration 20
+
+; ----------------------------------------------------------------------------------
+; Powerup taken
+; ----------------------------------------------------------------------------------
+sound_12
+    !byte $13, 0                                                      ; channel 3
+    !byte $f1, 0                                                      ; volume 15
+    !byte $a4, 0                                                      ; pitch
+    !byte 2  , 0                                                      ; duration
+
+
+!if >sound_1 != >sound_12 {
+    !error "alignment error", sound_1, sound_12;
+}
+sounds_high = sound_1 & 0xff00
+}
+copy_sounds_end
+
 
 ; ----------------------------------------------------------------------------------
 regular_string_index_shield_state_on            = shield_state_string1 - regular_strings_table
