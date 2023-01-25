@@ -1190,24 +1190,24 @@ start
     jsr init_self_modifying_bytes_for_starship_rotation               ;
     ldx #0                                                            ;
     lda #$7f                                                          ;
-    sta powerups_x_fraction,x                                         ;
-    sta powerups_previous_x_fraction,x                                ;
+    sta enemy_ships_x_fraction,x                                      ;
+    sta enemy_ships_previous_x_fraction,x                             ;
     lda #$7f                                                          ;
-    sta powerups_x_pixels,x                                           ;
-    sta powerups_previous_x_pixels,x                                  ;
+    sta enemy_ships_x_pixels,x                                        ;
+    sta enemy_ships_previous_x_pixels,x                               ;
     lda #$7f                                                          ;
-    sta powerups_x_screens,x                                          ;
-    sta powerups_previous_x_screens,x                                 ;
+    sta enemy_ships_x_screens,x                                       ;
+    sta enemy_ships_previous_x_screens,x                              ;
     lda #$7f                                                          ;
-    sta powerups_y_fraction,x                                         ;
-    sta powerups_previous_y_fraction,x                                ;
+    sta enemy_ships_y_fraction,x                                      ;
+    sta enemy_ships_previous_y_fraction,x                             ;
     lda #$40                                                          ;
-    sta powerups_y_pixels,x                                           ;
-    sta powerups_previous_y_pixels,x                                  ;
+    sta enemy_ships_y_pixels,x                                        ;
+    sta enemy_ships_previous_y_pixels,x                               ;
     lda #$7f                                                          ;
-    sta powerups_y_screens,x                                          ;
-    sta powerups_previous_y_screens,x                                 ;
-    jsr starship_is_rotating1                                         ;
+    sta enemy_ships_y_screens,x                                       ;
+    sta enemy_ships_previous_y_screens,x                              ;
+    jsr starship_is_rotating                                          ;
 -
     jmp -
 } else {
@@ -1294,18 +1294,18 @@ init_self_modifying_bytes_for_starship_rotation
 
     lda starship_rotation_cosine                                      ;
     sta sm_cosine_a1                                                  ;
-    sta sm_cosine_b1                                                  ;
-    sta sm_cosine_c1                                                  ;
+;    sta sm_cosine_b1                                                  ;
+;    sta sm_cosine_c1                                                  ;
     sta sm_cosine_a3                                                  ;
-    sta sm_cosine_b3                                                  ;
-    sta sm_cosine_c3                                                  ;
+;    sta sm_cosine_b3                                                  ;
+;    sta sm_cosine_c3                                                  ;
     eor #$ff                                                          ;
     sta sm_cosine_a2                                                  ;
-    sta sm_cosine_b2                                                  ;
-    sta sm_cosine_c2                                                  ;
+;    sta sm_cosine_b2                                                  ;
+;    sta sm_cosine_c2                                                  ;
     sta sm_cosine_a4                                                  ;
-    sta sm_cosine_b4                                                  ;
-    sta sm_cosine_c4                                                  ;
+;    sta sm_cosine_b4                                                  ;
+;    sta sm_cosine_c4                                                  ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1318,21 +1318,30 @@ init_self_modifying_bytes_for_starship_rotation
 ;   X is the enemy we are interested in
 ;   starship_rotation_sine_magnitude is the rotation amount
 ; On Exit:
-;   (output_fraction, output_pixels, output_screens) is the new rotated coordinate
+;   (sine_fraction, sine_pixels, sine_screens) is the new rotated coordinate
 ;
 ; Preserves X
 ; ----------------------------------------------------------------------------------
-multiply_enemy_position_by_starship_rotation_sine_magnitude
+multiply_enemy_position_by_starship_rotation_sine
     ; set up inputs
-    lda starship_rotation_sine_magnitude                              ;
-    sta t                                                             ;
+    lda #0                                                            ;
+    sta negated                                                       ;
+
+    ; set up input values, inverting if needed, and doubling
+    lda enemy_ships_x_screens,x                                       ;
+    bpl +                                                             ;
+    eor #$ff                                                          ;
+    dec negated                                                       ;
++
+    sta input_screens                                                 ;
     lda enemy_ships_x_fraction,x                                      ;
+    eor negated                                                       ;
     sta input_fraction                                                ;
     lda enemy_ships_x_pixels,x                                        ;
+    eor negated                                                       ;
     sta input_pixels                                                  ;
-    lda enemy_ships_x_screens,x                                       ;
-    sta input_screens                                                 ;
-    ; fall through...
+
+    jmp mul_for_sine                                                  ;
 
 ; ----------------------------------------------------------------------------------
 ; Multiply 24 bit by 8 bit values
@@ -1345,18 +1354,20 @@ multiply_enemy_position_by_starship_rotation_sine_magnitude
 ;
 ; Preserves X
 ;
-; Average cycle count: 342 cycles
+; Average cycle count: 318 cycles
 ; ----------------------------------------------------------------------------------
 mul24x8
+    stx temp_x                                                        ; remember X
     lda #0                                                            ;
-    sta output_screens                                                ;
     sta output_fraction                                               ;
     sta output_pixels                                                 ;
+    tax                                                               ; A is local cache of 'output_screens'
     ldy #8                                                            ;
 -
     lsr t                                                             ;
     bcc skip_add                                                      ;
 
+    tax                                                               ; A='output_screens'
     lda output_fraction                                               ;
     clc                                                               ;
 input_fraction = * + 1
@@ -1368,17 +1379,18 @@ input_pixels = * + 1
     adc #0                                                            ; self modifying code
     sta output_pixels                                                 ;
 
-    lda output_screens                                                ;
+    txa                                                               ; A='output_screens'
 input_screens = * + 1
     adc #0                                                            ; self modifying code
-    sta output_screens                                                ;
 
 skip_add
-    ror output_screens                                                ;
+    ror                                                               ; A='output_screens'
     ror output_pixels                                                 ;
     ror output_fraction                                               ;
     dey                                                               ;
     bne -                                                             ;
+    sta output_screens                                                ;
+    ldx temp_x                                                        ; recall X
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1388,106 +1400,80 @@ skip_add
 ; On Entry:
 ;   X = offset to enemy ship coordinate
 ; On Exit:
-;   (temp9, temp10, segment_angle) are the new coordinates
+;   (cosine_fraction, cosine_pixels, cosine_screens) are the new coordinates
 ; preserves X
 multiply_enemy_position_by_starship_rotation_cosine
-    stx temp_x                                                        ; remember x
-
-    ; set up inputs
+    ; set up inputs (negating if needed)
+    lda #0                                                            ;
+    sta negated                                                       ;
     lda enemy_ships_x_screens,x                                       ;
-    ldy enemy_ships_x_pixels,x                                        ;
-    tax                                                               ;
-
-    ; multiply the 16 bit number 'c.b' by starship_rotation_cosine (8 bit)
-    ; result in A (low) and temp8 (high)
-
-    ; multiply X * starship_rotation_cosine, result in Y (high byte)
-sm_cosine_b1 = * + 1
-    lda squares1_low,y                                                ;
-    sec                                                               ;
-sm_cosine_b2 = * + 1
-    sbc squares2_low,y                                                ;
-sm_cosine_b3 = * + 1
-    lda squares1_high,y                                               ;
-sm_cosine_b4 = * + 1
-    sbc squares2_high,y                                               ;
-    tay                                                               ; remember high byte ('t')
-
-    ; multiply c * starship_rotation_cosine, result in A (high byte) and prod_low
-sm_cosine_c1 = * + 1
-    lda squares1_low,x                                                ;
-    sec                                                               ;
-sm_cosine_c2 = * + 1
-    sbc squares2_low,x                                                ;
-    sta prod_low                                                      ;
-sm_cosine_c3 = * + 1
-    lda squares1_high,x                                               ;
-sm_cosine_c4 = * + 1
-    sbc squares2_high,x                                               ;
-
-    sta temp8                                                         ;
-    tya                                                               ; recall 't'
-    clc                                                               ;
-    adc prod_low                                                      ;
-    bcc +                                                             ;
-    inc temp8                                                         ;
+    bpl +                                                             ;
+    eor #$ff                                                          ;
+    dec negated                                                       ;
 +
+    sta input_screens                                                 ;
+    lda enemy_ships_x_pixels,x                                        ;
+    eor negated                                                       ;
+    sta input_pixels                                                  ;
+    lda enemy_ships_x_fraction,x                                      ;
+    eor negated                                                       ;
+    sta input_fraction                                                ;
 
-    ; (temp9, Y, segment_angle) = (A, temp8, 0) + current enemy position
-    ldx temp_x                                                        ; restore x
-    clc                                                               ;
-    adc enemy_ships_x_fraction,x                                      ;
-    sta temp9                                                         ;
+    ; multiply
+    lda starship_rotation_powerup_cosine                              ;
+    sta t                                                             ;
+    jsr mul24x8                                                       ;
 
-    lda temp8                                                         ;
-    adc enemy_ships_x_pixels,x                                        ;
-    tay                                                               ;
-
-    lda enemy_ships_x_screens,x                                       ;
-    adc #0                                                            ;
-    sta segment_angle                                                 ;
-
-    ; (temp9, temp10, segment_angle) = (temp9, y) - (enemy_pixels, enemy_screens)
-    lda temp9                                                         ;
+    ; result = input_coordinate - output/256  (ar add, if negating is needed)
+    lda input_fraction                                                ;
     sec                                                               ;
-    sbc enemy_ships_x_pixels,x                                        ;
-    sta temp9                                                         ;
+    sbc output_pixels                                                 ;
+    eor negated                                                       ;
+    sta cosine_fraction                                               ; result
 
-    tya                                                               ;
-    sbc enemy_ships_x_screens,x                                       ;
-    sta temp10                                                        ;
-    bcs +                                                             ;
-    dec segment_angle                                                 ;
-+
+    lda input_pixels                                                  ;
+    sbc output_screens                                                ;
+    eor negated                                                       ;
+    sta cosine_pixels                                                 ; result
+
+    lda input_screens                                                 ;
+    sbc #0                                                            ;
+    eor negated                                                       ;
+    sta cosine_screens                                                ; result
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-apply_starship_rotation_and_velocity_to_enemy_ships
+apply_starship_rotation_and_velocity_to_enemy_ship
     lda starship_rotation_sine_magnitude                              ;
     bne starship_is_rotating                                          ;
     jmp apply_starship_velocity_to_enemy_ship                         ;
 
 starship_is_rotating
 
-    ; new position = previous position + half a screen (so that we rotate about the correct position)
+    ; new position = previous position - centre (so that we rotate about the centre)
+    lda enemy_ships_previous_x_fraction,x                             ;
+    sta enemy_ships_x_fraction,x                                      ;
     lda enemy_ships_previous_x_pixels,x                               ;
-    clc                                                               ;
-    adc #$80                                                          ;
+    sec                                                               ;
+    sbc #$7f                                                          ;
     sta enemy_ships_x_pixels,x                                        ;
-    bcc skip1                                                         ;
-    inc enemy_ships_x_screens,x                                       ;
-skip1
-    lda enemy_ships_previous_y_pixels,x                               ;
-    clc                                                               ;
-    adc #$80                                                          ;
-    sta enemy_ships_y_pixels,x                                        ;
-    bcc skip2                                                         ;
-    inc enemy_ships_y_screens,x                                       ;
-skip2
+    lda enemy_ships_previous_x_screens,x                              ;
+    sbc #$7f                                                          ;
+    sta enemy_ships_x_screens,x                                       ;
 
-    ; invert position if rotating one way
+    lda enemy_ships_previous_y_fraction,x                             ;
+    sta enemy_ships_y_fraction,x                                      ;
+    lda enemy_ships_previous_y_pixels,x                               ;
+    sec                                                               ;
+    sbc #$7f                                                          ;
+    sta enemy_ships_y_pixels,x                                        ;
+    lda enemy_ships_previous_y_screens,x                              ;
+    sbc #$7f                                                          ;
+    sta enemy_ships_y_screens,x                                       ;
+
+    ; invert X position (i.e. mirror in Y axis) if the universe is rotating clockwise
     ldy starship_rotation                                             ;
-    bmi skip_inversion1                                               ;
+    bmi +                                                             ; branch if the universe is rotating anitclockwise
     lda enemy_ships_x_fraction,x                                      ;
     eor #$ff                                                          ;
     sta enemy_ships_x_fraction,x                                      ;
@@ -1499,7 +1485,7 @@ skip2
     lda enemy_ships_x_screens,x                                       ;
     eor #$ff                                                          ;
     sta enemy_ships_x_screens,x                                       ;
-skip_inversion1
++
 
     stx temp_y                                                        ; store X, the offset to the X coordinates of the current enemy
 
@@ -1510,98 +1496,78 @@ skip_inversion1
     tax                                                               ;
     stx result                                                        ; store offset to Y coordinates
 
-    ; rotate by starship coordinates
-    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ; output = posY * sin(angle)
+    ; rotate
+    jsr multiply_enemy_position_by_starship_rotation_sine             ; (sine_fraction, sine_pixels, sine_screens) = posY * sin(angle)
 
     ldx temp_y                                                        ; point back to X coordinates again
-    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (temp9, temp10, segment_angle) = posX * cos(angle)
+    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (cosine_fraction, cosine_pixels, cosine_screens) = posX * cos(angle)
 
-    ; (x_pixels, y_pixels, temp11) = posY * sin(angle) + posX * cos(angle)
-    lda temp9                                                         ;
+    ; (resultx_fraction, resultx_pixels, resultx_screens) = posY * sin(angle) + posX * cos(angle)
+    lda cosine_fraction                                               ;
     clc                                                               ;
-    adc output_fraction                                               ;
-    sta x_pixels                                                      ; store X fraction
+    adc sine_fraction                                                 ;
+    sta resultx_fraction                                              ; store X fraction
 
-    lda temp10                                                        ;
-    adc output_pixels                                                 ;
-    sta y_pixels                                                      ; store X pixels
+    lda cosine_pixels                                                 ;
+    adc sine_pixels                                                   ;
+    sta resultx_pixels                                                ; store X pixels
 
-    lda segment_angle                                                 ;
-    adc output_screens                                                ;
-    sta temp11                                                        ; store X screens
+    lda cosine_screens                                                ;
+    adc sine_screens                                                  ;
+    sta resultx_screens                                               ; store X screens
 
-    jsr multiply_enemy_position_by_starship_rotation_sine_magnitude   ; output = posX * sin(angle)
+    jsr multiply_enemy_position_by_starship_rotation_sine             ;  (sine_fraction, sine_pixels, sine_screens) = posX * sin(angle)
 
     ; X = look at Y coordinates again
     ldx result                                                        ; recall offset to Y coordinates
-    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (temp9, temp10, segment_angle) = posY * cos(angle)
+    jsr multiply_enemy_position_by_starship_rotation_cosine           ; (cosine_fraction, cosine_pixels, cosine_screens) = posY * cos(angle)
 
-    ; (temp9, temp10, segment_angle) = (temp9, temp10, segment_angle) - posX * sin(angle)
+    ; (resulty_fraction, resulty_pixels, resulty_screens) = (cosine_fraction, cosine_pixels, cosine_screens) - posX * sin(angle)
     ;                                = posY * cos(angle) - posX * sin(angle)
     ldx temp_y                                                        ; point back to X coordinates again
-    lda temp9                                                         ;
+    lda cosine_fraction                                               ;
     sec                                                               ;
-    sbc output_fraction                                               ;
-    sta temp9                                                         ; update fractions
+    sbc sine_fraction                                                 ;
+    sta resulty_fraction                                              ; update fractions
 
-    lda temp10                                                        ;
-    sbc output_pixels                                                 ;
-    sta temp10                                                        ; update pixels
+    lda cosine_pixels                                                 ;
+    sbc sine_pixels                                                   ;
+    sta resulty_pixels                                                ; update pixels
 
-    lda segment_angle                                                 ;
-    sbc output_screens                                                ;
-    sta segment_angle                                                 ; update screens
+    lda cosine_screens                                                ;
+    sbc sine_screens                                                  ;
+    sta resulty_screens                                               ; update screens
 
-    ; apply correction based on rotation angle:
-    ; new_posX = (x_pixels, y_pixels, temp11) - x_correction[angle]
-    ;          = posY * sin(angle) + posX * cos(angle) - x_correction[angle]
+    ; new_posX = resultx (negated if necessary)
     ldy starship_rotation_magnitude                                   ;
-    lda x_pixels                                                      ; X coordinate fraction
-    sec                                                               ;
-    sbc rotated_x_correction_fraction,y                               ;
+    lda resultx_fraction                                              ; X coordinate fraction
     eor starship_rotation_eor                                         ;
     sta enemy_ships_x_fraction,x                                      ;
 
-    lda y_pixels                                                      ; X coordinate pixels
-    sbc rotated_x_correction_pixels,y                                 ;
+    lda resultx_pixels                                                ; X coordinate pixels
     eor starship_rotation_eor                                         ;
+    clc
+    adc #$7f                                                          ;
     sta enemy_ships_x_pixels,x                                        ;
 
-    lda temp11                                                        ; X coordinate screens
-    sbc rotated_x_correction_screens,y                                ;
+    lda resultx_screens                                               ; X coordinate screens
     eor starship_rotation_eor                                         ;
+    adc #$7f                                                          ;
     sta enemy_ships_x_screens,x                                       ;
 
-    ; new_posY = (temp9, temp10, segment_angle)
-    ;          = posY * cos(angle) - posX * sin(angle) + y_correction[angle]
-    lda temp9                                                         ; Y coordinate fraction
-    clc                                                               ;
-    adc rotated_y_correction_fraction,y                               ;
+    ; new_posY = resultY
+    lda resulty_fraction                                              ; Y coordinate fraction
     sta enemy_ships_y_fraction,x                                      ;
 
-    lda temp10                                                        ; Y coordinate pixels
-    adc rotated_y_correction_pixels,y                                 ;
+    lda resulty_pixels                                                ; Y coordinate pixels
+    clc                                                               ;
+    adc #$7f                                                          ; add back centre point
     sta enemy_ships_y_pixels,x                                        ;
 
-    lda segment_angle                                                 ; Y coordinate screens
-    adc rotated_y_correction_screens,y                                ;
+    lda resulty_screens                                               ; Y coordinate screens
+    adc #$7f                                                          ; add back centre point
     sta enemy_ships_y_screens,x                                       ;
 
-    ; subtract half a screen to restore correct centre point
-    lda enemy_ships_y_pixels,x                                        ;
-    sec                                                               ;
-    sbc #$80                                                          ;
-    sta enemy_ships_y_pixels,x                                        ;
-    bcs +                                                             ;
-    dec enemy_ships_y_screens,x                                       ;
-    sec                                                               ;
-+
-    lda enemy_ships_x_pixels,x                                        ;
-    sbc #$80                                                          ;
-    sta enemy_ships_x_pixels,x                                        ;
-    bcs +                                                             ;
-    dec enemy_ships_x_screens,x                                       ;
-+
 apply_starship_velocity_to_enemy_ship
     ; add starship velocity to position
     lda enemy_ships_y_fraction,x                                      ;
@@ -1929,6 +1895,7 @@ plot_starship_torpedo
     lda object_table_ypixels,y                                        ; y coordinate
     sta y_pixels                                                      ;
 starship_torpedo_type = * + 1
+!if rotation_debug=0 {
     lda #0                                                            ; self modifying code
     bne plot_big_torpedo                                              ;
 
@@ -1970,6 +1937,7 @@ small_starship_torpedoes
     tax                                                               ; x coordinate
 
     jmp eor_play_area_pixel                                           ; Plot pixel for middle of torpedo
+    }
 
 ; ----------------------------------------------------------------------------------
 apply_rotation_to_starship_angle
@@ -2197,7 +2165,7 @@ apply_velocity_to_enemy_ships
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
 apply_velocity_to_enemy_ships_loop
-    jsr apply_starship_rotation_and_velocity_to_enemy_ships           ;
+    jsr apply_starship_rotation_and_velocity_to_enemy_ship            ;
     lda enemy_ships_previous_angle,x                                  ;
     clc                                                               ;
     adc starship_angle_delta                                          ;
@@ -2205,6 +2173,7 @@ apply_velocity_to_enemy_ships_loop
     lda enemy_ships_velocity,x                                        ;
     sta temp7                                                         ;
     beq skip_subtraction_cosine                                       ;
+
     lda enemy_ships_previous_angle,x                                  ;
     lsr                                                               ;
     lsr                                                               ;
@@ -2281,6 +2250,7 @@ skip10
     sta enemy_ships_y_pixels,x                                        ;
     bcs skip_subtraction_cosine                                       ;
     dec enemy_ships_y_screens,x                                       ;
+
 skip_subtraction_cosine
 mark_enemy_ship_as_plotted_if_on_starship_screen
     lda #$7f                                                          ;
@@ -10223,9 +10193,9 @@ starship_is_rotating1
     sbc #$7f                                                          ;
     sta powerups_y_screens,x                                          ;
 
-    ; invert X position (i.e. mirror in Y axis) if rotating one way
+    ; invert X position (i.e. mirror in Y axis) if the universe is rotating clockwise
     ldy starship_rotation                                             ;
-    bmi +                                                             ;
+    bmi +                                                             ; branch if the universe is rotating anitclockwise
     lda powerups_x_fraction,x                                         ;
     eor #$ff                                                          ;
     sta powerups_x_fraction,x                                         ;
@@ -10796,7 +10766,7 @@ noshadow                                                              ; on earli
 ; routine to create tables of squares
 ; from https://codebase64.org/doku.php?id=base:table_generator_routine_for_fast_8_bit_mul_table
 ; ----------------------------------------------------------------------------------
-create_square_tables
+create_quarter_square_tables
     ldx #0                                                            ;
     txa                                                               ;
     !byte $c9                                                         ; 'CMP #immediate' opcode - skip TYA and clear carry flag
