@@ -1294,18 +1294,25 @@ init_self_modifying_bytes_for_starship_rotation
 
     lda starship_rotation_cosine                                      ;
     sta sm_cosine_a1                                                  ;
-;    sta sm_cosine_b1                                                  ;
-;    sta sm_cosine_c1                                                  ;
     sta sm_cosine_a3                                                  ;
-;    sta sm_cosine_b3                                                  ;
-;    sta sm_cosine_c3                                                  ;
     eor #$ff                                                          ;
     sta sm_cosine_a2                                                  ;
-;    sta sm_cosine_b2                                                  ;
-;    sta sm_cosine_c2                                                  ;
     sta sm_cosine_a4                                                  ;
-;    sta sm_cosine_b4                                                  ;
-;    sta sm_cosine_c4                                                  ;
+
+    lda starship_rotation_powerup_cosine
+    sta mult_internal1                                                ;
+    sta mult_internal5                                                ;
+    sta mult_internal9                                                ;
+    sta mult_internal3                                                ;
+    sta mult_internal7                                                ;
+    sta mult_internal11                                               ;
+    eor #$ff                                                          ;
+    sta mult_internal2                                                ;
+    sta mult_internal6                                                ;
+    sta mult_internal10                                               ;
+    sta mult_internal4                                                ;
+    sta mult_internal8                                                ;
+    sta mult_internal12                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1354,41 +1361,67 @@ multiply_enemy_position_by_starship_rotation_sine
 ;
 ; Preserves X
 ;
-; Average cycle count: 316 cycles
+; Average cycle count: 133.9 cycles
 ; ----------------------------------------------------------------------------------
 mul24x8
     stx temp_x                                                        ; remember X
-    lda #0                                                            ;
-    sta output_fraction                                               ;
-    sta output_pixels                                                 ; A is local cache of 'output_screens'
-    ldy #8                                                            ;
--
-    lsr t                                                             ;
-    bcc skip_add                                                      ;
 
-    tax                                                               ; A='output_screens'
-    lda output_fraction                                               ;
-    clc                                                               ;
-input_fraction = * + 1
-    adc #0                                                            ; self modifying code
-    sta output_fraction                                               ;
+input_fraction = *+1
+    ldx #0
+    sec
+mult_internal1 = * + 1
+    lda squares1_low,x
+mult_internal2 = * + 1
+    sbc squares2_low,x
+mult_internal3 = * + 1
+    lda squares1_high,x
+mult_internal4 = * + 1
+    sbc squares2_high,x
 
-    lda output_pixels                                                 ;
-input_pixels = * + 1
-    adc #0                                                            ; self modifying code
-    sta output_pixels                                                 ;
+    sta output_fraction
 
-    txa                                                               ; A='output_screens'
-input_screens = * + 1
-    adc #0                                                            ; self modifying code
+input_pixels = *+1
+    ldx #0
+    sec
+mult_internal5 = * + 1
+    lda squares1_low,x
+mult_internal6 = * + 1
+    sbc squares2_low,x
+    tay
+mult_internal7 = * + 1
+    lda squares1_high,x
+mult_internal8 = * + 1
+    sbc squares2_high,x
+    sta output_pixels
+    tya
+    clc
+    adc output_fraction
+    sta output_fraction
+    bcc +
+    inc output_pixels
++
 
-skip_add
-    ror                                                               ; A='output_screens'
-    ror output_pixels                                                 ;
-    ror output_fraction                                               ;
-    dey                                                               ;
-    bne -                                                             ;
-    sta output_screens                                                ;
+input_screens = *+1
+    ldx #0
+    sec
+mult_internal9 = * + 1
+    lda squares1_low,x
+mult_internal10 = * + 1
+    sbc squares2_low,x
+    tay
+mult_internal11 = * + 1
+    lda squares1_high,x
+mult_internal12 = * + 1
+    sbc squares2_high,x
+    sta output_screens
+    tya
+    clc
+    adc output_pixels
+    sta output_pixels
+    bcc +
+    inc output_screens
++
+
     ldx temp_x                                                        ; recall X
     rts                                                               ;
 
@@ -10052,16 +10085,16 @@ input_times_ten_over_256
 
 mul_done
     ; negate result as needed
-    lda output_fraction                                               ;
-    eor negated                                                       ;
-    sta sine_fraction                                                 ; result
-    lda output_pixels                                                 ;
-    eor negated                                                       ;
-    sta sine_pixels                                                   ; result
-    lda output_screens                                                ;
-    eor negated                                                       ;
-    sta sine_screens                                                  ; result
-    rts                                                               ;
+    lda output_fraction         ;
+    eor negated                 ;
+    sta sine_fraction           ; result
+    lda output_pixels           ;
+    eor negated                 ;
+    sta sine_pixels             ; result
+    lda output_screens          ;
+    eor negated                 ;
+    sta sine_screens            ; result
+    rts                         ;
 
 input_times_eight_over_256
     ;          screens   pixels  fraction
@@ -10123,6 +10156,7 @@ input_times_four_over_256
 ;   X = offset to powerup coordinate
 ; On Exit:
 ;   (cosine_fraction, cosine_pixels, cosine_screens) is the new rotated coordinate
+; preserves X
 multiply_powerup_position_by_starship_rotation_cosine
     ; set up inputs (negating if needed)
     lda #0                                                            ;
