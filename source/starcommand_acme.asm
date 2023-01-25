@@ -1354,14 +1354,13 @@ multiply_enemy_position_by_starship_rotation_sine
 ;
 ; Preserves X
 ;
-; Average cycle count: 318 cycles
+; Average cycle count: 316 cycles
 ; ----------------------------------------------------------------------------------
 mul24x8
     stx temp_x                                                        ; remember X
     lda #0                                                            ;
     sta output_fraction                                               ;
-    sta output_pixels                                                 ;
-    tax                                                               ; A is local cache of 'output_screens'
+    sta output_pixels                                                 ; A is local cache of 'output_screens'
     ldy #8                                                            ;
 -
     lsr t                                                             ;
