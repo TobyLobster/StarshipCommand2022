@@ -2776,7 +2776,7 @@ plot_segment_unrolled
     ldy y_pixels                                                      ;
     lda row_table_low,y                                               ;
     and #$f8                                                          ;
-    clc                                                               ;
+;    clc                                                               ;
     adc xandf8,x                                                      ;
     sta screen_address_low                                            ;
     lda play_area_row_table_high,y                                    ;
@@ -8641,7 +8641,7 @@ not_timer1
     lda #$ff                                                          ;
     sta systemVIADirA                                                 ;
 flipbranch
-    bne +                                                             ;
+    bne +                                                             ; self-modified opcode bne/beq
     clc                                                               ;
     adc sound_10_volume_low                                           ;
 +
@@ -8669,11 +8669,12 @@ engine_sound_randomness=*+1
     sta userVIATimer2CounterLow                                       ;
     lda flipbranch                                                    ;
     eor #$20                                                          ;
-    sta flipbranch                                                    ;
+    sta flipbranch                                                    ; self-modifying code
 +
     lda #8                                                            ;
     sta systemVIAOutB                                                 ;
-    bne irqret                                                        ;
+    lda irq_accumulator                                               ;
+    rti                                                               ;
 
 ; ----------------------------------------------------------------------------------
 check_vsync
@@ -9505,14 +9506,14 @@ initialise_powerups
 
     ; random locations nearby
     jsr random_number_generator                                       ;
-    and #7                                                            ;
+    and #15                                                           ;
     clc                                                               ;
-    adc #$7c                                                          ;
+    adc #$77                                                          ;
     sta powerups_x_screens,x                                          ;
     jsr random_number_generator                                       ;
-    and #7                                                            ;
+    and #15                                                           ;
     clc                                                               ;
-    adc #$78                                                          ;
+    adc #$70                                                          ;
     sta powerups_y_screens,x                                          ;
 
     jsr random_number_generator                                       ;
@@ -9913,29 +9914,6 @@ powerup_types_start_indexes
 powerup_types_num_segments
     !byte 4, 3, 5, 5, 7
 
-; ----------------------------------------------------------------------------------
-input_times_two_over_256
-    ;          screens  pixels  fraction
-    ; input  = abcdefgh ijklmnop qrstuvwx
-    ; output = 0000000a bcdefghi jklmnopq
-    ;                                      screens   pixels  fraction
-    ; ------------------------------------------------------------------------------
-    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
-    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
-    lda input_pixels            ;
-    sta output_fraction         ; output = ???????? ???????? jklmnopq
-
-    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
-    lda input_screens           ;
-    sta output_pixels           ; output = ???????? bcdefghi jklmnopq
-
-    lda #0                      ;
-    jmp finish_up_mul
-    ; jmp above does...
-    ;rol                         ; A      = 0000000a
-    ;sta output_screens          ; output = 0000000a bcdefghi jklmnopq
-    ;jmp mul_done                ;
-
 input_times_six_over_256
     ;          screens  pixels  fraction
     ; input = abcdefgh ijklmnop qrstuvwx
@@ -10034,18 +10012,39 @@ multiply_powerup_position_by_starship_rotation_sine
 mul_for_sine
     ; choose a specific multiply routine
     lda starship_rotation_sine_magnitude                              ;
-    cmp #4                                                            ;
-    bcc jump_to_input_times_two_over_256                              ;
+    cmp #10                                                           ;
+    beq input_times_ten_over_256                                      ;
+    cmp #6                                                            ;
+    beq input_times_six_over_256                                      ;
+    bcs input_times_eight_over_256                                    ;
+    cmp #4
     beq jump_to_input_times_four_over_256                             ;
-    cmp #8                                                            ;
-    bcc input_times_six_over_256                                      ;
-    beq input_times_eight_over_256                                    ;
 
-input_times_ten_over_256
-    ;          screens   pixels  fraction
+input_times_two_over_256
+    ;          screens  pixels  fraction
     ; input  = abcdefgh ijklmnop qrstuvwx
+    ; output = 0000000a bcdefghi jklmnopq
     ;                                      screens   pixels  fraction
     ; ------------------------------------------------------------------------------
+    asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
+    rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
+    lda input_pixels            ;
+    sta output_fraction         ; output = ???????? ???????? jklmnopq
+
+    rol input_screens           ; input  = bcdefghi jklmnopq rstuvwx0       carry=a
+    lda input_screens           ;
+    sta output_pixels           ; output = ???????? bcdefghi jklmnopq
+
+    lda #0                      ;
+    jmp finish_up_mul
+    ; jmp above does...
+    ;rol                         ; A      = 0000000a
+    ;sta output_screens          ; output = 0000000a bcdefghi jklmnopq
+    ;jmp mul_done                ;
+
+input_times_ten_over_256
+                                ;          screens   pixels  fraction
+                                ; input  = abcdefgh ijklmnop qrstuvwx
     ; input = input*2
     asl input_fraction          ; input  = abcdefgh ijklmnop rstuvwx0       carry=q
     rol input_pixels            ; input  = abcdefgh jklmnopq rstuvwx0       carry=i
@@ -10526,7 +10525,7 @@ init_late
     sta rnd_1                                                         ; seed random numbers
     lda #1                                                            ;
     sta rotation_damper                                               ; rotation dampers on by default
-    sta starship_shields_active                                       ; for some reason this needs initializing
+    sta starship_shields_active                                       ; for some reason this needs initialising
     lda #$ff                                                          ;
     sta starship_energy_divided_by_sixteen                            ; disable low energy flashing
 
