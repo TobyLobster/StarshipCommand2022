@@ -1030,7 +1030,7 @@ return
 eor_frontier_pixel
     lda y_pixels                                                      ;
     ;clc ; C is already clear
-    adc #28                                                           ;
+    adc #48                                                           ;
     tay                                                               ;
     bne eor_play_area_pixel_ycoord_in_y                               ; ALWAYS branch
 
@@ -6469,7 +6469,7 @@ return33
 ; On Entry:
 ;   A = X screens
 ;   Y = Y screens
-;   X = 0 or 1 (plot / unplot)
+;   X = 0 or 255 (plot / unplot)
 ;   temp8 = index of enemy ship to show
 ;
 ;   X screens/Y screens determine the pixel on the long range scanner to use
