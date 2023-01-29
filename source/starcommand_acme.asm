@@ -539,6 +539,11 @@ segment_length                              = $98   ; } same location
 multiplier                                  = $98   ; }
 output_screens                              = $98   ; }
 enemy_ship_desired_velocity                 = $99
+
+input_fraction                              = $9a
+input_pixels                                = $9b
+input_screens                               = $9c
+
 temp1_low                                   = $9a
 temp1_high                                  = $9b
 temp3                                       = $9c
@@ -698,17 +703,14 @@ squares1_high                           = $0b00  ; } (1024 bytes total)
 
 some_starship_sprites                   = $0d00  ; Yes including byte $0d00 itself, which will contain the opcode for 'RTI'
 
-squares2_low                            = $0e00  ; } 512 entries of 16 bit value (i*i)/4
-squares2_high                           = $1000  ; } (1024 bytes total)
-
-row_table_low                           = $1200  ; }
-play_area_row_table_high                = $1300  ; } tables of constants (1024 bytes)
-xandf8                                  = $1400  ; }
-xbit_table                              = $1500  ; }
+row_table_low                           = $0e00  ; }
+play_area_row_table_high                = $0f00  ; } tables of constants (1024 bytes)
+xandf8                                  = $1000  ; }
+xbit_table                              = $1100  ; }
 
 ; in front end:
-unused2                                 = $1600  ; UNUSED: 128 bytes (front end only).
-loader_string                           = $1680  ;
+unused2                                 = $1200  ; UNUSED: 128 bytes (front end only).
+loader_string                           = $1280  ;
 
 ; in game:
 ; each byte in 'enemy_explosion_ages' array stores information about an enemy explosion piece:
@@ -716,7 +718,7 @@ loader_string                           = $1680  ;
 ; each byte in 'enemy_explosion_radii' array stores information about an enemy explosion piece:
 ;        radius (top six bits), speed of ageing (bottom two bits)
 
-enemy_explosion_ages                    = $1600
+enemy_explosion_ages                    = $1200
 enemy_explosion_radii                   = enemy_explosion_ages + maximum_number_of_enemy_ships * number_of_enemy_explosion_pieces
 
 ; (x, y, start_angle, length) = 4 bytes
@@ -1282,37 +1284,37 @@ unset_pixel
 ; ----------------------------------------------------------------------------------
 init_self_modifying_bytes_for_starship_rotation
     lda starship_rotation_sine_magnitude                              ;
-    sta sm_sine_a1                                                    ;
-    sta sm_sine_b1                                                    ;
-    sta sm_sine_a3                                                    ;
-    sta sm_sine_b3                                                    ;
-    eor #$ff                                                          ;
-    sta sm_sine_a2                                                    ;
-    sta sm_sine_b2                                                    ;
-    sta sm_sine_a4                                                    ;
-    sta sm_sine_b4                                                    ;
+    sta get_low_4                                                     ;
+    sta get_low_5                                                     ;
+    sta get_high_4                                                    ;
+    sta get_high_5                                                    ;
 
     lda starship_rotation_cosine                                      ;
-    sta sm_cosine_a1                                                  ;
-    sta sm_cosine_a3                                                  ;
-    eor #$ff                                                          ;
-    sta sm_cosine_a2                                                  ;
-    sta sm_cosine_a4                                                  ;
+    sta get_low_6
+    sta get_high_6
 
     lda starship_rotation_powerup_cosine
-    sta mult_internal1                                                ;
-    sta mult_internal5                                                ;
-    sta mult_internal9                                                ;
-    sta mult_internal3                                                ;
-    sta mult_internal7                                                ;
-    sta mult_internal11                                               ;
-    eor #$ff                                                          ;
-    sta mult_internal2                                                ;
-    sta mult_internal6                                                ;
-    sta mult_internal10                                               ;
-    sta mult_internal4                                                ;
-    sta mult_internal8                                                ;
-    sta mult_internal12                                               ;
+    sta get_low_1
+    sta get_low_2
+    sta get_low_3
+    sta get_high_1
+    sta get_high_2
+    sta get_high_3
+
+
+;    sta mult_internal1                                                ;
+;    sta mult_internal5                                                ;
+;    sta mult_internal9                                                ;
+;    sta mult_internal3                                                ;
+;    sta mult_internal7                                                ;
+;    sta mult_internal11                                               ;
+;    eor #$ff                                                          ;
+;    sta mult_internal2                                                ;
+;    sta mult_internal6                                                ;
+;    sta mult_internal10                                               ;
+;    sta mult_internal4                                                ;
+;    sta mult_internal8                                                ;
+;    sta mult_internal12                                               ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -1355,44 +1357,51 @@ multiply_enemy_position_by_starship_rotation_sine
 ;
 ; On Entry:
 ;   24 bit value: (input_fraction, input_pixels, input_screens)
-;    8 bit value: t
+;    8 bit value: starship_rotation_powerup_cosine
 ; On Exit:
 ;   24 bit value: (output_fraction, output_pixels, output_screens) is the result
 ;
 ; Preserves X
 ;
-; Average cycle count: 133.9 cycles
 ; ----------------------------------------------------------------------------------
 mul24x8
     stx temp_x                                                        ; remember X
 
-input_fraction = *+1
-    ldx #0
+    ldx input_fraction
+    lda starship_rotation_powerup_cosine
     sec
-mult_internal1 = * + 1
+    sbc input_fraction
+    bcs +
+    sbc #0
+    eor #255
++
+    tay
+get_low_1 = *+1
     lda squares1_low,x
-mult_internal2 = * + 1
-    sbc squares2_low,x
-mult_internal3 = * + 1
+    sbc squares1_low,y
+;    sta prod_low
+get_high_1 = *+1
     lda squares1_high,x
-mult_internal4 = * + 1
-    sbc squares2_high,x
-
+    sbc squares1_high,y
     sta output_fraction
 
-input_pixels = *+1
-    ldx #0
+
+    ldx input_pixels
+    lda starship_rotation_powerup_cosine
     sec
-mult_internal5 = * + 1
-    lda squares1_low,x
-mult_internal6 = * + 1
-    sbc squares2_low,x
+    sbc input_pixels
+    bcs +
+    sbc #0
+    eor #255
++
     tay
-mult_internal7 = * + 1
+get_low_2 = *+1
+    lda squares1_low,x
+    sbc squares1_low,y
+    tay
+get_high_2 = *+1
     lda squares1_high,x
-mult_internal8 = * + 1
-    sbc squares2_high,x
-    sta output_pixels
+    sbc squares1_high,y
     tya
     clc
     adc output_fraction
@@ -1401,19 +1410,23 @@ mult_internal8 = * + 1
     inc output_pixels
 +
 
-input_screens = *+1
-    ldx #0
+
+    ldx input_screens
+    lda starship_rotation_powerup_cosine
     sec
-mult_internal9 = * + 1
-    lda squares1_low,x
-mult_internal10 = * + 1
-    sbc squares2_low,x
+    sbc input_screens
+    bcs +
+    sbc #0
+    eor #255
++
     tay
-mult_internal11 = * + 1
+get_low_3 = *+1
+    lda squares1_low,x
+    sbc squares1_low,y
+    tay
+get_high_3 = *+1
     lda squares1_high,x
-mult_internal12 = * + 1
-    sbc squares2_high,x
-    sta output_screens
+    sbc squares1_high,y
     tya
     clc
     adc output_pixels
@@ -1452,8 +1465,6 @@ multiply_enemy_position_by_starship_rotation_cosine
     sta input_fraction                                                ;
 
     ; multiply
-    lda starship_rotation_powerup_cosine                              ;
-    sta t                                                             ;
     jsr mul24x8                                                       ;
 
     ; result = input_coordinate - output/256  (ar add, if negating is needed)
@@ -5261,30 +5272,35 @@ single_torpedo
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; Calculate angle to starship
+;
 ; On Entry:
-;   (temp10, temp9) are the (x,y) coordinates of the enemy ship
+;   (temp10, temp9) are the (x,y) pixel coordinates of the enemy ship
 ; On Exit:
-;   Angle in A. Preserves X
+;   A: Angle to centre of screen (0-31)
+;   Preserves X
 ; ----------------------------------------------------------------------------------
 
 ; original code: 1574cs, ~480 cycles, 122 bytes, accuracy OK
 ; Toby's code: 702cs, ~214 cycles, 152 bytes, accuracy excellent
-; with accurate_atan2=1: 452cs, ~138 cycles, 211 bytes. accuracy as Toby's
-; with accurate_atan2=0: 411cs, ~125 cycles, 179 bytes, accuracy OK
+; with accurate_atan2=1: average 129 cycles, 269 bytes. accuracy as Toby's
+; with accurate_atan2=0: average 116 cycles, 237 bytes, accuracy OK
 accurate_atan2 = 0
 
 calculate_enemy_ship_angle_to_starship
     lda temp9                                                         ;
 calculate_enemy_ship_angle_to_starship_ycoord_in_a
+    stx enemy_number                                                  ; rememeber X
     ldy #0                                                            ;
     sty temp8                                                         ;
 !if accurate_atan2 {
+    cmp #0                                                            ;
     sec                                                               ;
     bmi skip_inversion_y3                                             ;
     eor #$ff                                                          ;
     sbc #1                                                            ;
     clc                                                               ;
-.skip_inversion_y3
+skip_inversion_y3
     rol temp8                                                         ; note whether inversion occurred
 ;    sec                                                              ;
     sbc #$7e                                                          ; difference from centre point (starship)
@@ -5345,37 +5361,73 @@ skip_swap
     lsr                                                               ;
     cmp y_pixels                                                      ; 16
     bcs return_angle_8                                                ;
+
 angle_8_or_greater
+    ; A = Y*25/256
+
+
+    ; 8 bit multiply 'Y * 25' into A register (the high byte)
+    sty temp_x
+    lda #25
+    sec
+    sbc temp_x
+    bcs +
+    sbc #0
+    eor #255
++
+    tax
 !if accurate_atan2 {
-    lda squares1_low + 25,y                                           ;
-    ;sec                                                               ;
-    sbc squares2_low + 255-25,y                                       ;
+    lda squares1_low + 25,y
+    sbc squares1_low,x
 }
-    lda squares1_high + 25,y                                          ;
-    sbc squares2_high + 255-25,y                                      ;
+;    sta prod_low
+    lda squares1_high + 25,y
+    sbc squares1_high,x
+
+
     cmp y_pixels                                                      ;
     bcc return_angle_9                                                ; if (x*25/256 >= y) then angle=8
+
 return_angle_8
     ldy temp8                                                         ;
     lda angle_result_table_8,y                                        ;
+    ldx enemy_number                                                  ; recall X
     rts                                                               ;
+
 return_angle_9
     ldy temp8                                                         ;
     lda angle_result_table_9,y                                        ;
+    ldx enemy_number                                                  ; recall X
     rts                                                               ;
+
 angle_9_or_greater
+    ; A = Y*78/256
+
+
+    ; 8 bit multiply 'Y * 78' into A register (the high byte)
+    sty temp_x
+    lda #78
+    sec
+    sbc temp_x
+    bcs +
+    sbc #0
+    eor #255
++
+    tax
 !if accurate_atan2 {
-    lda squares1_low + 78,y                                           ;
-    sec                                                               ;
-    sbc squares2_low + 255-78,y                                       ;
+    lda squares1_low + 78,y
+    sbc squares1_low,x
 }
-    lda squares1_high + 78,y                                          ;
-    sbc squares2_high + 255-78,y                                      ;
+    lda squares1_high + 78,y
+    sbc squares1_high,x
+
+
     cmp y_pixels                                                      ;
     bcs return_angle_9                                                ; if (x*78/256 >= y) then angle=9
 return_angle_10
     ldy temp8                                                         ;
     lda angle_result_table_10,y                                       ;
+    ldx enemy_number                                                  ; recall X
     rts                                                               ;
 
 angle_10_or_greater
@@ -5383,18 +5435,31 @@ angle_10_or_greater
     ror                                                               ;
     cmp y_pixels                                                      ; 192
     bcc angle_11_or_greater                                           ;
+
+    ; A = Y*137/256
+    sty temp_x
+    lda #137
+    sec
+    sbc temp_x
+    bcs +
+    sbc #0
+    eor #255
++
+    tax
 !if accurate_atan2 {
-    lda squares1_low + 137,y                                          ;
-    ;sec                                                               ;
-    sbc squares2_low + 255-137,y                                      ;
+    lda squares1_low + 137,y
+    sbc squares1_low,x
 }
-    lda squares1_high + 137,y                                         ;
-    sbc squares2_high + 255-137,y                                     ;
+    lda squares1_high + 137,y
+    sbc squares1_high,x
+
+
     cmp y_pixels                                                      ;
     bcs return_angle_10                                               ; if (x*137/256 >= y) then angle=10
 return_angle_11
     ldy temp8                                                         ;
     lda angle_result_table_11,y                                       ;
+    ldx enemy_number                                                  ; recall X
     rts                                                               ;
 
 angle_11_or_greater
@@ -5403,18 +5468,31 @@ angle_11_or_greater
 ;    ror
 ;    cmp y_pixels ; 224
 ;    bcc return_angle_12
+
+    ; A = Y*210/256
+    sty temp_x
+    lda #210
+    sec
+    sbc temp_x
+    bcs +
+    sbc #0
+    eor #255
++
+    tax
 !if accurate_atan2 {
-    lda squares1_low + 210,y                                          ;
-    sec                                                               ;
-    sbc squares2_low + 255-210,y                                      ;
+    lda squares1_low + 210,y
+    sbc squares1_low,x
 }
-    lda squares1_high + 210,y                                         ;
-    sbc squares2_high + 255-210,y                                     ;
+    lda squares1_high + 210,y
+    sbc squares1_high,x
+
+
     cmp y_pixels                                                      ;
     bcs return_angle_11                                               ; if (x*210/256 >= y) then angle=11
 return_angle_12
     ldy temp8                                                         ;
     lda angle_result_table_12,y                                       ;
+    ldx enemy_number                                                  ; recall X
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9250,31 +9328,6 @@ init_fractions_loop
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
-; From https://codebase64.org/doku.php?id=base:seriously_fast_multiplication
-; Calculate A*X with the product returned in prod_low(low) and A (high)
-; unsigned.
-; Preserves Y
-; ----------------------------------------------------------------------------------
-;mul8x8
-;    sta sm1                                                           ;
-;    sta sm3                                                           ;
-;    eor #$ff                                                          ;
-;    sta sm2                                                           ;
-;    sta sm4                                                           ;
-;
-;    sec                                                               ;
-;sm1 = * + 1
-;    lda squares1_low,x                                                ;
-;sm2 = * + 1
-;    sbc squares2_low,x                                                ;
-;    sta prod_low                                                      ;
-;sm3 = * + 1
-;    lda squares1_high,x                                               ;
-;sm4 = * + 1
-;    sbc squares2_high,x                                               ;
-;    rts                                                               ;
-
-; ----------------------------------------------------------------------------------
 ; Set (output_fraction, output_pixels) = starship_rotation_sine * position (16 bits)
 ;
 ; Given a signed 8.8 fixed point number 'b.a', and an 8 bit number 'c'
@@ -9297,32 +9350,48 @@ init_fractions_loop
 ;   output_pixels (low) and output_fraction (high)
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_sine_magnitude
-    ; 8 bit multiply starship_rotation_sine_magnitude * X into A register (the high byte)
-sm_sine_a1 = * + 1
-    lda squares1_low+$0a,x                                            ;
-    sec                                                               ;
-sm_sine_a2 = * + 1
-    sbc squares2_low+$f5,x                                            ;
-sm_sine_a3 = * + 1
-    lda squares1_high+$0a,x                                           ;
-sm_sine_a4 = * + 1
-    sbc squares2_high+$f5,x                                           ;
+    sty enemy_low                                                     ; remember Y for later
 
-    tax                                                               ; X = store the high byte 't'
+    ; 8 bit multiply 'X * multiply starship_rotation_sine_magnitude' into A register (the high byte)
+    stx temp_x
+    lda starship_rotation_sine_magnitude
+    sec
+    sbc temp_x
+    bcs +
+    sbc #0
+    eor #255
++
+    tay
+get_low_4 = *+1
+    lda squares1_low,x
+    sbc squares1_low,y
+;    sta prod_low
+get_high_4 = *+1
+    lda squares1_high,x
+    sbc squares1_high,y
+
+    sta temp0_low                                                     ; store the high byte 't'
 
     ; 8 bit multiply 'Y * starship_rotation_sine_magnitude', result in A register (high byte) and prod_low
-sm_sine_b1 = * + 1
-    lda squares1_low+$0a,y                                            ;
-    ;sec ; C is already set                                           ;
-sm_sine_b2 = * + 1
-    sbc squares2_low+$f5,y                                            ;
-    sta prod_low                                                      ;
-sm_sine_b3 = * + 1
-    lda squares1_high+$0a,y                                           ;
-sm_sine_b4 = * + 1
-    sbc squares2_high+$f5,y                                           ;
+    ldx enemy_low
+    lda starship_rotation_sine_magnitude
+    sec
+    sbc enemy_low
+    bcs +
+    sbc #0
+    eor #255
++
+    tay
+get_low_5 = *+1
+    lda squares1_low,x
+    sbc squares1_low,y
+    sta prod_low
+get_high_5 = *+1
+    lda squares1_high,x
+    sbc squares1_high,y
+
     sta output_fraction                                               ;
-    txa                                                               ; recall 't'
+    lda temp0_low                                                     ; recall 't'
     clc
     adc prod_low                                                      ;
     sta output_pixels                                                 ;
@@ -9333,10 +9402,10 @@ sm_sine_b4 = * + 1
 
 ; ----------------------------------------------------------------------------------
 ; On Entry:
-;   X = low byte of position 'fraction' (one coordinate)
-;   Y = high byte of position 'pixels'  (one coordinate)
+;   X = high byte of position 'pixels'  (one coordinate)
+;   Y = low byte of position 'fraction' (one coordinate)
 ; On Exit:
-;   Result in A (low byte) and temp8 (high byte)
+;   Result in A (low byte) and temp_x (high byte)
 ;   Preserves X,Y
 ; ----------------------------------------------------------------------------------
 multiply_object_position_by_starship_rotation_cosine
@@ -9346,33 +9415,35 @@ multiply_object_position_by_starship_rotation_cosine
     stx temp_x                                                        ;
     sty temp8                                                         ;
 
-    ; 8x8 multiply 'Y * starship_rotation_cosine', result in A (high byte only needed)
-sm_cosine_a1 = * + 1
-    lda squares1_low+$ce,y                                            ;
-    sec                                                               ;
-sm_cosine_a2 = * + 1
-    sbc squares2_low+$31,y                                            ;
-sm_cosine_a3 = * + 1
-    lda squares1_high+$ce,y                                           ;
-sm_cosine_a4 = * + 1
-    sbc squares2_high+$31,y                                           ;
 
-;    sec ; C is already set                                           ;
-    sbc temp8                                                         ;
-;    bcs +                                                            ;
-;    dec temp8                                                        ;
-;+
-;    clc ; C is already clear                                         ;
-    adc temp_x                                                        ;
+    ; 8x8 multiply 'X * starship_rotation_cosine', result in A (high byte only needed)
+    lda starship_rotation_cosine                                      ;
+    sec                                                               ;
+    sbc temp_x                                                        ;
+    bcs +                                                             ;
+    sbc #0                                                            ;
+    eor #255                                                          ;
++
+    tay                                                               ;
+get_low_6 = *+1
+    lda squares1_low,x                                                ;
+    sbc squares1_low,y                                                ;
+get_high_6 = *+1
+    lda squares1_high,x                                               ;
+    sbc squares1_high,y                                               ;
+
+
+
+    sbc temp_x                                                        ;
+    adc temp8                                                         ;
     bcs return1                                                       ;
-;    inc temp8                                                        ;
-    dec temp8                                                         ;
+    dec temp_x                                                        ;
 return1
     rts                                                               ;
 
 shortcut
     tya                                                               ; zero
-    sta temp8                                                         ;
+    sta temp_x                                                        ;
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9403,29 +9474,29 @@ update_object_position_for_starship_rotation_and_speed
     ldx object_y_fraction                                             ;
     tay                                                               ; Y = object_y_pixels
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    ldx object_x_fraction                                             ;
-    ldy object_x_pixels                                               ;
+    ldy object_x_fraction                                             ;
+    ldx object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
     clc                                                               ;
     adc output_pixels                                                 ; sine_y_fraction
     sta temp9                                                         ; cosine_x_plus_sine_y_fraction
-    lda temp8                                                         ; cosine_x_pixels
+    lda temp_x                                                        ; cosine_x_pixels
     adc output_fraction                                               ; sine_y_pixels
     sta temp10                                                        ; cosine_x_plus_sine_y_pixels
 
     ; Y' = Y*cosine - X*sine
 
 ;    These assignments are not needed since X,Y are still set to these values:
-;    ldx object_x_fraction                                             ;
-;    ldy object_x_pixels                                               ;
+    ldx object_x_fraction                                             ;
+    ldy object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
-    ldx object_y_fraction                                             ;
-    ldy object_y_pixels                                               ;
+    ldy object_y_fraction                                             ;
+    ldx object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
     sec                                                               ;
     sbc output_pixels                                                 ; sine_x_fraction
     sta object_y_fraction                                             ;
-    lda temp8                                                         ; cosine_y_pixels
+    lda temp_x                                                        ; cosine_y_pixels
     sbc output_fraction                                               ; sine_x_pixels
     sta object_y_pixels                                               ;
 
@@ -10174,8 +10245,6 @@ multiply_powerup_position_by_starship_rotation_cosine
     sta input_fraction                                                ;
 
     ; multiply
-    lda starship_rotation_powerup_cosine                              ;
-    sta t                                                             ;
     jsr mul24x8                                                       ;
 
     ; result = input_coordinate - output/256  (ar add, if negating is needed)
@@ -10203,7 +10272,6 @@ apply_starship_rotation_and_velocity_to_powerup
     jmp apply_starship_velocity_to_powerup                            ;
 
 starship_is_rotating1
-
     ; new position = previous position - centre (so that we rotate about the centre)
     lda powerups_previous_x_fraction,x                                ;
     sta powerups_x_fraction,x                                         ;
@@ -10824,21 +10892,6 @@ ml0
     iny                                                               ;
     bne lb1                                                           ;
 
-    ; create second table of squares
-    ldx #$00                                                          ;
-    ldy #$ff                                                          ;
--
-    lda squares1_high + 1,x                                           ;
-    sta squares2_high + $100,x                                        ;
-    lda squares1_high,x                                               ;
-    sta squares2_high,y                                               ;
-    lda squares1_low + 1,x                                            ;
-    sta squares2_low + $100,x                                         ;
-    lda squares1_low,x                                                ;
-    sta squares2_low,y                                                ;
-    dey                                                               ;
-    inx                                                               ;
-    bne -                                                             ;
     ; fall through...
 
 ; ----------------------------------------------------------------------------------
