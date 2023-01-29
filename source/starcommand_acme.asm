@@ -228,7 +228,7 @@
 
 debug_powerups = 0
 do_debug       = 0
-rom_writes     = 1
+rom_writes     = 0
 rotation_debug = 0
 update_enemies = 1
 
