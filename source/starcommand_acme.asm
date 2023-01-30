@@ -6696,8 +6696,8 @@ skip_unplotting_powerups_on_scanner
 
     ; flashing
     lda game_counter                                                  ;
-    and #15                                                           ;
-    cmp #8                                                            ;
+    and #7                                                           ;
+    cmp #4                                                            ;
     bcs skip_plotting_powerup_on_scanner                              ;
 
     lda powerups_x_screens,x                                          ; x screen
@@ -8398,6 +8398,7 @@ consider_next_record
     txa                                                               ;
     clc                                                               ;
     adc #$10                                                          ;
+    tax                                                               ;
     cmp #size_of_high_score_entry*number_of_high_score_entries        ;
     bcc consider_records_loop                                         ;
 score_is_zero
@@ -9349,7 +9350,7 @@ init_fractions_loop
 ; On Exit:
 ;   output_pixels (low) and output_fraction (high)
 ; ----------------------------------------------------------------------------------
-multiply_object_position_by_starship_rotation_sine_magnitude
+multiply_object_position_by_starship_rotation_sine
     sty enemy_low                                                     ; remember Y for later
 
     ; 8 bit multiply 'X * multiply starship_rotation_sine_magnitude' into A register (the high byte)
@@ -9473,7 +9474,7 @@ update_object_position_for_starship_rotation_and_speed
     ; X' = Y*sine + X*cosine
     ldx object_y_fraction                                             ;
     tay                                                               ; Y = object_y_pixels
-    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
+    jsr multiply_object_position_by_starship_rotation_sine            ;
     ldy object_x_fraction                                             ;
     ldx object_x_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
@@ -9489,7 +9490,7 @@ update_object_position_for_starship_rotation_and_speed
 ;    These assignments are not needed since X,Y are still set to these values:
     ldx object_x_fraction                                             ;
     ldy object_x_pixels                                               ;
-    jsr multiply_object_position_by_starship_rotation_sine_magnitude  ;
+    jsr multiply_object_position_by_starship_rotation_sine            ;
     ldy object_y_fraction                                             ;
     ldx object_y_pixels                                               ;
     jsr multiply_object_position_by_starship_rotation_cosine          ;
@@ -10128,7 +10129,7 @@ input_times_ten_over_256
     sta output_pixels           ; output = ???????? bcdefghi jklmnopq
 
     lda #0                      ; A      = 00000000
-    rol                         ; A      = 0000000a     (not needed since sign bit a=0?)
+    rol                         ; A      = 0000000a     [TODO: not needed since sign bit a=0?]
 
     ; input = input*4
     asl input_fraction          ; input  = bcdefghi jklmnopq stuvwx00       carry=r
