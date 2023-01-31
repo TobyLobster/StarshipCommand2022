@@ -7151,10 +7151,6 @@ command_number
     !byte 0                                                           ;
 
 ; ----------------------------------------------------------------------------------
-initial_enemy_speed_per_command
-    !byte enemy_full_speed/2, 3*enemy_full_speed/4, enemy_full_speed
-
-; ----------------------------------------------------------------------------------
 prepare_starship_for_next_command
     ldx starship_type                                                 ;
     inx                                                               ;
@@ -7196,10 +7192,6 @@ prepare_starship_for_next_command
 
     ; set velocity of enemy ships, based on command number
     lda #enemy_full_speed                                             ; full speed
-    cpx #3                                                            ;
-    bcs +                                                             ;
-    lda initial_enemy_speed_per_command - 1,x                         ; lower speeds for lower commands
-+
     sta desired_velocity_for_intact_enemy_ships                       ;
 
     lda #0                                                            ;
