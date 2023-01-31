@@ -252,7 +252,7 @@ maximum_number_of_explosions                                        = 8
 maximum_number_of_enemy_ships                                       = 8
 maximum_number_of_starship_torpedoes                                = 24
 maximum_number_of_enemy_torpedoes                                   = 24
-maximum_number_of_powerups                                          = 5
+maximum_number_of_powerups                                          = 4
 maximum_starship_velocity                                           = 4
 size_of_enemy_ship_for_collisions_between_enemy_ships               = 8
 enemy_ship_explosion_duration                                       = 37
@@ -294,12 +294,12 @@ starship_torpedo_cooldown_after_firing                              = 1
 starship_energy_drain_from_non_zero_rotation                        = 4
 starship_torpedoes_per_round                                        = 4
 starship_energy_drain_from_acceleration                             = 4
-starship_acceleration_from_player                                   = $40
+starship_acceleration_from_player                                   = $30
 starship_acceleration_from_velocity_damper                          = $20
 starship_torpedo_cooldown_after_round                               = 2
 starship_energy_drain_from_firing_torpedo                           = 4
 
-strength_of_player_rotation                                         = $f0
+strength_of_player_rotation                                         = $c0
 strength_of_rotation_dampers                                        = $40
 minimum_energy_value_to_avoid_starship_destruction                  = 4
 
@@ -1856,6 +1856,9 @@ return5
 torpedo_dir_table
     !byte $40, $c0, $7f
 
+; ----------------------------------------------------------------------------------
+; plot torpedo (or escape capsule) expiration shape
+;
 ;   -21012
 ; -1 .ffg.
 ;  0 aabbc
@@ -2123,6 +2126,8 @@ finished_updating_torpedoes
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
+; On Entry:
+;   Y = object index (index of torpedo or escape capsule)
 check_for_collision_with_enemy_ships
     sty current_object_index                                          ;
     lda object_table_xpixels,y                                        ;
@@ -2134,8 +2139,10 @@ check_for_collision_with_enemy_ships
     sta enemy_ships_still_to_consider                                 ;
     ldx #0                                                            ;
 consider_enemy_slot
-    lda enemy_ships_on_screen,x                                       ;
+    lda enemy_ships_on_screen,x                                       ; flag. 0 means enemy ships are on screen.
     bne move_to_next_enemy                                            ;
+
+    ; get difference between enemy ship X and object X position
     lda enemy_ships_x_pixels,x                                        ;
     sec                                                               ;
     sbc temp3                                                         ; torpedo_x_pixels
@@ -2143,7 +2150,9 @@ consider_enemy_slot
     eor #$ff                                                          ;
 skip_inversion_x1
     cmp #size_of_enemy_ship_for_collisions_with_torpedoes             ;
-    bcs move_to_next_enemy                                            ;
+    bcs move_to_next_enemy                                            ; if difference is too large, branch to next enemy
+
+    ; get difference between enemy ship Y and object Y position
     lda enemy_ships_y_pixels,x                                        ;
     sec                                                               ;
     sbc temp4                                                         ; torpedo_y_pixels
@@ -2151,7 +2160,8 @@ skip_inversion_x1
     eor #$ff                                                          ;
 skip_inversion_y1
     cmp #size_of_enemy_ship_for_collisions_with_torpedoes             ;
-    bcs move_to_next_enemy                                            ;
+    bcs move_to_next_enemy                                            ; if difference is too large, branch to next enemy
+
     lda enemy_ships_energy,x                                          ;
     bne skip_considering_explosion                                    ;
     lda enemy_ships_flags_or_explosion_timer,x                        ;
@@ -5705,6 +5715,7 @@ skip_inversion5
 skip_inversion6
     cmp #$40                                                          ;
     bcs mark_escape_capsule_as_off_screen                             ;
+    ldy #index_of_escape_capsule                                      ;
     jsr check_for_collision_with_enemy_ships                          ;
     bcc plot_escape_capsule                                           ;
 
@@ -5958,6 +5969,8 @@ skip_inversion9
     tay                                                               ;
     lda sine_table,y                                                  ;
     sta y_pixels                                                      ;
+
+    ; x_pixels = (starship velocity * 8) /256
     lda starship_velocity_low                                         ;
     sta x_pixels                                                      ;
     lda starship_velocity_high                                        ;
@@ -9770,6 +9783,7 @@ temp_index = * + 1
     inc temp_index                                                    ; increment current segment index
     dec powerup_counter                                               ; decrement loop counter
     bne -                                                             ;
+not_taken
     rts                                                               ;
 
 ; ----------------------------------------------------------------------------------
@@ -9841,9 +9855,8 @@ check_if_powerup_taken
     bne not_taken                                                     ;
     lda temp0_low                                                     ;
     cmp #1 + powerup_radius*powerup_radius/4                          ; test not against <=6*6, because we only have squares/4
-    bcc taken                                                         ;
-not_taken
-    rts                                                               ;
+    bcs not_taken                                                     ;
+
 taken
     ; reset any existing powerup
     jsr reset_powerup                                                 ;
@@ -9855,7 +9868,7 @@ taken
     pha                                                               ;
     ldx #<(sound_12)                                                  ;
     jsr do_osword_sound                                               ;
-    pla
+    pla                                                               ;
 
     sta active_powerup                                                ;
     cmp #1                                                            ;
@@ -9863,9 +9876,8 @@ taken
     beq take_powerup1                                                 ;
     cmp #3                                                            ;
     bcc take_powerup2                                                 ;
-    beq take_powerup3                                                 ;
 
-take_powerup4
+take_powerup3
     jmp smart_bomb                                                    ;
 
 take_powerup0
@@ -9885,15 +9897,6 @@ take_powerup1
 take_powerup2
     ; energy
     jmp reset_energy                                                  ;
-
-take_powerup3
-    ; slow bullets
-    lda #starship_torpedo_cooldown_after_firing*4                     ;
-    sta starship_torpedo_cooldown_reset_value                         ;
-
-    lda #powerup_duration / 2                                         ;
-    sta powerup_timer                                                 ;
-    rts                                                               ;
 
 reset_powerup
     stx temp9                                                         ;
@@ -9970,21 +9973,21 @@ flash_screen_timer
 ;                      17 16 15
 ;
 ;
-;       three  two             lightning        spiral               explosion
+;              three    two            lightning              explosion
 powerup_type_x
-    !byte   0,  0,    0,  2,    1, -2,  1,  1,  0,   0,  0, -3,  1,   0,  2,  2,  0, -2, -2,  0
+    !byte          0,    0,  0,  2,     0,  1, -2,  1,  1,     0,  2,  2,  0, -2, -2,  0
 powerup_type_y
-    !byte   0, -6,    3, -2,   -3,  0,  0,  1, -6,  -1,  2,  0, -3,  -2, -1,  1,  2,  1, -1, -6
+    !byte          0,   -6,  3, -2,    -6, -3,  0,  0,  1,    -2, -1,  1,  2,  1, -1, -6
 powerup_type_start_angle
-    !byte  23,  0,   20,  7,   11, 31,  0, 11,  0,   6, 15, 26,  3,  23, 28,  3,  7, 11, 19,  0
+    !byte         23,    0, 20,  7,     0, 11, 31,  0, 11,    23, 28,  3,  7, 11, 19,  0
 powerup_type_length
-    !byte   3, 32,    6,  5,    3,  3,  2,  3, 32,   3,  4,  5,  4,   2,  2,  2,  2,  2,  2, 32
+    !byte          3,   32,  6,  5,    32,  3,  3,  2,  3,     2,  2,  2,  2,  2,  2, 32
 
 ; ----------------------------------------------------------------------------------
 powerup_types_start_indexes
-    !byte 0, 1, 4, 8, 13
+    !byte 0, 1, 4, 9
 powerup_types_num_segments
-    !byte 4, 3, 5, 5, 7
+    !byte 4, 3, 5, 7
 
 input_times_six_over_256
     ;          screens  pixels  fraction
